@@ -12,6 +12,8 @@
         :root {
             --primary: #2c3e50;
             --secondary: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
             --bg: #f4f7f6;
         }
 
@@ -96,6 +98,12 @@
             padding-bottom: 10px; 
             margin-top: 0;
         }
+
+        h4 {
+            color: var(--primary);
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
         
         /* Forms & Inputs */
         .form-group { 
@@ -131,6 +139,22 @@
         .btn-submit:hover { 
             background: #219653; 
         }
+
+        .btn-action {
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            margin-right: 4px;
+        }
+
+        .btn-edit { background-color: var(--warning); }
+        .btn-edit:hover { background-color: #d35400; }
+        .btn-delete { background-color: var(--danger); }
+        .btn-delete:hover { background-color: #c0392b; }
         
         /* Contenitore Tabella Reattivo */
         .table-responsive {
@@ -143,7 +167,7 @@
         table { 
             width: 100%; 
             border-collapse: collapse; 
-            min-width: 500px;
+            min-width: 550px;
         }
         
         th, td { 
@@ -209,7 +233,7 @@
             background-color: #f0f4f8 !important;
         }
 
-        /* --- STILI MODAL DETTAGLI VIAGGIO --- */
+        /* --- STILI MODAL --- */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -231,7 +255,7 @@
             background: #ffffff;
             padding: 20px;
             border-radius: 10px;
-            max-width: 380px;
+            max-width: 420px;
             width: 90%;
             position: relative;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
@@ -263,6 +287,22 @@
             margin: 8px 0;
             font-size: 14px;
             color: #333;
+        }
+
+        .modal-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
         }
 
         /* --- RISOLUZIONE SMARTPHONE VERTICALE (<= 768px) --- */
@@ -352,7 +392,7 @@
         <h2>🏕️ CamperApp</h2>
         <div class="nav-menu">
             <button onclick="switchMenu('dashboard')" class="active" id="btn-dashboard">Stato Camper</button>
-            <button onclick="switchMenu('viaggi')" id="btn-viaggi">Carica Viaggi</button>
+            <button onclick="switchMenu('viaggi')" id="btn-viaggi">Gestione Viaggi</button>
             <button onclick="switchMenu('calendario')" id="btn-calendario">Calendario</button>
             <button onclick="switchMenu('costi')" id="btn-costi">Costi Sostenuti</button>
         </div>
@@ -379,7 +419,7 @@
             <button class="btn-submit" onclick="salvaStatoCamper()">Aggiorna Stato</button>
         </div>
 
-        <!-- PANNELLO: CARICA VIAGGI -->
+        <!-- PANNELLO: GESTIONE VIAGGI & RIFORNIMENTI -->
         <div id="viaggi" class="panel">
             <h3>Registra un nuovo Viaggio</h3>
             <div class="grid-2">
@@ -426,6 +466,43 @@
                 </div>
             </div>
             <button class="btn-submit" onclick="salvaRifornimento()" style="background-color: var(--primary);">Aggiungi Rifornimento</button>
+
+            <hr style="margin: 30px 0; border: 0; border-top: 2px solid var(--primary);">
+
+            <!-- TABELLA GESTIONE VIAGGI -->
+            <h4>📋 Elenco Viaggi Salvati</h4>
+            <div class="table-responsive">
+                <table id="tabella-gestione-viaggi">
+                    <thead>
+                        <tr>
+                            <th>Luogo</th>
+                            <th>Dal</th>
+                            <th>Al</th>
+                            <th>Notti</th>
+                            <th>€/Giorno</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- Popolato da JS --></tbody>
+                </table>
+            </div>
+
+            <!-- TABELLA GESTIONE RIFORNIMENTI -->
+            <h4>⛽ Elenco Rifornimenti Salvati</h4>
+            <div class="table-responsive">
+                <table id="tabella-gestione-rifornimenti">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Luogo</th>
+                            <th>Litri</th>
+                            <th>Costo Totale</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- Popolato da JS --></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- PANNELLO: CALENDARIO -->
@@ -448,20 +525,74 @@
                             <th>Totale Speso (€)</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- Popolato da JS -->
-                    </tbody>
+                    <tbody><!-- Popolato da JS --></tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <!-- Modal Dettagli Viaggio -->
-    <div id="modal-dettagli" class="modal-overlay" onclick="chiudiModalDettagli(event)">
+    <!-- Modal Dettagli Viaggio (Calendario) -->
+    <div id="modal-dettagli" class="modal-overlay" onclick="chiudiModalOnClick(event, 'modal-dettagli')">
         <div class="modal-card">
-            <span class="modal-close" onclick="chiudiModalDettagliDirect()">&times;</span>
+            <span class="modal-close" onclick="chiudiModal('modal-dettagli')">&times;</span>
             <h4 id="modal-titolo">Dettagli Viaggio</h4>
             <div id="modal-body"></div>
+            <div class="modal-actions">
+                <button class="btn-edit" id="btn-modal-edit-viaggio">✏️ Modifica</button>
+                <button class="btn-delete" id="btn-modal-del-viaggio">🗑️ Elimina</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modifica Viaggio -->
+    <div id="modal-edit-viaggio" class="modal-overlay" onclick="chiudiModalOnClick(event, 'modal-edit-viaggio')">
+        <div class="modal-card">
+            <span class="modal-close" onclick="chiudiModal('modal-edit-viaggio')">&times;</span>
+            <h4>Modifica Viaggio</h4>
+            <input type="hidden" id="edit_v_id">
+            <div class="form-group">
+                <label>Luogo</label>
+                <input type="text" id="edit_v_luogo">
+            </div>
+            <div class="form-group">
+                <label>Data Dal</label>
+                <input type="date" id="edit_v_dal">
+            </div>
+            <div class="form-group">
+                <label>Data Al</label>
+                <input type="date" id="edit_v_al">
+            </div>
+            <div class="form-group">
+                <label>Costo Giornaliero (€)</label>
+                <input type="number" id="edit_v_costo" step="0.01">
+            </div>
+            <button class="btn-submit" onclick="salvaModificaViaggio()">Salva Modifiche</button>
+        </div>
+    </div>
+
+    <!-- Modal Modifica Rifornimento -->
+    <div id="modal-edit-rifornimento" class="modal-overlay" onclick="chiudiModalOnClick(event, 'modal-edit-rifornimento')">
+        <div class="modal-card">
+            <span class="modal-close" onclick="chiudiModal('modal-edit-rifornimento')">&times;</span>
+            <h4>Modifica Rifornimento</h4>
+            <input type="hidden" id="edit_r_id">
+            <div class="form-group">
+                <label>Luogo / Viaggio</label>
+                <input type="text" id="edit_r_luogo">
+            </div>
+            <div class="form-group">
+                <label>Data Rifornimento</label>
+                <input type="date" id="edit_r_data">
+            </div>
+            <div class="form-group">
+                <label>Litri</label>
+                <input type="number" id="edit_r_litri" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Costo Totale (€)</label>
+                <input type="number" id="edit_r_costo" step="0.01">
+            </div>
+            <button class="btn-submit" onclick="salvaModificaRifornimento()">Salva Modifiche</button>
         </div>
     </div>
 
@@ -473,17 +604,17 @@
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Tavolozza colori per distinguere i viaggi
         const PALETTE_COLORI = [
             '#27ae60', '#2980b9', '#8e44ad', '#d35400', 
             '#c0392b', '#16a085', '#d63031', '#e67e22',
             '#00b894', '#6c5ce7', '#0984e3', '#fdcb6e'
         ];
 
-        // --- CARICAMENTO AUTOMATICO ALL'AVVIO ---
         document.addEventListener('DOMContentLoaded', () => {
             caricaStatoCamper();
             aggiornaSuggerimentiLuoghi();
+            caricaTabellaViaggi();
+            caricaTabellaRifornimenti();
         });
 
         // --- GESTIONE MENU ---
@@ -494,7 +625,11 @@
             document.getElementById('btn-' + menuId).classList.add('active');
 
             if(menuId === 'dashboard') caricaStatoCamper();
-            if(menuId === 'viaggi') aggiornaSuggerimentiLuoghi();
+            if(menuId === 'viaggi') {
+                aggiornaSuggerimentiLuoghi();
+                caricaTabellaViaggi();
+                caricaTabellaRifornimenti();
+            }
             if(menuId === 'calendario') inizializzaCalendario();
             if(menuId === 'costi') caricaCosti();
         }
@@ -520,7 +655,6 @@
         inputDal.addEventListener('change', calcolaNotti);
         inputAl.addEventListener('change', calcolaNotti);
 
-        // --- POPOLA SUGGERIMENTI LUOGHI ---
         async function aggiornaSuggerimentiLuoghi() {
             const { data: viaggi } = await supabaseClient.from('viaggi').select('luogo');
             const datalist = document.getElementById('lista-luoghi-suggeriti');
@@ -536,8 +670,7 @@
             }
         }
 
-        // --- FUNZIONI DATABASE ---
-
+        // --- STATO CAMPER ---
         async function caricaStatoCamper() {
             const { data, error } = await supabaseClient
                 .from('stato_camper')
@@ -545,10 +678,7 @@
                 .order('id', { ascending: false })
                 .limit(1);
 
-            if (error) {
-                console.error("Errore nel recupero dello stato camper:", error);
-                return;
-            }
+            if (error) return console.error("Errore recupero stato:", error);
 
             if (data && data.length > 0) {
                 const ultimoStato = data[0];
@@ -563,14 +693,15 @@
             const carb = document.getElementById('livello_carburante').value;
             const acqua = document.getElementById('acque_chiare').value;
 
-            const { data, error } = await supabaseClient
+            const { error } = await supabaseClient
                 .from('stato_camper')
                 .insert([{ km_attuali: km, livello_carburante: carb, livello_acque_chiare: acqua }]);
             
-            if (error) alert("Errore nel salvataggio stato: " + error.message);
+            if (error) alert("Errore salvataggio: " + error.message);
             else alert("Stato aggiornato correttamente.");
         }
 
+        // --- VIAGGI (INSERIMENTO, ELENCO, MODIFICA, ELIMINAZIONE) ---
         async function salvaViaggio() {
             const luogo = document.getElementById('luogo').value;
             const dal = document.getElementById('data_dal').value;
@@ -578,37 +709,169 @@
             const costo = document.getElementById('costo_giornaliero').value;
             const notti = parseInt(document.getElementById('notti_calcolate').innerText);
 
-            if(!luogo || !dal || !al || isNaN(notti)) return alert("Compila tutti i campi del viaggio correttamente");
+            if(!luogo || !dal || !al || isNaN(notti)) return alert("Compila correttamente i campi");
 
-            const { data, error } = await supabaseClient
+            const { error } = await supabaseClient
                 .from('viaggi')
                 .insert([{ luogo: luogo, data_dal: dal, data_al: al, notti: notti, costo_giornaliero: costo }]);
             
-            if (error) alert("Errore nel salvataggio viaggio: " + error.message);
+            if (error) alert("Errore salvataggio: " + error.message);
             else {
                 alert("Viaggio salvato!");
                 document.getElementById('luogo').value = '';
+                caricaTabellaViaggi();
                 aggiornaSuggerimentiLuoghi();
             }
         }
 
+        async function caricaTabellaViaggi() {
+            const tbody = document.querySelector('#tabella-gestione-viaggi tbody');
+            const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*').order('data_dal', { ascending: false });
+            if(error) return console.error(error);
+
+            tbody.innerHTML = (viaggi || []).map(v => `
+                <tr>
+                    <td><strong>${v.luogo}</strong></td>
+                    <td>${v.data_dal}</td>
+                    <td>${v.data_al}</td>
+                    <td>${v.notti || 0}</td>
+                    <td>${parseFloat(v.costo_giornaliero || 0).toFixed(2)} €</td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick='apriModificaViaggio(${JSON.stringify(v)})'>✏️</button>
+                        <button class="btn-action btn-delete" onclick="eliminaViaggio(${v.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6">Nessun viaggio registrato.</td></tr>';
+        }
+
+        function apriModificaViaggio(viaggio) {
+            document.getElementById('edit_v_id').value = viaggio.id;
+            document.getElementById('edit_v_luogo').value = viaggio.luogo;
+            document.getElementById('edit_v_dal').value = viaggio.data_dal;
+            document.getElementById('edit_v_al').value = viaggio.data_al;
+            document.getElementById('edit_v_costo').value = viaggio.costo_giornaliero;
+            
+            chiudiModal('modal-dettagli');
+            apriModal('modal-edit-viaggio');
+        }
+
+        async function salvaModificaViaggio() {
+            const id = document.getElementById('edit_v_id').value;
+            const luogo = document.getElementById('edit_v_luogo').value;
+            const dal = document.getElementById('edit_v_dal').value;
+            const al = document.getElementById('edit_v_al').value;
+            const costo = document.getElementById('edit_v_costo').value;
+
+            const dDal = new Date(dal);
+            const dAl = new Date(al);
+            const notti = Math.ceil(Math.abs(dAl - dDal) / (1000 * 60 * 60 * 24)) || 0;
+
+            const { error } = await supabaseClient
+                .from('viaggi')
+                .update({ luogo, data_dal: dal, data_al: al, notti, costo_giornaliero: costo })
+                .eq('id', id);
+
+            if(error) alert("Errore aggiornamento: " + error.message);
+            else {
+                alert("Viaggio aggiornato!");
+                chiudiModal('modal-edit-viaggio');
+                caricaTabellaViaggi();
+                if(calendarInstance) inizializzaCalendario();
+            }
+        }
+
+        async function eliminaViaggio(id) {
+            if(!confirm("Sei sicuro di voler eliminare questo viaggio?")) return;
+
+            const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
+            if(error) alert("Errore eliminazione: " + error.message);
+            else {
+                alert("Viaggio eliminato!");
+                chiudiModal('modal-dettagli');
+                caricaTabellaViaggi();
+                if(calendarInstance) inizializzaCalendario();
+            }
+        }
+
+        // --- RIFORNIMENTI (INSERIMENTO, ELENCO, MODIFICA, ELIMINAZIONE) ---
         async function salvaRifornimento() {
             const luogo = document.getElementById('rifornimento_luogo').value || 'Generico / Fuori Viaggio';
             const dataRif = document.getElementById('data_rifornimento').value;
             const litri = document.getElementById('litri_rifornimento').value;
             const costo = document.getElementById('costo_rifornimento').value;
 
-            if(!dataRif || !litri || !costo) return alert("Inserisci data, litri e costo del rifornimento");
+            if(!dataRif || !litri || !costo) return alert("Inserisci data, litri e costo");
 
-            const { data, error } = await supabaseClient
+            const { error } = await supabaseClient
                 .from('rifornimenti')
                 .insert([{ luogo: luogo, data_rifornimento: dataRif, litri: litri, costo_totale: costo }]);
             
-            if (error) alert("Errore nel salvataggio rifornimento: " + error.message);
+            if (error) alert("Errore salvataggio: " + error.message);
             else {
                 alert("Rifornimento inserito!");
                 document.getElementById('litri_rifornimento').value = '';
                 document.getElementById('costo_rifornimento').value = '';
+                caricaTabellaRifornimenti();
+            }
+        }
+
+        async function caricaTabellaRifornimenti() {
+            const tbody = document.querySelector('#tabella-gestione-rifornimenti tbody');
+            const { data: rifornimenti, error } = await supabaseClient.from('rifornimenti').select('*').order('data_rifornimento', { ascending: false });
+            if(error) return console.error(error);
+
+            tbody.innerHTML = (rifornimenti || []).map(r => `
+                <tr>
+                    <td>${r.data_rifornimento}</td>
+                    <td><strong>${r.luogo}</strong></td>
+                    <td>${parseFloat(r.litri || 0).toFixed(1)} L</td>
+                    <td>${parseFloat(r.costo_totale || 0).toFixed(2)} €</td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick='apriModificaRifornimento(${JSON.stringify(r)})'>✏️</button>
+                        <button class="btn-action btn-delete" onclick="eliminaRifornimento(${r.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5">Nessun rifornimento registrato.</td></tr>';
+        }
+
+        function apriModificaRifornimento(rif) {
+            document.getElementById('edit_r_id').value = rif.id;
+            document.getElementById('edit_r_luogo').value = rif.luogo;
+            document.getElementById('edit_r_data').value = rif.data_rifornimento;
+            document.getElementById('edit_r_litri').value = rif.litri;
+            document.getElementById('edit_r_costo').value = rif.costo_totale;
+
+            apriModal('modal-edit-rifornimento');
+        }
+
+        async function salvaModificaRifornimento() {
+            const id = document.getElementById('edit_r_id').value;
+            const luogo = document.getElementById('edit_r_luogo').value;
+            const dataRif = document.getElementById('edit_r_data').value;
+            const litri = document.getElementById('edit_r_litri').value;
+            const costo = document.getElementById('edit_r_costo').value;
+
+            const { error } = await supabaseClient
+                .from('rifornimenti')
+                .update({ luogo, data_rifornimento: dataRif, litri, costo_totale: costo })
+                .eq('id', id);
+
+            if(error) alert("Errore aggiornamento: " + error.message);
+            else {
+                alert("Rifornimento aggiornato!");
+                chiudiModal('modal-edit-rifornimento');
+                caricaTabellaRifornimenti();
+            }
+        }
+
+        async function eliminaRifornimento(id) {
+            if(!confirm("Sei sicuro di voler eliminare questo rifornimento?")) return;
+
+            const { error } = await supabaseClient.from('rifornimenti').delete().eq('id', id);
+            if(error) alert("Errore eliminazione: " + error.message);
+            else {
+                alert("Rifornimento eliminato!");
+                caricaTabellaRifornimenti();
             }
         }
 
@@ -617,16 +880,12 @@
 
         async function inizializzaCalendario() {
             const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*');
-            if (error) {
-                console.error("Errore recupero viaggi:", error);
-                return;
-            }
+            if (error) return console.error("Errore recupero viaggi:", error);
 
             let eventi = (viaggi || []).map((v, index) => {
                 let dataFine = new Date(v.data_al);
                 dataFine.setDate(dataFine.getDate() + 1);
                 let endIso = dataFine.toISOString().split('T')[0];
-
                 let coloreAssegnato = PALETTE_COLORI[index % PALETTE_COLORI.length];
                 
                 const notti = parseInt(v.notti) || 0;
@@ -642,6 +901,7 @@
                     borderColor: coloreAssegnato,
                     textColor: '#ffffff',
                     extendedProps: {
+                        rawObject: v,
                         luogo: v.luogo,
                         dal: v.data_dal,
                         al: v.data_al,
@@ -673,6 +933,8 @@
                     },
                     eventClick: function(info) {
                         const props = info.event.extendedProps;
+                        const raw = props.rawObject;
+                        
                         document.getElementById('modal-titolo').innerText = '🏕️ ' + props.luogo;
                         document.getElementById('modal-body').innerHTML = `
                             <div class="modal-info-row"><strong>Data Inizio:</strong> ${props.dal}</div>
@@ -682,7 +944,11 @@
                             <hr style="margin:10px 0; border:0; border-top:1px solid #eee;">
                             <div class="modal-info-row" style="font-size:16px;"><strong>Spesa Campeggio:</strong> <span style="color:var(--secondary); font-weight:bold;">${props.costoTotale} €</span></div>
                         `;
-                        document.getElementById('modal-dettagli').classList.add('active');
+                        
+                        document.getElementById('btn-modal-edit-viaggio').onclick = () => apriModificaViaggio(raw);
+                        document.getElementById('btn-modal-del-viaggio').onclick = () => eliminaViaggio(raw.id);
+
+                        apriModal('modal-dettagli');
                     }
                 });
                 calendarInstance.render();
@@ -693,26 +959,28 @@
             }
         }
 
-        function chiudiModalDettagli(event) {
-            if (event.target.id === 'modal-dettagli') {
-                document.getElementById('modal-dettagli').classList.remove('active');
+        // --- UTILITIES MODAL ---
+        function apriModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function chiudiModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function chiudiModalOnClick(event, id) {
+            if (event.target.id === id) {
+                chiudiModal(id);
             }
         }
 
-        function chiudiModalDettagliDirect() {
-            document.getElementById('modal-dettagli').classList.remove('active');
-        }
-
-        // --- TABELLA COSTI AGGREGATI PER LUOGO ---
+        // --- TABELLA COSTI AGGREGATI ---
         async function caricaCosti() {
             const tbody = document.querySelector('#tabella-costi tbody');
             tbody.innerHTML = '<tr><td colspan="4">Caricamento in corso...</td></tr>';
 
-            const { data: viaggi, errorViaggi } = await supabaseClient.from('viaggi').select('*');
-            const { data: rifornimenti, errorRif } = await supabaseClient.from('rifornimenti').select('*');
-
-            if (errorViaggi) console.error("Errore viaggi:", errorViaggi);
-            if (errorRif) console.error("Errore rifornimenti:", errorRif);
+            const { data: viaggi } = await supabaseClient.from('viaggi').select('*');
+            const { data: rifornimenti } = await supabaseClient.from('rifornimenti').select('*');
 
             const mappaLuoghi = {};
 
