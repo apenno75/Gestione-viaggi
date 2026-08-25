@@ -145,7 +145,8 @@
 		
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        // --- GESTIONE MENU ---
+		
+ // --- GESTIONE MENU ---
         function switchMenu(menuId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -184,7 +185,8 @@
             const carb = document.getElementById('livello_carburante').value;
             const acqua = document.getElementById('acque_chiare').value;
 
-            const { data, error } = await supabase
+            // QUI USIAMO supabaseClient
+            const { data, error } = await supabaseClient
                 .from('stato_camper')
                 .insert([{ km_attuali: km, livello_carburante: carb, livello_acque_chiare: acqua }]);
             
@@ -201,7 +203,8 @@
 
             if(!luogo || !dal || !al || isNaN(notti)) return alert("Compila tutti i campi del viaggio correttamente");
 
-            const { data, error } = await supabase
+            // QUI USIAMO supabaseClient
+            const { data, error } = await supabaseClient
                 .from('viaggi')
                 .insert([{ luogo: luogo, data_dal: dal, data_al: al, notti: notti, costo_giornaliero: costo }]);
             
@@ -217,7 +220,8 @@
             const litri = document.getElementById('litri_rifornimento').value;
             const costo = document.getElementById('costo_rifornimento').value;
 
-            const { data, error } = await supabase
+            // QUI USIAMO supabaseClient
+            const { data, error } = await supabaseClient
                 .from('rifornimenti')
                 .insert([{ data_rifornimento: dataRif, litri: litri, costo_totale: costo }]);
             
@@ -230,7 +234,9 @@
         async function inizializzaCalendario() {
             if(calendarRendered) return;
             const calendarEl = document.getElementById('calendar-container');
-            const { data: viaggi, error } = await supabase.from('viaggi').select('*');
+            
+            // QUI USIAMO supabaseClient
+            const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*');
             
             let eventi = [];
             if(viaggi) {
@@ -256,8 +262,9 @@
             const tbody = document.querySelector('#tabella-costi tbody');
             tbody.innerHTML = '<tr><td colspan="4">Caricamento in corso...</td></tr>';
 
-            const { data: viaggi, errorViaggi } = await supabase.from('viaggi').select('*');
-            const { data: rifornimenti, errorRif } = await supabase.from('rifornimenti').select('*');
+            // QUI USIAMO supabaseClient
+            const { data: viaggi, errorViaggi } = await supabaseClient.from('viaggi').select('*');
+            const { data: rifornimenti, errorRif } = await supabaseClient.from('rifornimenti').select('*');
 
             let html = '';
             let totaleSpese = 0;
