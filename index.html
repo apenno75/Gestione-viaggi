@@ -307,6 +307,45 @@
             text-overflow: ellipsis !important;
         }
     }
+/* --- OTTIMIZZAZIONE CONTRASTO VISTA LISTA --- */
+
+/* Intestazione della data (Fondo scuro con testo bianco leggibile) */
+.fc .fc-list-day-cushion {
+    background-color: var(--primary) !important;
+}
+
+.fc .fc-list-day-cushion a,
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    text-decoration: none !important;
+}
+
+/* Sfondo e testo delle righe degli eventi */
+.fc .fc-list-event td {
+    background-color: #ffffff !important;
+    color: #2c3e50 !important;
+    font-size: 14px !important;
+}
+
+/* Titolo dell'evento */
+.fc .fc-list-event-title a {
+    color: #2c3e50 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+}
+
+/* Messaggio di nessun evento in lista */
+.fc .fc-list-empty-cushion {
+    color: #2c3e50 !important;
+    font-weight: bold;
+}
+
+/* Effetto evidenziatore quando si tocca una riga */
+.fc .fc-list-event:hover td {
+    background-color: #f0f4f8 !important;
+}	
 </style>
 </head>
 <body>
