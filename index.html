@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Camper</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #27ae60;
+            --bg: #f4f7f6;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg); display: flex; }
+        
+        /* Sidebar Menu */
+        nav { width: 250px; background: var(--primary); color: white; height: 100vh; padding-top: 20px; position: fixed; }
+        nav h2 { text-align: center; margin-bottom: 30px; }
+        nav button { display: block; width: 100%; padding: 15px; background: none; border: none; color: white; text-align: left; font-size: 16px; cursor: pointer; border-bottom: 1px solid #34495e; }
+        nav button:hover, nav button.active { background: #34495e; border-left: 4px solid var(--secondary); }
+        
+        /* Main Content */
+        main { margin-left: 250px; padding: 40px; width: calc(100% - 250px); }
+        .panel { display: none; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .panel.active { display: block; }
+        h3 { color: var(--primary); border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+        
+        /* Forms & Tables */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        input[type="text"], input[type="number"], input[type="date"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-submit { background: var(--secondary); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .btn-submit:hover { background: #219653; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--primary); color: white; }
+        
+        /* Grid layout for forms */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <h2>🏕️ CamperApp</h2>
+        <button onclick="switchMenu('dashboard')" class="active" id="btn-dashboard">Stato Camper</button>
+        <button onclick="switchMenu('viaggi')" id="btn-viaggi">Carica Viaggi</button>
+        <button onclick="switchMenu('calendario')" id="btn-calendario">Calendario</button>
+        <button onclick="switchMenu('costi')" id="btn-costi">Costi Sostenuti</button>
+    </nav>
+
+    <main>
+        <div id="dashboard" class="panel active">
+            <h3>Impostazioni e Stato Attuale</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Km Attuali</label>
+                    <input type="number" id="km_attuali">
+                </div>
+                <div class="form-group">
+                    <label>Livello Carburante (%)</label>
+                    <input type="number" id="livello_carburante" max="100">
+                </div>
+                <div class="form-group">
+                    <label>Acque Chiare (%)</label>
+                    <input type="number" id="acque_chiare" max="100">
+                </div>
+            </div>
+            <button class="btn-submit" onclick="salvaStatoCamper()">Aggiorna Stato</button>
+        </div>
+
+        <div id="viaggi" class="panel">
+            <h3>Registra un nuovo Viaggio</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Luogo</label>
+                    <input type="text" id="luogo">
+                </div>
+                <div class="form-group">
+                    <label>Costo Giornaliero Campeggio (€)</label>
+                    <input type="number" id="costo_giornaliero" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Data Dal</label>
+                    <input type="date" id="data_dal">
+                </div>
+                <div class="form-group">
+                    <label>Data Al</label>
+                    <input type="date" id="data_al">
+                </div>
+            </div>
+            <p><strong>Notti calcolate: </strong><span id="notti_calcolate">0</span></p>
+            <button class="btn-submit" onclick="salvaViaggio()">Salva Viaggio</button>
+
+            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+
+            <h3>Registra Rifornimento</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Data Rifornimento</label>
+                    <input type="date" id="data_rifornimento">
+                </div>
+                <div class="form-group">
+                    <label>Litri</label>
+                    <input type="number" id="litri_rifornimento" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Costo Totale (€)</label>
+                    <input type="number" id="costo_rifornimento" step="0.01">
+                </div>
+            </div>
+            <button class="btn-submit" onclick="salvaRifornimento()" style="background-color: var(--primary);">Aggiungi Rifornimento</button>
+        </div>
+
+        <div id="calendario" class="panel">
+            <h3>Calendario Viaggi</h3>
+            <div id="calendar-container"></div>
+        </div>
+
+        <div id="costi" class="panel">
+            <h3>Riepilogo Costi</h3>
+            <button class="btn-submit" onclick="caricaCosti()">Aggiorna Dati</button>
+            <table id="tabella-costi">
+                <thead>
+                    <tr>
+                        <th>Tipo Spesa</th>
+                        <th>Dettaglio</th>
+                        <th>Data</th>
+                        <th>Costo (€)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        // Inizializzazione Supabase
+        const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- GESTIONE MENU ---
+        function switchMenu(menuId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(menuId).classList.add('active');
+            document.getElementById('btn-' + menuId).classList.add('active');
+
+            if(menuId === 'calendario') inizializzaCalendario();
+            if(menuId === 'costi') caricaCosti();
+        }
+
+        // --- CALCOLO AUTOMATICO NOTTI ---
+        const inputDal = document.getElementById('data_dal');
+        const inputAl = document.getElementById('data_al');
+        const displayNotti = document.getElementById('notti_calcolate');
+
+        function calcolaNotti() {
+            if(inputDal.value && inputAl.value) {
+                const dal = new Date(inputDal.value);
+                const al = new Date(inputAl.value);
+                if(al >= dal) {
+                    const diffTempo = Math.abs(al - dal);
+                    const notti = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+                    displayNotti.innerText = notti;
+                } else {
+                    displayNotti.innerText = "Errore: 'Al' precedente a 'Dal'";
+                }
+            }
+        }
+        inputDal.addEventListener('change', calcolaNotti);
+        inputAl.addEventListener('change', calcolaNotti);
+
+        // --- FUNZIONI DATABASE ---
+
+        async function salvaStatoCamper() {
+            const km = document.getElementById('km_attuali').value;
+            const carb = document.getElementById('livello_carburante').value;
+            const acqua = document.getElementById('acque_chiare').value;
+
+            const { data, error } = await supabase
+                .from('stato_camper')
+                .insert([{ km_attuali: km, livello_carburante: carb, livello_acque_chiare: acqua }]);
+            
+            if (error) alert("Errore nel salvataggio stato!");
+            else alert("Stato aggiornato correttamente.");
+        }
+
+        async function salvaViaggio() {
+            const luogo = document.getElementById('luogo').value;
+            const dal = document.getElementById('data_dal').value;
+            const al = document.getElementById('data_al').value;
+            const costo = document.getElementById('costo_giornaliero').value;
+            const notti = parseInt(document.getElementById('notti_calcolate').innerText);
+
+            if(!luogo || !dal || !al || isNaN(notti)) return alert("Compila tutti i campi del viaggio correttamente");
+
+            const { data, error } = await supabase
+                .from('viaggi')
+                .insert([{ luogo: luogo, data_dal: dal, data_al: al, notti: notti, costo_giornaliero: costo }]);
+            
+            if (error) alert("Errore nel salvataggio viaggio: " + error.message);
+            else {
+                alert("Viaggio salvato!");
+                document.getElementById('luogo').value = '';
+            }
+        }
+
+        async function salvaRifornimento() {
+            const dataRif = document.getElementById('data_rifornimento').value;
+            const litri = document.getElementById('litri_rifornimento').value;
+            const costo = document.getElementById('costo_rifornimento').value;
+
+            const { data, error } = await supabase
+                .from('rifornimenti')
+                .insert([{ data_rifornimento: dataRif, litri: litri, costo_totale: costo }]);
+            
+            if (error) alert("Errore: " + error.message);
+            else alert("Rifornimento inserito!");
+        }
+
+        // --- CALENDARIO MENSILE (FullCalendar) ---
+        let calendarRendered = false;
+        async function inizializzaCalendario() {
+            if(calendarRendered) return;
+            const calendarEl = document.getElementById('calendar-container');
+            const { data: viaggi, error } = await supabase.from('viaggi').select('*');
+            
+            let eventi = [];
+            if(viaggi) {
+                eventi = viaggi.map(v => ({
+                    title: v.luogo,
+                    start: v.data_dal,
+                    end: v.data_al,
+                    allDay: true
+                }));
+            }
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'it',
+                events: eventi
+            });
+            calendar.render();
+            calendarRendered = true;
+        }
+
+        // --- TABELLA COSTI ---
+        async function caricaCosti() {
+            const tbody = document.querySelector('#tabella-costi tbody');
+            tbody.innerHTML = '<tr><td colspan="4">Caricamento in corso...</td></tr>';
+
+            const { data: viaggi, errorViaggi } = await supabase.from('viaggi').select('*');
+            const { data: rifornimenti, errorRif } = await supabase.from('rifornimenti').select('*');
+
+            let html = '';
+            let totaleSpese = 0;
+
+            if (viaggi) {
+                viaggi.forEach(v => {
+                    const costoViaggio = v.notti * v.costo_giornaliero;
+                    totaleSpese += costoViaggio;
+                    html += `<tr><td>Campeggio</td><td>${v.luogo} (${v.notti} notti)</td><td>${v.data_dal}</td><td>${costoViaggio.toFixed(2)}</td></tr>`;
+                });
+            }
+
+            if (rifornimenti) {
+                rifornimenti.forEach(r => {
+                    totaleSpese += parseFloat(r.costo_totale);
+                    html += `<tr><td>Carburante</td><td>${r.litri} Litri</td><td>${r.data_rifornimento}</td><td>${parseFloat(r.costo_totale).toFixed(2)}</td></tr>`;
+                });
+            }
+
+            html += `<tr style="font-weight:bold; background-color:#e9ecef;"><td colspan="3" style="text-align:right;">TOTALE:</td><td>${totaleSpese.toFixed(2)} €</td></tr>`;
+            tbody.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
