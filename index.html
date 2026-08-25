@@ -564,56 +564,53 @@
         let calendarInstance = null;
 
         async function inizializzaCalendario() {
-            const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*');
-            if (error) {
-                console.error("Errore recupero viaggi:", error);
-                return;
+    const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*');
+    if (error) {
+        console.error("Errore recupero viaggi:", error);
+        return;
+    }
+
+    let eventi = (viaggi || []).map(v => {
+        let dataFine = new Date(v.data_al);
+        dataFine.setDate(dataFine.getDate() + 1);
+        let endIso = dataFine.toISOString().split('T')[0];
+
+        return {
+            title: v.luogo,
+            start: v.data_dal,
+            end: endIso,
+            allDay: true
+        };
+    });
+
+    const calendarEl = document.getElementById('calendar-container');
+    const isMobile = window.innerWidth <= 768;
+
+    if (!calendarInstance) {
+        calendarInstance = new FullCalendar.Calendar(calendarEl, {
+            // Usa 'listMonth' su smartphone e 'dayGridMonth' su PC
+            initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+            locale: 'it',
+            firstDay: 1,
+            events: eventi,
+            height: 'auto',
+            headerToolbar: isMobile ? {
+                left: 'prev,next',
+                center: 'title',
+                right: 'today,dayGridMonth,listMonth' // Permette all'utente di cambiare vista
+            } : {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listMonth'
             }
-
-            let eventi = (viaggi || []).map(v => {
-                let dataFine = new Date(v.data_al);
-                dataFine.setDate(dataFine.getDate() + 1);
-                let endIso = dataFine.toISOString().split('T')[0];
-
-                return {
-                    title: v.luogo,
-                    start: v.data_dal,
-                    end: endIso,
-                    allDay: true
-                };
-            });
-
-            const calendarEl = document.getElementById('calendar-container');
-            const isMobile = window.innerWidth <= 768;
-
-            if (!calendarInstance) {
-                calendarInstance = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    locale: 'it',
-                    firstDay: 1, // Inizia da Lunedì
-                    events: eventi,
-                    height: 'auto',
-                    handleWindowResize: true,
-                    dayHeaderFormat: isMobile ? { weekday: 'narrow' } : { weekday: 'short' },
-                    headerToolbar: isMobile ? {
-                        left: 'prev,next',
-                        center: 'title',
-                        right: 'today'
-                    } : {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth'
-                    }
-                });
-                calendarInstance.render();
-            } else {
-                calendarInstance.setOption('firstDay', 1);
-                calendarInstance.setOption('dayHeaderFormat', isMobile ? { weekday: 'narrow' } : { weekday: 'short' });
-                calendarInstance.removeAllEvents();
-                calendarInstance.addEventSource(eventi);
-                calendarInstance.updateSize();
-            }
-        }
+        });
+        calendarInstance.render();
+    } else {
+        calendarInstance.removeAllEvents();
+        calendarInstance.addEventSource(eventi);
+        calendarInstance.updateSize();
+    }
+}
         
         window.addEventListener('resize', () => {
             if (calendarInstance) {
