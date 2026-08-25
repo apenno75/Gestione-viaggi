@@ -141,8 +141,10 @@
         // Inizializzazione Supabase
         const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        //const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+		
+		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         // --- GESTIONE MENU ---
         function switchMenu(menuId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
