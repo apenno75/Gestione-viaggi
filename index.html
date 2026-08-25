@@ -1,5 +1,4 @@
-	
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -15,45 +14,227 @@
             --secondary: #27ae60;
             --bg: #f4f7f6;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg); display: flex; }
-        
-        /* Sidebar Menu */
-        nav { width: 250px; background: var(--primary); color: white; height: 100vh; padding-top: 20px; position: fixed; }
-        nav h2 { text-align: center; margin-bottom: 30px; }
-        nav button { display: block; width: 100%; padding: 15px; background: none; border: none; color: white; text-align: left; font-size: 16px; cursor: pointer; border-bottom: 1px solid #34495e; }
-        nav button:hover, nav button.active { background: #34495e; border-left: 4px solid var(--secondary); }
-        
-        /* Main Content */
-        main { margin-left: 250px; padding: 40px; width: calc(100% - 250px); }
-        .panel { display: none; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .panel.active { display: block; }
-        h3 { color: var(--primary); border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
-        
-        /* Forms & Tables */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        input[type="text"], input[type="number"], input[type="date"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn-submit { background: var(--secondary); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        .btn-submit:hover { background: #219653; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: var(--primary); color: white; }
-        .subtotal-row { background-color: #f8f9fa; font-weight: 500; }
-        .total-row { background-color: #e9ecef; font-weight: bold; font-size: 1.1em; }
 
-        /* Grid layout for forms */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            background-color: var(--bg); 
+            display: flex; 
+        }
+        
+        /* Sidebar Menu (Desktop) */
+        nav { 
+            width: 250px; 
+            background: var(--primary); 
+            color: white; 
+            height: 100vh; 
+            padding-top: 20px; 
+            position: fixed; 
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+        
+        nav h2 { 
+            text-align: center; 
+            margin-bottom: 20px; 
+            font-size: 1.4rem;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        nav button { 
+            display: block; 
+            width: 100%; 
+            padding: 15px; 
+            background: none; 
+            border: none; 
+            color: white; 
+            text-align: left; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #34495e; 
+        }
+        
+        nav button:hover, nav button.active { 
+            background: #34495e; 
+            border-left: 4px solid var(--secondary); 
+        }
+        
+        /* Main Content (Desktop) */
+        main { 
+            margin-left: 250px; 
+            padding: 30px; 
+            width: calc(100% - 250px); 
+        }
+        
+        .panel { 
+            display: none; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        .panel.active { 
+            display: block; 
+        }
+        
+        h3 { 
+            color: var(--primary); 
+            border-bottom: 2px solid var(--secondary); 
+            padding-bottom: 10px; 
+            margin-top: 0;
+        }
+        
+        /* Forms & Inputs */
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: #333; 
+        }
+        
+        input[type="text"], input[type="number"], input[type="date"] { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 16px; /* Evita lo zoom automatico su iOS */
+        }
+        
+        .btn-submit { 
+            background: var(--secondary); 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            width: 100%; 
+        }
+        
+        .btn-submit:hover { 
+            background: #219653; 
+        }
+        
+        /* Contenitore Tabella Reattivo */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 15px;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 500px; /* Garantisce leggibilità anche su telefoni piccoli */
+        }
+        
+        th, td { 
+            padding: 10px 12px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        
+        th { 
+            background-color: var(--primary); 
+            color: white; 
+        }
+        
+        .total-row { 
+            background-color: #e9ecef; 
+            font-weight: bold; 
+        }
+
+        .grid-2 { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
+
+        /* --- STILI PER SMARTPHONE E TABLET (Schermi <= 768px) --- */
+        @media (max-width: 768px) {
+            body { 
+                flex-direction: column; 
+            }
+
+            nav { 
+                width: 100%; 
+                height: auto; 
+                position: sticky; 
+                top: 0; 
+                padding-top: 10px; 
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+
+            nav h2 { 
+                margin-bottom: 10px; 
+                font-size: 1.2rem;
+            }
+
+            .nav-menu {
+                flex-direction: row;
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            nav button { 
+                display: inline-block; 
+                width: auto; 
+                padding: 12px 16px; 
+                border-bottom: 3px solid transparent; 
+                border-right: none;
+                font-size: 14px;
+                flex-shrink: 0;
+            }
+
+            nav button:hover, nav button.active { 
+                background: #34495e; 
+                border-left: none; 
+                border-bottom: 3px solid var(--secondary); 
+            }
+
+            main { 
+                margin-left: 0; 
+                width: 100%; 
+                padding: 15px; 
+            }
+
+            .grid-2 { 
+                grid-template-columns: 1fr; /* I campi form vanno uno sotto l'altro */
+                gap: 10px; 
+            }
+
+            .panel {
+                padding: 15px;
+            }
+        }
     </style>
 </head>
 <body>
 
     <nav>
         <h2>🏕️ CamperApp</h2>
-        <button onclick="switchMenu('dashboard')" class="active" id="btn-dashboard">Stato Camper</button>
-        <button onclick="switchMenu('viaggi')" id="btn-viaggi">Carica Viaggi</button>
-        <button onclick="switchMenu('calendario')" id="btn-calendario">Calendario</button>
-        <button onclick="switchMenu('costi')" id="btn-costi">Costi Sostenuti</button>
+        <div class="nav-menu">
+            <button onclick="switchMenu('dashboard')" class="active" id="btn-dashboard">Stato Camper</button>
+            <button onclick="switchMenu('viaggi')" id="btn-viaggi">Carica Viaggi</button>
+            <button onclick="switchMenu('calendario')" id="btn-calendario">Calendario</button>
+            <button onclick="switchMenu('costi')" id="btn-costi">Costi Sostenuti</button>
+        </div>
     </nav>
 
     <main>
@@ -101,14 +282,13 @@
             <p><strong>Notti calcolate: </strong><span id="notti_calcolate">0</span></p>
             <button class="btn-submit" onclick="salvaViaggio()">Salva Viaggio</button>
 
-            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+            <hr style="margin: 25px 0; border: 0; border-top: 1px solid #ccc;">
 
             <h3>Registra Rifornimento</h3>
             <div class="grid-2">
                 <div class="form-group">
                     <label>Luogo / Viaggio Associato</label>
                     <input type="text" id="rifornimento_luogo" list="lista-luoghi-suggeriti" placeholder="Seleziona o scrivi luogo...">
-                    <!-- Elenco dinamico dei luoghi gia' caricati nei viaggi -->
                     <datalist id="lista-luoghi-suggeriti"></datalist>
                 </div>
                 <div class="form-group">
@@ -136,20 +316,22 @@
         <!-- PANNELLO: COSTI SOSTENUTI -->
         <div id="costi" class="panel">
             <h3>Riepilogo Spese Raggruppate per Luogo</h3>
-            <button class="btn-submit" onclick="caricaCosti()">Aggiorna Dati</button>
-            <table id="tabella-costi">
-                <thead>
-                    <tr>
-                        <th>Luogo / Destinazione</th>
-                        <th>Costo Campeggio</th>
-                        <th>Costo Carburante</th>
-                        <th>Totale Speso (€)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Popolato da JS -->
-                </tbody>
-            </table>
+            <button class="btn-submit" onclick="caricaCosti()" style="margin-bottom: 10px;">Aggiorna Dati</button>
+            <div class="table-responsive">
+                <table id="tabella-costi">
+                    <thead>
+                        <tr>
+                            <th>Luogo / Destinazione</th>
+                            <th>Costo Campeggio</th>
+                            <th>Costo Carburante</th>
+                            <th>Totale Speso (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Popolato da JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
@@ -157,7 +339,6 @@
         // Inizializzazione Supabase
         const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
-        //const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 		
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -171,7 +352,7 @@
         // --- GESTIONE MENU ---
         function switchMenu(menuId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.nav-menu button').forEach(b => b.classList.remove('active'));
             document.getElementById(menuId).classList.add('active');
             document.getElementById('btn-' + menuId).classList.add('active');
 
@@ -209,7 +390,6 @@
             datalist.innerHTML = '';
             
             if (viaggi) {
-                // Prendi solo luoghi unici
                 const luoghiUnici = [...new Set(viaggi.map(v => v.luogo).filter(Boolean))];
                 luoghiUnici.forEach(luogo => {
                     const option = document.createElement('option');
@@ -324,7 +504,8 @@
                 calendarInstance = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     locale: 'it',
-                    events: eventi
+                    events: eventi,
+                    height: 'auto' // Si adatta meglio agli schermi del telefono
                 });
                 calendarInstance.render();
             } else {
@@ -344,10 +525,8 @@
             if (errorViaggi) console.error("Errore viaggi:", errorViaggi);
             if (errorRif) console.error("Errore rifornimenti:", errorRif);
 
-            // Mappa per aggregare i costi per luogo
             const mappaLuoghi = {};
 
-            // 1. Aggrega i costi dei campeggi per luogo
             if (viaggi) {
                 viaggi.forEach(v => {
                     const nomeLuogo = (v.luogo || 'Senza Nome').trim();
@@ -363,7 +542,6 @@
                 });
             }
 
-            // 2. Aggrega i costi dei rifornimenti per luogo
             if (rifornimenti) {
                 rifornimenti.forEach(r => {
                     const nomeLuogo = (r.luogo || 'Generico / Fuori Viaggio').trim();
@@ -378,7 +556,6 @@
                 });
             }
 
-            // 3. Generazione HTML della tabella
             let html = '';
             let totaleGenerale = 0;
             let totaleCampeggi = 0;
@@ -405,7 +582,6 @@
                     </tr>`;
                 });
 
-                // Riga di totale generale in fondo alla tabella
                 html += `<tr class="total-row">
                     <td>TOTALE COMPLESSIVO</td>
                     <td>${totaleCampeggi.toFixed(2)} €</td>
