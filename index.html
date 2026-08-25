@@ -146,13 +146,19 @@
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 		
-// --- GESTIONE MENU ---
+		// --- CARICAMENTO AUTOMATICO ALL'AVVIO DELLA PAGINA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            caricaStatoCamper();
+        });
+
+        // --- GESTIONE MENU ---
         function switchMenu(menuId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
             document.getElementById(menuId).classList.add('active');
             document.getElementById('btn-' + menuId).classList.add('active');
 
+            if(menuId === 'dashboard') caricaStatoCamper();
             if(menuId === 'calendario') inizializzaCalendario();
             if(menuId === 'costi') caricaCosti();
         }
@@ -179,6 +185,27 @@
         inputAl.addEventListener('change', calcolaNotti);
 
         // --- FUNZIONI DATABASE ---
+
+        // Carica l'ultimo stato del camper salvato su Supabase
+        async function caricaStatoCamper() {
+            const { data, error } = await supabaseClient
+                .from('stato_camper')
+                .select('*')
+                .order('id', { ascending: false })
+                .limit(1);
+
+            if (error) {
+                console.error("Errore nel recupero dello stato camper:", error);
+                return;
+            }
+
+            if (data && data.length > 0) {
+                const ultimoStato = data[0];
+                document.getElementById('km_attuali').value = ultimoStato.km_attuali ?? '';
+                document.getElementById('livello_carburante').value = ultimoStato.livello_carburante ?? '';
+                document.getElementById('acque_chiare').value = ultimoStato.livello_acque_chiare ?? '';
+            }
+        }
 
         async function salvaStatoCamper() {
             const km = document.getElementById('km_attuali').value;
@@ -236,10 +263,7 @@
                 return;
             }
 
-            // Mappiamo i viaggi per FullCalendar
             let eventi = (viaggi || []).map(v => {
-                // In FullCalendar la data di fine degli eventi "allDay" è esclusiva.
-                // Aggiungiamo 1 giorno alla data_al per visualizzare correttamente la durata intera.
                 let dataFine = new Date(v.data_al);
                 dataFine.setDate(dataFine.getDate() + 1);
                 let endIso = dataFine.toISOString().split('T')[0];
@@ -262,7 +286,6 @@
                 });
                 calendarInstance.render();
             } else {
-                // Aggiorna gli eventi se il calendario esiste già
                 calendarInstance.removeAllEvents();
                 calendarInstance.addEventSource(eventi);
             }
@@ -282,7 +305,6 @@
             let html = '';
             let totaleSpese = 0;
 
-            // Elaborazione viaggi (Campeggi)
             if (viaggi && viaggi.length > 0) {
                 viaggi.forEach(v => {
                     const notti = parseInt(v.notti) || 0;
@@ -293,7 +315,6 @@
                 });
             }
 
-            // Elaborazione rifornimenti (Carburante)
             if (rifornimenti && rifornimenti.length > 0) {
                 rifornimenti.forEach(r => {
                     const litri = parseFloat(r.litri) || 0;
