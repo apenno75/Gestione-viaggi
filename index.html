@@ -73,6 +73,8 @@
             margin-left: 250px; 
             padding: 30px; 
             width: calc(100% - 250px); 
+            max-width: 100%;
+            overflow-x: hidden;
         }
         
         .panel { 
@@ -81,6 +83,8 @@
             padding: 20px; 
             border-radius: 8px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            max-width: 100%;
+            overflow-x: hidden;
         }
         
         .panel.active { 
@@ -111,7 +115,7 @@
             padding: 12px; 
             border: 1px solid #ccc; 
             border-radius: 6px; 
-            font-size: 16px; /* Evita lo zoom automatico su iOS */
+            font-size: 16px;
         }
         
         .btn-submit { 
@@ -140,7 +144,7 @@
         table { 
             width: 100%; 
             border-collapse: collapse; 
-            min-width: 500px; /* Garantisce leggibilità anche su telefoni piccoli */
+            min-width: 500px;
         }
         
         th, td { 
@@ -163,6 +167,13 @@
             display: grid; 
             grid-template-columns: 1fr 1fr; 
             gap: 15px; 
+        }
+
+        /* Contenitore Calendario */
+        #calendar-container {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         /* --- STILI PER SMARTPHONE E TABLET (Schermi <= 768px) --- */
@@ -211,16 +222,52 @@
             main { 
                 margin-left: 0; 
                 width: 100%; 
-                padding: 15px; 
+                padding: 12px; 
             }
 
             .grid-2 { 
-                grid-template-columns: 1fr; /* I campi form vanno uno sotto l'altro */
+                grid-template-columns: 1fr; 
                 gap: 10px; 
             }
 
             .panel {
-                padding: 15px;
+                padding: 12px;
+            }
+
+            /* Optimization specifica per FullCalendar su mobile */
+            .fc {
+                font-size: 12px !important;
+            }
+
+            .fc .fc-toolbar {
+                flex-direction: column !important;
+                gap: 8px !important;
+                align-items: center !important;
+            }
+
+            .fc .fc-toolbar-title {
+                font-size: 1.1rem !important;
+            }
+
+            .fc .fc-button {
+                padding: 5px 10px !important;
+                font-size: 13px !important;
+            }
+
+            .fc .fc-daygrid-day-number {
+                font-size: 11px !important;
+                padding: 2px !important;
+            }
+
+            .fc .fc-daygrid-day-frame {
+                min-height: 40px !important;
+            }
+
+            .fc .fc-event-title {
+                font-size: 10px !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
         }
     </style>
@@ -475,7 +522,7 @@
             }
         }
 
-        // --- CALENDARIO MENSILE (FullCalendar) ---
+        // --- CALENDARIO MENSILE OPTIMIZZATO MOBILE ---
         let calendarInstance = null;
 
         async function inizializzaCalendario() {
@@ -499,20 +546,44 @@
             });
 
             const calendarEl = document.getElementById('calendar-container');
+            const isMobile = window.innerWidth <= 768;
 
             if (!calendarInstance) {
                 calendarInstance = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     locale: 'it',
+                    firstDay: 1, // Imposta Lunedì come primo giorno della settimana
                     events: eventi,
-                    height: 'auto' // Si adatta meglio agli schermi del telefono
+                    height: 'auto',
+                    handleWindowResize: true,
+                    dayHeaderFormat: isMobile ? { weekday: 'narrow' } : { weekday: 'short' },
+                    headerToolbar: isMobile ? {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'today'
+                    } : {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth'
+                    }
                 });
                 calendarInstance.render();
             } else {
+                calendarInstance.setOption('firstDay', 1);
+                calendarInstance.setOption('dayHeaderFormat', isMobile ? { weekday: 'narrow' } : { weekday: 'short' });
                 calendarInstance.removeAllEvents();
                 calendarInstance.addEventSource(eventi);
+                calendarInstance.updateSize();
             }
         }
+        
+        window.addEventListener('resize', () => {
+            if (calendarInstance) {
+                const isMobile = window.innerWidth <= 768;
+                calendarInstance.setOption('dayHeaderFormat', isMobile ? { weekday: 'narrow' } : { weekday: 'short' });
+                calendarInstance.updateSize();
+            }
+        });
 
         // --- TABELLA COSTI AGGREGATI PER LUOGO ---
         async function caricaCosti() {
