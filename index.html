@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -167,7 +167,7 @@
         table { 
             width: 100%; 
             border-collapse: collapse; 
-            min-width: 550px;
+            min-width: 650px;
         }
         
         th, td { 
@@ -432,6 +432,10 @@
                     <input type="number" id="costo_giornaliero" step="0.01">
                 </div>
                 <div class="form-group">
+                    <label>Costo Pedaggi / Traghetti (€)</label>
+                    <input type="number" id="costo_pedaggi" step="0.01" placeholder="Es. 45.50">
+                </div>
+                <div class="form-group">
                     <label>Data Dal</label>
                     <input type="date" id="data_dal">
                 </div>
@@ -480,6 +484,7 @@
                             <th>Al</th>
                             <th>Notti</th>
                             <th>€/Giorno</th>
+                            <th>Pedaggi (€)</th>
                             <th>Azioni</th>
                         </tr>
                     </thead>
@@ -522,6 +527,7 @@
                             <th>Luogo / Destinazione</th>
                             <th>Costo Campeggio</th>
                             <th>Costo Carburante</th>
+                            <th>Pedaggi / Traghetti</th>
                             <th>Totale Speso (€)</th>
                         </tr>
                     </thead>
@@ -566,6 +572,10 @@
                 <label>Costo Giornaliero (€)</label>
                 <input type="number" id="edit_v_costo" step="0.01">
             </div>
+            <div class="form-group">
+                <label>Costo Pedaggi / Traghetti (€)</label>
+                <input type="number" id="edit_v_pedaggi" step="0.01">
+            </div>
             <button class="btn-submit" onclick="salvaModificaViaggio()">Salva Modifiche</button>
         </div>
     </div>
@@ -597,6 +607,7 @@
     </div>
 
     <script>
+
         // Inizializzazione Supabase
         const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
@@ -707,18 +718,27 @@
             const dal = document.getElementById('data_dal').value;
             const al = document.getElementById('data_al').value;
             const costo = document.getElementById('costo_giornaliero').value;
+            const pedaggi = document.getElementById('costo_pedaggi').value || 0;
             const notti = parseInt(document.getElementById('notti_calcolate').innerText);
 
             if(!luogo || !dal || !al || isNaN(notti)) return alert("Compila correttamente i campi");
 
             const { error } = await supabaseClient
                 .from('viaggi')
-                .insert([{ luogo: luogo, data_dal: dal, data_al: al, notti: notti, costo_giornaliero: costo }]);
+                .insert([{ 
+                    luogo: luogo, 
+                    data_dal: dal, 
+                    data_al: al, 
+                    notti: notti, 
+                    costo_giornaliero: costo,
+                    costo_pedaggi: pedaggi 
+                }]);
             
             if (error) alert("Errore salvataggio: " + error.message);
             else {
                 alert("Viaggio salvato!");
                 document.getElementById('luogo').value = '';
+                document.getElementById('costo_pedaggi').value = '';
                 caricaTabellaViaggi();
                 aggiornaSuggerimentiLuoghi();
             }
@@ -736,12 +756,13 @@
                     <td>${v.data_al}</td>
                     <td>${v.notti || 0}</td>
                     <td>${parseFloat(v.costo_giornaliero || 0).toFixed(2)} €</td>
+                    <td>${parseFloat(v.costo_pedaggi || 0).toFixed(2)} €</td>
                     <td>
                         <button class="btn-action btn-edit" onclick='apriModificaViaggio(${JSON.stringify(v)})'>✏️</button>
                         <button class="btn-action btn-delete" onclick="eliminaViaggio(${v.id})">🗑️</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="6">Nessun viaggio registrato.</td></tr>';
+            `).join('') || '<tr><td colspan="7">Nessun viaggio registrato.</td></tr>';
         }
 
         function apriModificaViaggio(viaggio) {
@@ -750,6 +771,7 @@
             document.getElementById('edit_v_dal').value = viaggio.data_dal;
             document.getElementById('edit_v_al').value = viaggio.data_al;
             document.getElementById('edit_v_costo').value = viaggio.costo_giornaliero;
+            document.getElementById('edit_v_pedaggi').value = viaggio.costo_pedaggi || 0;
             
             chiudiModal('modal-dettagli');
             apriModal('modal-edit-viaggio');
@@ -761,6 +783,7 @@
             const dal = document.getElementById('edit_v_dal').value;
             const al = document.getElementById('edit_v_al').value;
             const costo = document.getElementById('edit_v_costo').value;
+            const pedaggi = document.getElementById('edit_v_pedaggi').value || 0;
 
             const dDal = new Date(dal);
             const dAl = new Date(al);
@@ -768,7 +791,7 @@
 
             const { error } = await supabaseClient
                 .from('viaggi')
-                .update({ luogo, data_dal: dal, data_al: al, notti, costo_giornaliero: costo })
+                .update({ luogo, data_dal: dal, data_al: al, notti, costo_giornaliero: costo, costo_pedaggi: pedaggi })
                 .eq('id', id);
 
             if(error) alert("Errore aggiornamento: " + error.message);
@@ -890,7 +913,9 @@
                 
                 const notti = parseInt(v.notti) || 0;
                 const costoG = parseFloat(v.costo_giornaliero) || 0;
-                const costoTotale = (notti * costoG).toFixed(2);
+                const pedaggi = parseFloat(v.costo_pedaggi) || 0;
+                const costoTotCampeggio = notti * costoG;
+                const costoTotViaggio = costoTotCampeggio + pedaggi;
 
                 return {
                     title: v.luogo,
@@ -907,7 +932,9 @@
                         al: v.data_al,
                         notti: notti,
                         costoGiornaliero: costoG.toFixed(2),
-                        costoTotale: costoTotale
+                        costoCampeggio: costoTotCampeggio.toFixed(2),
+                        pedaggi: pedaggi.toFixed(2),
+                        costoTotViaggio: costoTotViaggio.toFixed(2)
                     }
                 };
             });
@@ -940,9 +967,11 @@
                             <div class="modal-info-row"><strong>Data Inizio:</strong> ${props.dal}</div>
                             <div class="modal-info-row"><strong>Data Fine:</strong> ${props.al}</div>
                             <div class="modal-info-row"><strong>Notti Totali:</strong> ${props.notti}</div>
-                            <div class="modal-info-row"><strong>Costo/Giorno:</strong> ${props.costoGiornaliero} €</div>
+                            <div class="modal-info-row"><strong>Costo/Giorno Campeggio:</strong> ${props.costoGiornaliero} €</div>
+                            <div class="modal-info-row"><strong>Spesa Campeggio:</strong> ${props.costoCampeggio} €</div>
+                            <div class="modal-info-row"><strong>Pedaggi / Traghetti:</strong> ${props.pedaggi} €</div>
                             <hr style="margin:10px 0; border:0; border-top:1px solid #eee;">
-                            <div class="modal-info-row" style="font-size:16px;"><strong>Spesa Campeggio:</strong> <span style="color:var(--secondary); font-weight:bold;">${props.costoTotale} €</span></div>
+                            <div class="modal-info-row" style="font-size:16px;"><strong>Spesa Totale Viaggio:</strong> <span style="color:var(--secondary); font-weight:bold;">${props.costoTotViaggio} €</span></div>
                         `;
                         
                         document.getElementById('btn-modal-edit-viaggio').onclick = () => apriModificaViaggio(raw);
@@ -977,7 +1006,7 @@
         // --- TABELLA COSTI AGGREGATI ---
         async function caricaCosti() {
             const tbody = document.querySelector('#tabella-costi tbody');
-            tbody.innerHTML = '<tr><td colspan="4">Caricamento in corso...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5">Caricamento in corso...</td></tr>';
 
             const { data: viaggi } = await supabaseClient.from('viaggi').select('*');
             const { data: rifornimenti } = await supabaseClient.from('rifornimenti').select('*');
@@ -989,13 +1018,15 @@
                     const nomeLuogo = (v.luogo || 'Senza Nome').trim();
                     const notti = parseInt(v.notti) || 0;
                     const costoG = parseFloat(v.costo_giornaliero) || 0;
+                    const pedaggi = parseFloat(v.costo_pedaggi) || 0;
                     const costoTotCampeggio = notti * costoG;
 
                     if (!mappaLuoghi[nomeLuogo]) {
-                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0 };
+                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0, pedaggi: 0 };
                     }
                     mappaLuoghi[nomeLuogo].campeggio += costoTotCampeggio;
                     mappaLuoghi[nomeLuogo].notti += notti;
+                    mappaLuoghi[nomeLuogo].pedaggi += pedaggi;
                 });
             }
 
@@ -1006,7 +1037,7 @@
                     const costoRif = parseFloat(r.costo_totale) || 0;
 
                     if (!mappaLuoghi[nomeLuogo]) {
-                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0 };
+                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0, pedaggi: 0 };
                     }
                     mappaLuoghi[nomeLuogo].carburante += costoRif;
                     mappaLuoghi[nomeLuogo].litri += litri;
@@ -1017,24 +1048,27 @@
             let totaleGenerale = 0;
             let totaleCampeggi = 0;
             let totaleCarburante = 0;
+            let totalePedaggi = 0;
 
             const luoghiChiavi = Object.keys(mappaLuoghi);
 
             if (luoghiChiavi.length === 0) {
-                html = '<tr><td colspan="4">Nessun costo registrato finora.</td></tr>';
+                html = '<tr><td colspan="5">Nessun costo registrato finora.</td></tr>';
             } else {
                 luoghiChiavi.forEach(luogo => {
                     const dati = mappaLuoghi[luogo];
-                    const totaleLuogo = dati.campeggio + dati.carburante;
+                    const totaleLuogo = dati.campeggio + dati.carburante + dati.pedaggi;
                     
                     totaleCampeggi += dati.campeggio;
                     totaleCarburante += dati.carburante;
+                    totalePedaggi += dati.pedaggi;
                     totaleGenerale += totaleLuogo;
 
                     html += `<tr>
                         <td><strong>${luogo}</strong></td>
                         <td>${dati.campeggio.toFixed(2)} € <small style="color:#666;">(${dati.notti} notti)</small></td>
                         <td>${dati.carburante.toFixed(2)} € <small style="color:#666;">(${dati.litri.toFixed(1)} L)</small></td>
+                        <td>${dati.pedaggi.toFixed(2)} €</td>
                         <td><strong>${totaleLuogo.toFixed(2)} €</strong></td>
                     </tr>`;
                 });
@@ -1043,6 +1077,7 @@
                     <td>TOTALE COMPLESSIVO</td>
                     <td>${totaleCampeggi.toFixed(2)} €</td>
                     <td>${totaleCarburante.toFixed(2)} €</td>
+                    <td>${totalePedaggi.toFixed(2)} €</td>
                     <td style="color: var(--secondary);">${totaleGenerale.toFixed(2)} €</td>
                 </tr>`;
             }
