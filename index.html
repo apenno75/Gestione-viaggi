@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -173,7 +173,7 @@
         #calendar-container {
             width: 100%;
             max-width: 100%;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
         /* --- STILI PER SMARTPHONE E TABLET (Schermi <= 768px) --- */
@@ -222,7 +222,7 @@
             main { 
                 margin-left: 0; 
                 width: 100%; 
-                padding: 12px; 
+                padding: 6px; /* Recupera spazio ai lati per il cellulare */
             }
 
             .grid-2 { 
@@ -231,40 +231,65 @@
             }
 
             .panel {
-                padding: 12px;
+                padding: 8px; /* Ridotto il padding del pannello */
             }
 
-            /* Optimization specifica per FullCalendar su mobile */
+            /* --- OTTIMIZZAZIONE RIGIDA DEL CALENDARIO SU MOBILE VERTICALE --- */
             .fc {
-                font-size: 12px !important;
+                font-size: 11px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .fc table {
+                table-layout: fixed !important; /* Forza le 7 colonne a dividersi perfettamente il 100% */
+                width: 100% !important;
+            }
+
+            .fc th, .fc td {
+                padding: 0 !important;
             }
 
             .fc .fc-toolbar {
                 flex-direction: column !important;
-                gap: 8px !important;
+                gap: 6px !important;
                 align-items: center !important;
+                margin-bottom: 10px !important;
             }
 
             .fc .fc-toolbar-title {
-                font-size: 1.1rem !important;
+                font-size: 1rem !important;
             }
 
             .fc .fc-button {
-                padding: 5px 10px !important;
-                font-size: 13px !important;
+                padding: 4px 8px !important;
+                font-size: 12px !important;
+            }
+
+            .fc .fc-col-header-cell-cushion {
+                padding: 4px 0 !important;
+                font-size: 11px !important;
+                display: block !important;
             }
 
             .fc .fc-daygrid-day-number {
-                font-size: 11px !important;
+                font-size: 10px !important;
                 padding: 2px !important;
             }
 
             .fc .fc-daygrid-day-frame {
-                min-height: 40px !important;
+                min-height: 36px !important;
+                padding: 1px !important;
+            }
+
+            .fc .fc-event {
+                margin: 1px 0 !important;
+                padding: 0 2px !important;
+                border-radius: 2px !important;
             }
 
             .fc .fc-event-title {
-                font-size: 10px !important;
+                font-size: 9px !important;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -383,6 +408,7 @@
     </main>
 
     <script>
+
         // Inizializzazione Supabase
         const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
@@ -522,7 +548,7 @@
             }
         }
 
-        // --- CALENDARIO MENSILE OPTIMIZZATO MOBILE ---
+        // --- CALENDARIO MENSILE ---
         let calendarInstance = null;
 
         async function inizializzaCalendario() {
@@ -552,7 +578,7 @@
                 calendarInstance = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     locale: 'it',
-                    firstDay: 1, // Imposta Lunedì come primo giorno della settimana
+                    firstDay: 1, // Inizia da Lunedì
                     events: eventi,
                     height: 'auto',
                     handleWindowResize: true,
