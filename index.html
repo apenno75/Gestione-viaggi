@@ -1,10 +1,13 @@
+	
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Camper</title>
+    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FullCalendar CDN -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <style>
         :root {
@@ -36,7 +39,9 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: var(--primary); color: white; }
-        
+        .subtotal-row { background-color: #f8f9fa; font-weight: 500; }
+        .total-row { background-color: #e9ecef; font-weight: bold; font-size: 1.1em; }
+
         /* Grid layout for forms */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     </style>
@@ -52,6 +57,7 @@
     </nav>
 
     <main>
+        <!-- PANNELLO: STATO CAMPER -->
         <div id="dashboard" class="panel active">
             <h3>Impostazioni e Stato Attuale</h3>
             <div class="grid-2">
@@ -71,12 +77,13 @@
             <button class="btn-submit" onclick="salvaStatoCamper()">Aggiorna Stato</button>
         </div>
 
+        <!-- PANNELLO: CARICA VIAGGI -->
         <div id="viaggi" class="panel">
             <h3>Registra un nuovo Viaggio</h3>
             <div class="grid-2">
                 <div class="form-group">
                     <label>Luogo</label>
-                    <input type="text" id="luogo">
+                    <input type="text" id="luogo" placeholder="Es. Dolomiti, Mare Toscana...">
                 </div>
                 <div class="form-group">
                     <label>Costo Giornaliero Campeggio (€)</label>
@@ -99,6 +106,12 @@
             <h3>Registra Rifornimento</h3>
             <div class="grid-2">
                 <div class="form-group">
+                    <label>Luogo / Viaggio Associato</label>
+                    <input type="text" id="rifornimento_luogo" list="lista-luoghi-suggeriti" placeholder="Seleziona o scrivi luogo...">
+                    <!-- Elenco dinamico dei luoghi gia' caricati nei viaggi -->
+                    <datalist id="lista-luoghi-suggeriti"></datalist>
+                </div>
+                <div class="form-group">
                     <label>Data Rifornimento</label>
                     <input type="date" id="data_rifornimento">
                 </div>
@@ -114,25 +127,28 @@
             <button class="btn-submit" onclick="salvaRifornimento()" style="background-color: var(--primary);">Aggiungi Rifornimento</button>
         </div>
 
+        <!-- PANNELLO: CALENDARIO -->
         <div id="calendario" class="panel">
             <h3>Calendario Viaggi</h3>
             <div id="calendar-container"></div>
         </div>
 
+        <!-- PANNELLO: COSTI SOSTENUTI -->
         <div id="costi" class="panel">
-            <h3>Riepilogo Costi</h3>
+            <h3>Riepilogo Spese Raggruppate per Luogo</h3>
             <button class="btn-submit" onclick="caricaCosti()">Aggiorna Dati</button>
             <table id="tabella-costi">
                 <thead>
                     <tr>
-                        <th>Tipo Spesa</th>
-                        <th>Dettaglio</th>
-                        <th>Data</th>
-                        <th>Costo (€)</th>
+                        <th>Luogo / Destinazione</th>
+                        <th>Costo Campeggio</th>
+                        <th>Costo Carburante</th>
+                        <th>Totale Speso (€)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    </tbody>
+                    <!-- Popolato da JS -->
+                </tbody>
             </table>
         </div>
     </main>
@@ -145,10 +161,11 @@
 		
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-		
-		// --- CARICAMENTO AUTOMATICO ALL'AVVIO DELLA PAGINA ---
+
+        // --- CARICAMENTO AUTOMATICO ALL'AVVIO ---
         document.addEventListener('DOMContentLoaded', () => {
             caricaStatoCamper();
+            aggiornaSuggerimentiLuoghi();
         });
 
         // --- GESTIONE MENU ---
@@ -159,6 +176,7 @@
             document.getElementById('btn-' + menuId).classList.add('active');
 
             if(menuId === 'dashboard') caricaStatoCamper();
+            if(menuId === 'viaggi') aggiornaSuggerimentiLuoghi();
             if(menuId === 'calendario') inizializzaCalendario();
             if(menuId === 'costi') caricaCosti();
         }
@@ -184,9 +202,25 @@
         inputDal.addEventListener('change', calcolaNotti);
         inputAl.addEventListener('change', calcolaNotti);
 
+        // --- POPOLA SUGGERIMENTI LUOGHI ---
+        async function aggiornaSuggerimentiLuoghi() {
+            const { data: viaggi } = await supabaseClient.from('viaggi').select('luogo');
+            const datalist = document.getElementById('lista-luoghi-suggeriti');
+            datalist.innerHTML = '';
+            
+            if (viaggi) {
+                // Prendi solo luoghi unici
+                const luoghiUnici = [...new Set(viaggi.map(v => v.luogo).filter(Boolean))];
+                luoghiUnici.forEach(luogo => {
+                    const option = document.createElement('option');
+                    option.value = luogo;
+                    datalist.appendChild(option);
+                });
+            }
+        }
+
         // --- FUNZIONI DATABASE ---
 
-        // Carica l'ultimo stato del camper salvato su Supabase
         async function caricaStatoCamper() {
             const { data, error } = await supabaseClient
                 .from('stato_camper')
@@ -237,20 +271,28 @@
             else {
                 alert("Viaggio salvato!");
                 document.getElementById('luogo').value = '';
+                aggiornaSuggerimentiLuoghi();
             }
         }
 
         async function salvaRifornimento() {
+            const luogo = document.getElementById('rifornimento_luogo').value || 'Generico / Fuori Viaggio';
             const dataRif = document.getElementById('data_rifornimento').value;
             const litri = document.getElementById('litri_rifornimento').value;
             const costo = document.getElementById('costo_rifornimento').value;
 
+            if(!dataRif || !litri || !costo) return alert("Inserisci data, litri e costo del rifornimento");
+
             const { data, error } = await supabaseClient
                 .from('rifornimenti')
-                .insert([{ data_rifornimento: dataRif, litri: litri, costo_totale: costo }]);
+                .insert([{ luogo: luogo, data_rifornimento: dataRif, litri: litri, costo_totale: costo }]);
             
             if (error) alert("Errore nel salvataggio rifornimento: " + error.message);
-            else alert("Rifornimento inserito!");
+            else {
+                alert("Rifornimento inserito!");
+                document.getElementById('litri_rifornimento').value = '';
+                document.getElementById('costo_rifornimento').value = '';
+            }
         }
 
         // --- CALENDARIO MENSILE (FullCalendar) ---
@@ -291,7 +333,7 @@
             }
         }
 
-        // --- TABELLA COSTI ---
+        // --- TABELLA COSTI AGGREGATI PER LUOGO ---
         async function caricaCosti() {
             const tbody = document.querySelector('#tabella-costi tbody');
             tbody.innerHTML = '<tr><td colspan="4">Caricamento in corso...</td></tr>';
@@ -302,32 +344,74 @@
             if (errorViaggi) console.error("Errore viaggi:", errorViaggi);
             if (errorRif) console.error("Errore rifornimenti:", errorRif);
 
-            let html = '';
-            let totaleSpese = 0;
+            // Mappa per aggregare i costi per luogo
+            const mappaLuoghi = {};
 
-            if (viaggi && viaggi.length > 0) {
+            // 1. Aggrega i costi dei campeggi per luogo
+            if (viaggi) {
                 viaggi.forEach(v => {
+                    const nomeLuogo = (v.luogo || 'Senza Nome').trim();
                     const notti = parseInt(v.notti) || 0;
-                    const costoGiornaliero = parseFloat(v.costo_giornaliero) || 0;
-                    const costoViaggio = notti * costoGiornaliero;
-                    totaleSpese += costoViaggio;
-                    html += `<tr><td>Campeggio</td><td>${v.luogo || 'Senza nome'} (${notti} notti)</td><td>${v.data_dal || '-'}</td><td>${costoViaggio.toFixed(2)} €</td></tr>`;
+                    const costoG = parseFloat(v.costo_giornaliero) || 0;
+                    const costoTotCampeggio = notti * costoG;
+
+                    if (!mappaLuoghi[nomeLuogo]) {
+                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0 };
+                    }
+                    mappaLuoghi[nomeLuogo].campeggio += costoTotCampeggio;
+                    mappaLuoghi[nomeLuogo].notti += notti;
                 });
             }
 
-            if (rifornimenti && rifornimenti.length > 0) {
+            // 2. Aggrega i costi dei rifornimenti per luogo
+            if (rifornimenti) {
                 rifornimenti.forEach(r => {
+                    const nomeLuogo = (r.luogo || 'Generico / Fuori Viaggio').trim();
                     const litri = parseFloat(r.litri) || 0;
                     const costoRif = parseFloat(r.costo_totale) || 0;
-                    totaleSpese += costoRif;
-                    html += `<tr><td>Carburante</td><td>${litri.toFixed(2)} Litri</td><td>${r.data_rifornimento || '-'}</td><td>${costoRif.toFixed(2)} €</td></tr>`;
+
+                    if (!mappaLuoghi[nomeLuogo]) {
+                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0 };
+                    }
+                    mappaLuoghi[nomeLuogo].carburante += costoRif;
+                    mappaLuoghi[nomeLuogo].litri += litri;
                 });
             }
 
-            if (!html) {
+            // 3. Generazione HTML della tabella
+            let html = '';
+            let totaleGenerale = 0;
+            let totaleCampeggi = 0;
+            let totaleCarburante = 0;
+
+            const luoghiChiavi = Object.keys(mappaLuoghi);
+
+            if (luoghiChiavi.length === 0) {
                 html = '<tr><td colspan="4">Nessun costo registrato finora.</td></tr>';
             } else {
-                html += `<tr style="font-weight:bold; background-color:#e9ecef;"><td colspan="3" style="text-align:right;">TOTALE:</td><td>${totaleSpese.toFixed(2)} €</td></tr>`;
+                luoghiChiavi.forEach(luogo => {
+                    const dati = mappaLuoghi[luogo];
+                    const totaleLuogo = dati.campeggio + dati.carburante;
+                    
+                    totaleCampeggi += dati.campeggio;
+                    totaleCarburante += dati.carburante;
+                    totaleGenerale += totaleLuogo;
+
+                    html += `<tr>
+                        <td><strong>${luogo}</strong></td>
+                        <td>${dati.campeggio.toFixed(2)} € <small style="color:#666;">(${dati.notti} notti)</small></td>
+                        <td>${dati.carburante.toFixed(2)} € <small style="color:#666;">(${dati.litri.toFixed(1)} L)</small></td>
+                        <td><strong>${totaleLuogo.toFixed(2)} €</strong></td>
+                    </tr>`;
+                });
+
+                // Riga di totale generale in fondo alla tabella
+                html += `<tr class="total-row">
+                    <td>TOTALE COMPLESSIVO</td>
+                    <td>${totaleCampeggi.toFixed(2)} €</td>
+                    <td>${totaleCarburante.toFixed(2)} €</td>
+                    <td style="color: var(--secondary);">${totaleGenerale.toFixed(2)} €</td>
+                </tr>`;
             }
 
             tbody.innerHTML = html;
