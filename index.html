@@ -113,6 +113,14 @@
     .trip-thumb {
       width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid #cbd5e1;
     }
+    
+    .clickable-trip {
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+    .clickable-trip:hover {
+      opacity: 0.8;
+    }
 
     @media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
@@ -202,7 +210,7 @@
           </div>
         </div>
 
-        <!-- SEZIONE NOTE GENERALI & FOTO DI COPERTINA POSTA PRIMA DEI LUOGHI -->
+        <!-- SEZIONE NOTE GENERALI & FOTO DI COPERTINA -->
         <div class="flex flex-mobile-col" style="margin-top: 12px; gap: 10px;">
           <div style="flex: 2;">
             <label for="note_viaggio">Note Generali Viaggio</label>
@@ -647,6 +655,62 @@
       });
     }
 
+    /* --- FUNZIONE GENERICA PER MOSTRARE IL TOOLTIP DETTAGLI VIAGGIO --- */
+    function showTripTooltip(tripItem, parentElement, event) {
+      if (event) event.stopPropagation();
+
+      const existingTooltip = parentElement.querySelector('.calendar-tooltip');
+      if (existingTooltip) {
+        existingTooltip.remove();
+        return;
+      }
+
+      document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
+
+      const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
+      const camping = getCampingTotalFromTrip(tripItem);
+      const pedaggi = Number(tripItem.costo_pedaggi || 0);
+      const rifList = tripItem.rifornimenti || [];
+      const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+      
+      let extraLuoghi = 0;
+      (tripItem.luoghi || []).forEach(l => {
+        (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
+      });
+
+      const totale = camping + pedaggi + carburante + extraLuoghi;
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'calendar-tooltip';
+      
+      tooltip.addEventListener('click', (evt) => evt.stopPropagation());
+
+      const ratingsText = (tripItem.luoghi || []).length > 0
+        ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+        : `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
+
+      const imageHtml = tripItem.foto_copertina 
+        ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
+        : '';
+
+      tooltip.innerHTML = `
+        ${imageHtml}
+        <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+        <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} (${notti} gg)</p>
+        ${(tripItem.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
+        <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
+        <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+        <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
+        <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+        <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+        <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
+        <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+        <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi</button>
+      `;
+
+      parentElement.appendChild(tooltip);
+    }
+
     addLuogoBtn.addEventListener('click', () => {
       tempLuoghi.push({
         id: Date.now(),
@@ -1086,14 +1150,14 @@
           : `📍 ${renderStars(item.rating_luogo || 3)}<br>🏕️ ${renderStars(item.rating_campeggio || 3)}`;
 
         const thumbHtml = item.foto_copertina 
-          ? `<img src="${item.foto_copertina}" class="trip-thumb" alt="Copertina">` 
-          : `<div style="width:50px; height:50px; background:#e2e8f0; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px;">📷</div>`;
+          ? `<img src="${item.foto_copertina}" class="trip-thumb clickable-trip" alt="Copertina" title="Clicca per i dettagli">` 
+          : `<div class="clickable-trip" title="Clicca per i dettagli" style="width:50px; height:50px; background:#e2e8f0; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px;">📷</div>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${thumbHtml}</td>
-          <td>
-            <strong>${escapeHtml(item.destinazione)}</strong>
+          <td style="position: relative;">${thumbHtml}</td>
+          <td style="position: relative;">
+            <strong class="clickable-trip" style="color: #0070f3;" title="Clicca per i dettagli">${escapeHtml(item.destinazione)}</strong>
             ${luoghiList.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: ${luoghiList.map(l => escapeHtml(l.nome_luogo)).join(', ')}</small>` : ''}
             ${item.note ? `<br><small style="color:#64748b;">📝 ${escapeHtml(item.note)}</small>` : ''}
           </td>
@@ -1112,6 +1176,15 @@
             <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">Elimina</button>
           </td>
         `;
+
+        // Gestione Click su Foto e Nome per Aprire il Tooltip
+        const clickables = tr.querySelectorAll('.clickable-trip');
+        clickables.forEach(el => {
+          el.addEventListener('click', (e) => {
+            showTripTooltip(item, el.parentElement, e);
+          });
+        });
+
         viaggiTableBody.appendChild(tr);
       });
     }
@@ -1380,58 +1453,7 @@
           `;
           
           dayDiv.addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            const existingTooltip = dayDiv.querySelector('.calendar-tooltip');
-            if (existingTooltip) {
-              existingTooltip.remove();
-              return;
-            }
-
-            document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
-
-            const notti = calculateNights(tripInDay.data_partenza, tripInDay.data_arrivo);
-            const camping = getCampingTotalFromTrip(tripInDay);
-            const pedaggi = Number(tripInDay.costo_pedaggi || 0);
-            const rifList = tripInDay.rifornimenti || [];
-            const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-            
-            let extraLuoghi = 0;
-            (tripInDay.luoghi || []).forEach(l => {
-              (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
-            });
-
-            const totale = camping + pedaggi + carburante + extraLuoghi;
-
-            const tooltip = document.createElement('div');
-            tooltip.className = 'calendar-tooltip';
-            
-            tooltip.addEventListener('click', (evt) => evt.stopPropagation());
-
-            const ratingsText = (tripInDay.luoghi || []).length > 0
-              ? tripInDay.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
-              : `Rating ${renderStars(tripInDay.rating_luogo || 3)} | Camping ${renderStars(tripInDay.rating_campeggio || 3)}`;
-
-            const imageHtml = tripInDay.foto_copertina 
-              ? `<img src="${tripInDay.foto_copertina}" style="width:100%; height:80px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
-              : '';
-
-            tooltip.innerHTML = `
-              ${imageHtml}
-              <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
-              <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
-              ${(tripInDay.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripInDay.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
-              <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
-              <p>dt <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
-              <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
-              <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
-              <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
-              <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
-              <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
-              <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi</button>
-            `;
-
-            dayDiv.appendChild(tooltip);
+            showTripTooltip(tripInDay, dayDiv, e);
           });
         } else {
           dayDiv.innerHTML = `<span class="day-num">${day}</span>`;
