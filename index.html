@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -5,13 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestione Viaggi Multi-Utente</title>
   
-  <!-- Caricamento SDK Supabase via CDN (obbligatorio nel head) -->
+  <!-- SDK Supabase via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 800px;
+      max-width: 950px;
       margin: 30px auto;
       padding: 0 20px;
       background-color: #f4f6f8;
@@ -43,7 +44,7 @@
 </head>
 <body>
 
-  <!-- SCHERMATA LOGIN / REGISTRAZIONE -->
+  <!-- ==================== SCHERMATA LOGIN / REGISTRAZIONE ==================== -->
   <div id="auth-section" class="card" style="max-width: 400px; margin: 50px auto;">
     <h2 id="auth-title">Accedi</h2>
     <div id="auth-error" class="error hidden"></div>
@@ -66,7 +67,7 @@
     </p>
   </div>
 
-  <!-- DASHBOARD GESTIONE VIAGGI -->
+  <!-- ==================== DASHBOARD GESTIONE VIAGGIO ==================== -->
   <div id="app-section" class="hidden">
     <div class="flex-center" style="margin-bottom: 20px;">
       <div>
@@ -83,13 +84,21 @@
         <input type="hidden" id="viaggio-id">
         
         <div class="flex" style="flex-wrap: wrap;">
-          <div style="flex: 2; min-width: 200px;">
+          <div style="flex: 2; min-width: 180px;">
             <label for="destinazione">Destinazione</label>
-            <input type="text" id="destinazione" required>
+            <input type="text" id="destinazione" required placeholder="Es. Roma">
+          </div>
+          <div style="flex: 1; min-width: 130px;">
+            <label for="data_partenza">Data Partenza</label>
+            <input type="date" id="data_partenza" required>
+          </div>
+          <div style="flex: 1; min-width: 130px;">
+            <label for="data_arrivo">Data Arrivo</label>
+            <input type="date" id="data_arrivo" required>
           </div>
           <div style="flex: 1; min-width: 100px;">
             <label for="chilometri">Chilometri</label>
-            <input type="number" step="0.1" id="chilometri" required>
+            <input type="number" step="0.1" id="chilometri" required placeholder="0">
           </div>
           <div style="flex: 1; min-width: 100px;">
             <label for="costo_pedaggi">Pedaggio (€)</label>
@@ -110,6 +119,8 @@
         <thead>
           <tr>
             <th>Destinazione</th>
+            <th>Partenza</th>
+            <th>Arrivo</th>
             <th>Chilometri</th>
             <th>Costo Pedaggi</th>
             <th style="text-align: right;">Azioni</th>
@@ -122,8 +133,9 @@
     </div>
   </div>
 
-  <!-- LOGICA JAVASCRIPT -->
+  <!-- ==================== LOGICA JAVASCRIPT ==================== -->
   <script>
+
     // 1. INIZIALIZZAZIONE SICURA DI SUPABASE
     const { createClient } = window.supabase;
 
@@ -131,9 +143,8 @@
     const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-	
-	
-    // 2. RIFERIMENTI ELEMENTI DOM
+
+    // 2. RIFERIMENTI DOM
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authForm = document.getElementById('auth-form');
@@ -148,6 +159,8 @@
     const viaggioForm = document.getElementById('viaggio-form');
     const viaggioIdInput = document.getElementById('viaggio-id');
     const destinazioneInput = document.getElementById('destinazione');
+    const dataPartenzaInput = document.getElementById('data_partenza');
+    const dataArrivoInput = document.getElementById('data_arrivo');
     const chilometriInput = document.getElementById('chilometri');
     const costoPedaggiInput = document.getElementById('costo_pedaggi');
     const formTitle = document.getElementById('form-title');
@@ -158,7 +171,7 @@
     let isRegisterMode = false;
     let currentUser = null;
 
-    // 3. ASCOLTO STATO AUTENTICAZIONE
+    // 3. GESTIONE AUTENTICAZIONE
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if (session) {
         currentUser = session.user;
@@ -173,7 +186,7 @@
       }
     });
 
-    // Switch Login / Registrazione
+    // Toggle tra Login e Registrazione
     authToggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
@@ -191,7 +204,7 @@
       }
     });
 
-    // Invia Login / Registrazione
+    // Submit Auth Form
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       authError.classList.add('hidden');
@@ -210,7 +223,7 @@
         authError.classList.remove('hidden');
       } else if (isRegisterMode) {
         alert('Registrazione completata! Puoi effettuare il login.');
-        authToggleBtn.click(); // Torna al form di login
+        authToggleBtn.click();
       }
     });
 
@@ -219,7 +232,7 @@
       await supabaseClient.auth.signOut();
     });
 
-    // 4. CARICAMENTO DATI (READ)
+    // 4. LETTURA DATI (READ)
     async function fetchViaggi() {
       const { data, error } = await supabaseClient
         .from('viaggi')
@@ -227,20 +240,21 @@
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Errore nel recupero dei dati:', error.message);
+        console.error('Errore durante il recupero dei dati:', error.message);
         return;
       }
 
       renderViaggi(data || []);
     }
 
+    // Renderizza dati nella tabella
     function renderViaggi(viaggi) {
       viaggiTableBody.innerHTML = '';
 
       if (viaggi.length === 0) {
         viaggiTableBody.innerHTML = `
           <tr>
-            <td colSpan="4" style="text-align: center; color: #888;">Nessun viaggio trovato.</td>
+            <td colSpan="6" style="text-align: center; color: #888;">Nessun viaggio trovato.</td>
           </tr>
         `;
         return;
@@ -250,12 +264,18 @@
         const tr = document.createElement('tr');
         const pedaggio = Number(item.costo_pedaggi || 0).toFixed(2);
         
+        // Formattazione Date leggibili (gg/mm/aaaa)
+        const dPartenza = item.data_partenza ? formatDate(item.data_partenza) : '-';
+        const dArrivo = item.data_arrivo ? formatDate(item.data_arrivo) : '-';
+
         tr.innerHTML = `
           <td>${escapeHtml(item.destinazione)}</td>
+          <td>${dPartenza}</td>
+          <td>${dArrivo}</td>
           <td>${item.chilometri} km</td>
           <td>€ ${pedaggio}</td>
           <td style="text-align: right;">
-            <button class="btn-secondary" onclick="prepareEdit(${item.id}, '${escapeJs(item.destinazione)}', ${item.chilometri}, ${item.costo_pedaggi || 0})">Modifica</button>
+            <button class="btn-secondary" onclick="prepareEdit(${item.id}, '${escapeJs(item.destinazione)}', '${item.data_partenza || ''}', '${item.data_arrivo || ''}', ${item.chilometri}, ${item.costo_pedaggi || 0})">Modifica</button>
             <button class="btn-danger" onclick="deleteViaggio(${item.id})">Elimina</button>
           </td>
         `;
@@ -270,6 +290,8 @@
       const id = viaggioIdInput.value;
       const payload = {
         destinazione: destinazioneInput.value,
+        data_partenza: dataPartenzaInput.value,
+        data_arrivo: dataArrivoInput.value,
         chilometri: parseFloat(chilometriInput.value) || 0,
         costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
         user_id: currentUser.id
@@ -277,11 +299,11 @@
 
       let error;
       if (id) {
-        // MODIFICA
+        // Modifica
         const res = await supabaseClient.from('viaggi').update(payload).eq('id', id);
         error = res.error;
       } else {
-        // NUOVO INSERIMENTO
+        // Inserimento
         const res = await supabaseClient.from('viaggi').insert([payload]);
         error = res.error;
       }
@@ -294,10 +316,12 @@
       }
     });
 
-    // Prepara Form per la Modifica
-    window.prepareEdit = function(id, destinazione, chilometri, costoPedaggi) {
+    // Preparazione Form per Modifica
+    window.prepareEdit = function(id, destinazione, dataPartenza, dataArrivo, chilometri, costoPedaggi) {
       viaggioIdInput.value = id;
       destinazioneInput.value = destinazione;
+      dataPartenzaInput.value = dataPartenza;
+      dataArrivoInput.value = dataArrivo;
       chilometriInput.value = chilometri;
       costoPedaggiInput.value = costoPedaggi;
 
@@ -331,10 +355,17 @@
       }
     };
 
-    // Helper di sicurezza per stringhe
+    // Helper Utility Functions
+    function formatDate(dateString) {
+      const parts = dateString.split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return dateString;
+    }
+
     function escapeHtml(str) {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+    
     function escapeJs(str) {
       return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
