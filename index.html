@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestione Viaggi Multi-Utente</title>
+  <title>Gestione Viaggi Camper</title>
   
   <!-- SDK Supabase via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,7 +12,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 950px;
+      max-width: 1000px;
       margin: 30px auto;
       padding: 0 20px;
       background-color: #f4f6f8;
@@ -28,18 +28,36 @@
     .hidden { display: none !important; }
     .form-group { margin-bottom: 12px; }
     label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: bold; }
-    input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
     button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-primary { background: #0070f3; color: white; }
     .btn-success { background: #28a745; color: white; }
     .btn-danger { background: #dc3545; color: white; }
     .btn-secondary { background: #e2e8f0; color: #333; }
+    .btn-warning { background: #f59e0b; color: white; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
     th { background: #f8f9fa; }
     .flex { display: flex; gap: 10px; }
     .flex-center { display: flex; justify-content: space-between; align-items: center; }
     .error { color: #dc3545; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
+
+    /* Stili Modali (Calendario e Settaggi) */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal-content {
+      background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto;
+    }
+
+    /* Calendario CSS Grid */
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 15px;
+    }
+    .calendar-day-header { font-weight: bold; padding: 5px; background: #eee; font-size: 12px; }
+    .calendar-day { padding: 10px 2px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-height: 40px; position: relative; }
+    .calendar-day.has-trip { background-color: #dbeafe; border-color: #3b82f6; font-weight: bold; color: #1e40af; }
   </style>
 </head>
 <body>
@@ -71,10 +89,16 @@
   <div id="app-section" class="hidden">
     <div class="flex-center" style="margin-bottom: 20px;">
       <div>
-        <h1 style="margin: 0;">I Miei Viaggi</h1>
+        <h1 style="margin: 0;">🚐 I Miei Viaggi in Camper</h1>
         <small id="user-email-display" style="color: #666;"></small>
       </div>
-      <button id="logout-btn" class="btn-secondary">Logout</button>
+      
+      <!-- PULSANTI AZIONE IN ALTO -->
+      <div class="flex">
+        <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
+        <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi Camper</button>
+        <button id="logout-btn" class="btn-danger">Logout</button>
+      </div>
     </div>
 
     <!-- FORM INSERIMENTO / MODIFICA -->
@@ -86,7 +110,7 @@
         <div class="flex" style="flex-wrap: wrap;">
           <div style="flex: 2; min-width: 180px;">
             <label for="destinazione">Destinazione</label>
-            <input type="text" id="destinazione" required placeholder="Es. Roma">
+            <input type="text" id="destinazione" required placeholder="Es. Firenze">
           </div>
           <div style="flex: 1; min-width: 130px;">
             <label for="data_partenza">Data Partenza</label>
@@ -104,6 +128,10 @@
             <label for="costo_pedaggi">Pedaggio (€)</label>
             <input type="number" step="0.01" id="costo_pedaggi" value="0">
           </div>
+          <div style="flex: 1; min-width: 110px;">
+            <label for="costo_carburante">Carburante (€)</label>
+            <input type="number" step="0.01" id="costo_carburante" value="0" placeholder="Auto">
+          </div>
         </div>
 
         <div style="margin-top: 15px; display: flex; gap: 10px;">
@@ -119,10 +147,11 @@
         <thead>
           <tr>
             <th>Destinazione</th>
-            <th>Partenza</th>
-            <th>Arrivo</th>
-            <th>Chilometri</th>
-            <th>Costo Pedaggi</th>
+            <th>Date</th>
+            <th>Km</th>
+            <th>Pedaggio</th>
+            <th>Carburante</th>
+            <th>Totale</th>
             <th style="text-align: right;">Azioni</th>
           </tr>
         </thead>
@@ -133,15 +162,79 @@
     </div>
   </div>
 
+  <!-- ==================== MODALE SETTAGGI CAMPER ==================== -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h2>⚙️ Settaggi Camper</h2>
+      <p style="font-size: 13px; color: #666;">Configura i parametri del tuo veicolo per il calcolo automatico dei consumi e costi.</p>
+      
+      <form id="settings-form">
+        <div class="form-group">
+          <label for="camper-nome">Nome / Modello Camper</label>
+          <input type="text" id="camper-nome" value="Il mio Camper">
+        </div>
+        <div class="form-group">
+          <label for="camper-consumo">Consumo Medio (Liters / 100km)</label>
+          <input type="number" step="0.1" id="camper-consumo" value="10.0" required>
+        </div>
+        <div class="form-group">
+          <label for="camper-costo-carburante">Costo Carburante (€ / Litro)</label>
+          <input type="number" step="0.001" id="camper-costo-carburante" value="1.85" required>
+        </div>
+        <div class="flex">
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-altezza">Altezza (m)</label>
+            <input type="number" step="0.01" id="camper-altezza" value="3.0">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-peso">Peso (Tonnellate)</label>
+            <input type="number" step="0.1" id="camper-peso" value="3.5">
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" id="close-settings-btn" class="btn-secondary">Annulla</button>
+          <button type="submit" class="btn-success">Salva Impostazioni</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODALE CALENDARIO ==================== -->
+  <div id="calendar-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="flex-center">
+        <h2>📅 Vista Calendario Viaggi</h2>
+        <button id="close-calendar-btn" class="btn-secondary">Chiudi</button>
+      </div>
+
+      <div class="flex-center" style="margin: 15px 0;">
+        <button id="prev-month-btn" class="btn-secondary">&lt; Mese Prec.</button>
+        <h3 id="calendar-month-year" style="margin:0;"></h3>
+        <button id="next-month-btn" class="btn-secondary">Mese Succ. &gt;</button>
+      </div>
+
+      <div class="calendar-grid">
+        <div class="calendar-day-header">Lun</div>
+        <div class="calendar-day-header">Mar</div>
+        <div class="calendar-day-header">Mer</div>
+        <div class="calendar-day-header">Gio</div>
+        <div class="calendar-day-header">Ven</div>
+        <div class="calendar-day-header">Sab</div>
+        <div class="calendar-day-header">Dom</div>
+      </div>
+      <div id="calendar-days-container" class="calendar-grid" style="margin-top: 5px;"></div>
+    </div>
+  </div>
+
   <!-- ==================== LOGICA JAVASCRIPT ==================== -->
   <script>
-
-    // 1. INIZIALIZZAZIONE SICURA DI SUPABASE
+    // 1. INIZIALIZZAZIONE SUPABASE
     const { createClient } = window.supabase;
 
-    // Sostituisci con i tuoi dati reali di Supabase (Project Settings > API)
     const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
+
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // 2. RIFERIMENTI DOM
@@ -156,6 +249,7 @@
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
 
+    // Viaggi Form
     const viaggioForm = document.getElementById('viaggio-form');
     const viaggioIdInput = document.getElementById('viaggio-id');
     const destinazioneInput = document.getElementById('destinazione');
@@ -163,22 +257,38 @@
     const dataArrivoInput = document.getElementById('data_arrivo');
     const chilometriInput = document.getElementById('chilometri');
     const costoPedaggiInput = document.getElementById('costo_pedaggi');
+    const costoCarburanteInput = document.getElementById('costo_carburante');
     const formTitle = document.getElementById('form-title');
     const saveBtn = document.getElementById('save-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const viaggiTableBody = document.getElementById('viaggi-table-body');
 
+    // Modali
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsForm = document.getElementById('settings-form');
+
+    const openCalendarBtn = document.getElementById('open-calendar-btn');
+    const closeCalendarBtn = document.getElementById('close-calendar-btn');
+    const calendarModal = document.getElementById('calendar-modal');
+
+    // Dati Applicazione
     let isRegisterMode = false;
     let currentUser = null;
+    let viaggiList = [];
+    let camperSettings = { consumo: 10.0, costoCarburante: 1.85 };
+    let currentCalendarDate = new Date();
 
     // 3. GESTIONE AUTENTICAZIONE
-    supabaseClient.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         currentUser = session.user;
         userEmailDisplay.textContent = `Utente: ${currentUser.email}`;
         authSection.classList.add('hidden');
         appSection.classList.remove('hidden');
-        fetchViaggi();
+        await fetchSettings();
+        await fetchViaggi();
       } else {
         currentUser = null;
         appSection.classList.add('hidden');
@@ -186,96 +296,131 @@
       }
     });
 
-    // Toggle tra Login e Registrazione
     authToggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
       authError.classList.add('hidden');
-      if (isRegisterMode) {
-        authTitle.textContent = 'Registrazione';
-        authSubmitBtn.textContent = 'Registrati';
-        authToggleText.textContent = 'Hai già un account?';
-        authToggleBtn.textContent = 'Accedi';
-      } else {
-        authTitle.textContent = 'Accedi';
-        authSubmitBtn.textContent = 'Accedi';
-        authToggleText.textContent = 'Non hai un account?';
-        authToggleBtn.textContent = 'Registrati';
-      }
+      authTitle.textContent = isRegisterMode ? 'Registrazione' : 'Accedi';
+      authSubmitBtn.textContent = isRegisterMode ? 'Registrati' : 'Accedi';
+      authToggleText.textContent = isRegisterMode ? 'Hai già un account?' : 'Non hai un account?';
+      authToggleBtn.textContent = isRegisterMode ? 'Accedi' : 'Registrati';
     });
 
-    // Submit Auth Form
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       authError.classList.add('hidden');
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
 
-      let response;
-      if (isRegisterMode) {
-        response = await supabaseClient.auth.signUp({ email, password });
-      } else {
-        response = await supabaseClient.auth.signInWithPassword({ email, password });
-      }
+      let res = isRegisterMode 
+        ? await supabaseClient.auth.signUp({ email, password })
+        : await supabaseClient.auth.signInWithPassword({ email, password });
 
-      if (response.error) {
-        authError.textContent = response.error.message;
+      if (res.error) {
+        authError.textContent = res.error.message;
         authError.classList.remove('hidden');
       } else if (isRegisterMode) {
-        alert('Registrazione completata! Puoi effettuare il login.');
+        alert('Registrazione completata! Puoi accedere.');
         authToggleBtn.click();
       }
     });
 
-    // Logout
-    logoutBtn.addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
+    logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
+
+    // 4. CARICAMENTO E SALVATAGGIO SETTAGGI CAMPER
+    async function fetchSettings() {
+      const { data, error } = await supabaseClient
+        .from('camper_settings')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (data) {
+        camperSettings = {
+          consumo: parseFloat(data.consumo_medio) || 10.0,
+          costoCarburante: parseFloat(data.costo_carburante) || 1.85
+        };
+        document.getElementById('camper-nome').value = data.nome_camper || '';
+        document.getElementById('camper-consumo').value = camperSettings.consumo;
+        document.getElementById('camper-costo-carburante').value = camperSettings.costoCarburante;
+        document.getElementById('camper-altezza').value = data.altezza || 3.0;
+        document.getElementById('camper-peso').value = data.peso || 3.5;
+      }
+    }
+
+    settingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        user_id: currentUser.id,
+        nome_camper: document.getElementById('camper-nome').value,
+        consumo_medio: parseFloat(document.getElementById('camper-consumo').value),
+        costo_carburante: parseFloat(document.getElementById('camper-costo-carburante').value),
+        altezza: parseFloat(document.getElementById('camper-altezza').value),
+        peso: parseFloat(document.getElementById('camper-peso').value)
+      };
+
+      const { error } = await supabaseClient.from('camper_settings').upsert(payload, { onConflict: 'user_id' });
+
+      if (error) {
+        alert('Errore salvataggio settaggi: ' + error.message);
+      } else {
+        camperSettings.consumo = payload.consumo_medio;
+        camperSettings.costoCarburante = payload.costo_carburante;
+        settingsModal.classList.add('hidden');
+        alert('Impostazioni salvate con successo!');
+      }
     });
 
-    // 4. LETTURA DATI (READ)
+    // Auto-calcolo carburante quando si inseriscono i km
+    chilometriInput.addEventListener('input', () => {
+      const km = parseFloat(chilometriInput.value) || 0;
+      if (km > 0 && camperSettings.consumo > 0) {
+        const calcolato = (km * (camperSettings.consumo / 100)) * camperSettings.costoCarburante;
+        costoCarburanteInput.value = calcolato.toFixed(2);
+      }
+    });
+
+    openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+    closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+    // 5. CARICAMENTO E SALVATAGGIO VIAGGI
     async function fetchViaggi() {
       const { data, error } = await supabaseClient
         .from('viaggi')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('data_partenza', { ascending: false });
 
       if (error) {
-        console.error('Errore durante il recupero dei dati:', error.message);
+        console.error('Errore caricamento:', error.message);
         return;
       }
 
-      renderViaggi(data || []);
+      viaggiList = data || [];
+      renderViaggiTable(viaggiList);
     }
 
-    // Renderizza dati nella tabella
-    function renderViaggi(viaggi) {
+    function renderViaggiTable(viaggi) {
       viaggiTableBody.innerHTML = '';
-
       if (viaggi.length === 0) {
-        viaggiTableBody.innerHTML = `
-          <tr>
-            <td colSpan="6" style="text-align: center; color: #888;">Nessun viaggio trovato.</td>
-          </tr>
-        `;
+        viaggiTableBody.innerHTML = `<tr><td colSpan="7" style="text-align:center; color:#888;">Nessun viaggio registrato.</td></tr>`;
         return;
       }
 
       viaggi.forEach(item => {
         const tr = document.createElement('tr');
-        const pedaggio = Number(item.costo_pedaggi || 0).toFixed(2);
-        
-        // Formattazione Date leggibili (gg/mm/aaaa)
-        const dPartenza = item.data_partenza ? formatDate(item.data_partenza) : '-';
-        const dArrivo = item.data_arrivo ? formatDate(item.data_arrivo) : '-';
+        const pedaggio = Number(item.costo_pedaggi || 0);
+        const carburante = Number(item.costo_carburante || 0);
+        const totale = pedaggio + carburante;
 
         tr.innerHTML = `
-          <td>${escapeHtml(item.destinazione)}</td>
-          <td>${dPartenza}</td>
-          <td>${dArrivo}</td>
+          <td><strong>${escapeHtml(item.destinazione)}</strong></td>
+          <td style="font-size: 13px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)}</td>
           <td>${item.chilometri} km</td>
-          <td>€ ${pedaggio}</td>
+          <td>€ ${pedaggio.toFixed(2)}</td>
+          <td>€ ${carburante.toFixed(2)}</td>
+          <td><strong>€ ${totale.toFixed(2)}</strong></td>
           <td style="text-align: right;">
-            <button class="btn-secondary" onclick="prepareEdit(${item.id}, '${escapeJs(item.destinazione)}', '${item.data_partenza || ''}', '${item.data_arrivo || ''}', ${item.chilometri}, ${item.costo_pedaggi || 0})">Modifica</button>
+            <button class="btn-secondary" onclick="prepareEdit(${item.id})">Modifica</button>
             <button class="btn-danger" onclick="deleteViaggio(${item.id})">Elimina</button>
           </td>
         `;
@@ -283,10 +428,8 @@
       });
     }
 
-    // 5. SALVATAGGIO / MODIFICA (CREATE / UPDATE)
     viaggioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const id = viaggioIdInput.value;
       const payload = {
         destinazione: destinazioneInput.value,
@@ -294,36 +437,33 @@
         data_arrivo: dataArrivoInput.value,
         chilometri: parseFloat(chilometriInput.value) || 0,
         costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
+        costo_carburante: parseFloat(costoCarburanteInput.value) || 0,
         user_id: currentUser.id
       };
 
-      let error;
-      if (id) {
-        // Modifica
-        const res = await supabaseClient.from('viaggi').update(payload).eq('id', id);
-        error = res.error;
-      } else {
-        // Inserimento
-        const res = await supabaseClient.from('viaggi').insert([payload]);
-        error = res.error;
-      }
+      const { error } = id 
+        ? await supabaseClient.from('viaggi').update(payload).eq('id', id)
+        : await supabaseClient.from('viaggi').insert([payload]);
 
       if (error) {
-        alert('Errore durante il salvataggio: ' + error.message);
+        alert('Errore salvataggio: ' + error.message);
       } else {
         resetViaggioForm();
         fetchViaggi();
       }
     });
 
-    // Preparazione Form per Modifica
-    window.prepareEdit = function(id, destinazione, dataPartenza, dataArrivo, chilometri, costoPedaggi) {
-      viaggioIdInput.value = id;
-      destinazioneInput.value = destinazione;
-      dataPartenzaInput.value = dataPartenza;
-      dataArrivoInput.value = dataArrivo;
-      chilometriInput.value = chilometri;
-      costoPedaggiInput.value = costoPedaggi;
+    window.prepareEdit = function(id) {
+      const v = viaggiList.find(x => x.id === id);
+      if (!v) return;
+
+      viaggioIdInput.value = v.id;
+      destinazioneInput.value = v.destinazione;
+      dataPartenzaInput.value = v.data_partenza;
+      dataArrivoInput.value = v.data_arrivo;
+      chilometriInput.value = v.chilometri;
+      costoPedaggiInput.value = v.costo_pedaggi;
+      costoCarburanteInput.value = v.costo_carburante;
 
       formTitle.textContent = 'Modifica Viaggio';
       saveBtn.textContent = 'Aggiorna Viaggio';
@@ -337,37 +477,84 @@
       viaggioIdInput.value = '';
       viaggioForm.reset();
       costoPedaggiInput.value = 0;
+      costoCarburanteInput.value = 0;
       formTitle.textContent = 'Aggiungi Nuovo Viaggio';
       saveBtn.textContent = 'Aggiungi Viaggio';
       saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
     }
 
-    // 6. CANCELLAZIONE (DELETE)
     window.deleteViaggio = async function(id) {
-      if (!confirm('Sei sicuro di voler eliminare questo viaggio?')) return;
-
+      if (!confirm('Eliminare questo viaggio?')) return;
       const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
-      if (error) {
-        alert('Errore durante l\'eliminazione: ' + error.message);
-      } else {
-        fetchViaggi();
-      }
+      if (!error) fetchViaggi();
     };
 
-    // Helper Utility Functions
-    function formatDate(dateString) {
-      const parts = dateString.split('-');
-      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      return dateString;
+    // 6. GESTIONE CALENDARIO
+    openCalendarBtn.addEventListener('click', () => {
+      calendarModal.classList.remove('hidden');
+      renderCalendar();
+    });
+
+    closeCalendarBtn.addEventListener('click', () => calendarModal.classList.add('hidden'));
+
+    document.getElementById('prev-month-btn').addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    document.getElementById('next-month-btn').addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    function renderCalendar() {
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+
+      const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+      document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startingDay = (firstDay.getDay() + 6) % 7; // Lunedì = 0
+
+      const daysContainer = document.getElementById('calendar-days-container');
+      daysContainer.innerHTML = '';
+
+      // Spazi vuoti
+      for (let i = 0; i < startingDay; i++) {
+        daysContainer.appendChild(document.createElement('div'));
+      }
+
+      // Giorni del mese
+      for (let day = 1; day <= lastDay.getDate(); day++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        dayDiv.textContent = day;
+
+        const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Verifica se ci sono viaggi in questo giorno
+        const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
+        if (tripInDay) {
+          dayDiv.classList.add('has-trip');
+          dayDiv.title = tripInDay.destinazione;
+        }
+
+        daysContainer.appendChild(dayDiv);
+      }
+    }
+
+    // Utility
+    function formatDate(str) {
+      if (!str) return '-';
+      const p = str.split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
     }
 
     function escapeHtml(str) {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-    
-    function escapeJs(str) {
-      return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
   </script>
 </body>
