@@ -7,6 +7,9 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
   <style>
     * { box-sizing: border-box; }
     body {
@@ -132,6 +135,21 @@
       opacity: 0.8;
     }
 
+    /* Stile personalizzato per i popup della Mappa */
+    .leaflet-popup-content-wrapper {
+      background: #0f172a !important;
+      color: white !important;
+      border-radius: 8px !important;
+      padding: 4px !important;
+    }
+    .leaflet-popup-tip {
+      background: #0f172a !important;
+    }
+    .leaflet-popup-content {
+      margin: 8px 10px !important;
+      line-height: 1.4 !important;
+    }
+
     @media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
       .header-actions button { width: 100%; font-size: 12px; padding: 8px; }
@@ -174,6 +192,7 @@
         <button id="open-viaggi-btn" class="btn-purple">📋 Elenco Viaggi</button>
         <button id="open-summary-btn" class="btn-info">📊 Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
+        <button id="open-map-btn" class="btn-success">🗺️ Mappa Viaggi</button>
         <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
         <button id="logout-btn" class="btn-danger">Logout</button>
       </div>
@@ -458,6 +477,16 @@
     </div>
   </div>
 
+  <div id="map-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 900px; width: 95%;">
+      <div class="flex-center" style="margin-bottom: 12px;">
+        <h2 style="margin:0; font-size: 18px;">🗺️ Mappa dei Luoghi Visitati</h2>
+        <button id="close-map-btn" class="btn-secondary btn-sm">Chiudi</button>
+      </div>
+      <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
+    </div>
+  </div>
+
   <script>
     const { createClient } = window.supabase;
 
@@ -537,6 +566,10 @@
     const calendarModal = document.getElementById('calendar-modal');
     const addLuogoBtn = document.getElementById('add-luogo-btn');
 
+    const openMapBtn = document.getElementById('open-map-btn');
+    const closeMapBtn = document.getElementById('close-map-btn');
+    const mapModal = document.getElementById('map-modal');
+
     let isRegisterMode = false;
     let currentUser = null;
     let viaggiList = [];
@@ -544,6 +577,8 @@
     let tempLuoghi = [];
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0 };
     let currentCalendarDate = new Date();
+    let map = null;
+    let markersGroup = null;
 
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
@@ -664,11 +699,7 @@
     }
 
     /* --- FUNZIONE TOOLTIP IN OVERLAY SUPERIORE --- */
-    function showTripTooltip(tripItem, parentElement, event) {
-      if (event) event.stopPropagation();
-
-      document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
-
+    function getTripTooltipHTML(tripItem) {
       const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
       const camping = getCampingTotalFromTrip(tripItem);
       const pedaggi = Number(tripItem.costo_pedaggi || 0);
@@ -682,11 +713,6 @@
 
       const totale = camping + pedaggi + carburante + extraLuoghi;
 
-      const tooltip = document.createElement('div');
-      tooltip.className = 'calendar-tooltip trip-overlay-tooltip';
-      
-      tooltip.addEventListener('click', (evt) => evt.stopPropagation());
-
       const ratingsText = (tripItem.luoghi || []).length > 0
         ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
         : `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
@@ -695,22 +721,107 @@
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
         : '';
 
-      tooltip.innerHTML = `
-        ${imageHtml}
-        <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
-        <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
-        ${(tripItem.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
-        <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
-        <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
-        <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
-        <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
-        <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
-        <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
-        <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+      return `
+        <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
+          ${imageHtml}
+          <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+          <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
+          ${(tripItem.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
+          <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
+          <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+          <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
+          <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
+          <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+        </div>
+      `;
+    }
+
+    function showTripTooltip(tripItem, parentElement, event) {
+      if (event) event.stopPropagation();
+      document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'calendar-tooltip trip-overlay-tooltip';
+      tooltip.addEventListener('click', (evt) => evt.stopPropagation());
+
+      tooltip.innerHTML = getTripTooltipHTML(tripItem) + `
         <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi</button>
       `;
 
       document.body.appendChild(tooltip);
+    }
+
+    /* --- LOGICA DELLA MAPPA CON MAPBOX/LEAFLET --- */
+    openMapBtn.addEventListener('click', () => {
+      mapModal.classList.remove('hidden');
+      setTimeout(initAndRenderMap, 200);
+    });
+
+    closeMapBtn.addEventListener('click', () => {
+      mapModal.classList.add('hidden');
+    });
+
+    async function initAndRenderMap() {
+      if (!map) {
+        map = L.map('map-container').setView([41.9028, 12.4964], 5); // Coordinate Italia di default
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+        markersGroup = L.featureGroup().addTo(map);
+      } else {
+        map.invalidateSize();
+        markersGroup.clearLayers();
+      }
+
+      // Icona a forma di Bandierina
+      const flagIcon = L.divIcon({
+        className: 'custom-flag-icon',
+        html: '<div style="font-size: 26px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">🚩</div>',
+        iconSize: [30, 30],
+        iconAnchor: [5, 25],
+        popupAnchor: [10, -20]
+      });
+
+      const itemsToGeocode = [];
+
+      viaggiList.forEach(trip => {
+        if (trip.luoghi && trip.luoghi.length > 0) {
+          trip.luoghi.forEach(luogo => {
+            if (luogo.nome_luogo) {
+              itemsToGeocode.push({ query: luogo.nome_luogo, trip: trip, label: luogo.nome_luogo });
+            }
+          });
+        } else if (trip.destinazione) {
+          itemsToGeocode.push({ query: trip.destinazione, trip: trip, label: trip.destinazione });
+        }
+      });
+
+      if (itemsToGeocode.length === 0) return;
+
+      for (const item of itemsToGeocode) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}`);
+          const data = await res.json();
+
+          if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+
+            const marker = L.marker([lat, lon], { icon: flagIcon });
+            marker.bindPopup(getTripTooltipHTML(item.trip), { maxWidth: 320 });
+            markersGroup.addLayer(marker);
+          }
+        } catch (err) {
+          console.error("Errore geocodifica luogo:", item.query, err);
+        }
+      }
+
+      if (markersGroup.getLayers().length > 0) {
+        map.fitBounds(markersGroup.getBounds().pad(0.2));
+      }
     }
 
     addLuogoBtn.addEventListener('click', () => {
@@ -1472,7 +1583,7 @@
     }
 
     document.addEventListener('click', () => {
-      document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
+      document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
     });
 
     function formatDate(str) {
