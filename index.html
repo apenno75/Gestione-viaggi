@@ -766,6 +766,7 @@
     async function initAndRenderMap() {
       if (!map) {
         map = L.map('map-container').setView([41.9028, 12.4964], 5); // Coordinate Italia di default
+		
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '© OpenStreetMap'
@@ -821,6 +822,9 @@
 
       if (markersGroup.getLayers().length > 0) {
         map.fitBounds(markersGroup.getBounds().pad(0.2));
+		if (map.getZoom() > 6) {
+          map.setZoom(6);
+        }
       }
     }
 
