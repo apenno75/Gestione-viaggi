@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
@@ -36,6 +36,7 @@
     .btn-secondary { background: #6c757d; color: white; }
     .btn-warning { background: #f59e0b; color: white; }
     .btn-info { background: #0ea5e9; color: white; }
+    .btn-sm { padding: 4px 8px; font-size: 12px; }
     
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
@@ -50,31 +51,43 @@
       background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
     }
     .modal-content {
-      background: white; padding: 25px; border-radius: 8px; width: 92%; max-width: 700px; max-height: 85vh; overflow-y: auto;
+      background: white; padding: 25px; border-radius: 8px; width: 92%; max-width: 700px; max-height: 85vh; overflow-y: auto; position: relative;
     }
 
-    /* Calendario CSS Grid */
+    /* Calendario Grid */
     .calendar-grid {
       display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 15px;
     }
     .calendar-day-header { font-weight: bold; padding: 5px; background: #eee; font-size: 12px; }
-    .calendar-day { padding: 10px 2px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-height: 40px; }
-    .calendar-day.has-trip { background-color: #dbeafe; border-color: #3b82f6; font-weight: bold; color: #1e40af; }
+    .calendar-day { padding: 10px 2px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-height: 40px; position: relative; cursor: default; }
+    .calendar-day.has-trip { background-color: #dbeafe; border-color: #3b82f6; font-weight: bold; color: #1e40af; cursor: pointer; }
+    .calendar-day.has-trip:hover { background-color: #bfdbfe; }
 
-    /* Stat Cards per Riepilogo */
-    .stat-card {
-      background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; text-align: center; flex: 1;
+    /* Popover Tooltip Calendario */
+    .calendar-tooltip {
+      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: white; padding: 12px; border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25); font-size: 12px; text-align: left;
+      z-index: 100; width: 220px; font-weight: normal; margin-top: 5px;
     }
+    .calendar-tooltip h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 14px; }
+    .calendar-tooltip p { margin: 3px 0; }
+    .calendar-tooltip ul { margin: 5px 0 0 0; padding-left: 15px; font-size: 11px; color: #cbd5e1; }
+
+    /* Rifornimenti Box */
+    .refuel-box { background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; }
+
+    /* Stat Cards */
+    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; text-align: center; flex: 1; }
     .stat-card .amount { font-size: 18px; font-weight: bold; color: #0284c7; margin-top: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- ==================== LOGIN / REGISTRAZIONE ==================== -->
+  <!-- ==================== AUTH SECTION ==================== -->
   <div id="auth-section" class="card" style="max-width: 400px; margin: 50px auto;">
     <h2 id="auth-title">Accedi</h2>
     <div id="auth-error" class="error hidden"></div>
-    
     <form id="auth-form">
       <div class="form-group">
         <label for="auth-email">Email</label>
@@ -86,14 +99,13 @@
       </div>
       <button type="submit" id="auth-submit-btn" class="btn-primary" style="width: 100%;">Accedi</button>
     </form>
-
     <p style="text-align: center; font-size: 14px; margin-top: 15px;">
       <span id="auth-toggle-text">Non hai un account?</span>
       <a href="#" id="auth-toggle-btn" style="color: #0070f3;">Registrati</a>
     </p>
   </div>
 
-  <!-- ==================== DASHBOARD GESTIONE VIAGGIO ==================== -->
+  <!-- ==================== DASHBOARD APP ==================== -->
   <div id="app-section" class="hidden">
     <div class="flex-center" style="margin-bottom: 20px;">
       <div>
@@ -101,7 +113,6 @@
         <small id="user-email-display" style="color: #666;"></small>
       </div>
       
-      <!-- PULSANTI AZIONE IN ALTO -->
       <div class="flex" style="flex-wrap: wrap;">
         <button id="open-summary-btn" class="btn-info">📊 Riepilogo Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
@@ -110,7 +121,7 @@
       </div>
     </div>
 
-    <!-- FORM INSERIMENTO / MODIFICA -->
+    <!-- FORM INSERIMENTO / MODIFICA VIAGGIO -->
     <div class="card">
       <h3 id="form-title" style="margin-top:0;">Aggiungi Nuovo Viaggio</h3>
       <form id="viaggio-form">
@@ -149,12 +160,45 @@
             <input type="number" step="0.1" id="chilometri" required placeholder="0">
           </div>
           <div style="flex: 1; min-width: 100px;">
-            <label for="costo_carburante">Carburante (€)</label>
-            <input type="number" step="0.01" id="costo_carburante" value="0" placeholder="Auto">
-          </div>
-          <div style="flex: 1; min-width: 100px;">
             <label for="costo_pedaggi">Pedaggi (€)</label>
             <input type="number" step="0.01" id="costo_pedaggi" value="0">
+          </div>
+        </div>
+
+        <!-- SEZIONE RIFORNIMENTI MULTIPLI -->
+        <div class="refuel-box">
+          <label style="color: #0369a1; font-size: 14px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
+          <div class="flex" style="align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 120px;">
+              <label for="rif-data">Data Rifornimento</label>
+              <input type="date" id="rif-data">
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+              <label for="rif-costo">Costo Sostenuto (€)</label>
+              <input type="number" step="0.01" id="rif-costo" placeholder="Es. 50.00">
+            </div>
+            <div style="flex: 1; min-width: 120px; padding-bottom: 8px; font-size: 13px; color: #555;">
+              Litri stimati: <strong id="rif-litri-preview" style="color: #2563eb;">0.00 L</strong>
+            </div>
+            <button type="button" id="add-refuel-btn" class="btn-info btn-sm" style="margin-bottom: 2px;">+ Aggiungi Rifornimento</button>
+          </div>
+
+          <!-- Tabella locale Rifornimenti del viaggio -->
+          <table style="margin-top: 10px; background: white; border-radius: 4px;">
+            <thead>
+              <tr style="font-size: 12px;">
+                <th>Data</th>
+                <th>Costo (€)</th>
+                <th>Litri (L)</th>
+                <th style="text-align: right;">Azione</th>
+              </tr>
+            </thead>
+            <tbody id="refuel-table-body">
+              <tr><td colspan="4" style="text-align: center; color: #999; font-size: 12px;">Nessun rifornimento aggiunto per questo viaggio.</td></tr>
+            </tbody>
+          </table>
+          <div style="text-align: right; margin-top: 6px; font-size: 13px;">
+            Totale Carburante Viaggio: <strong id="totale-carburante-viaggio" style="color: #2563eb;">€ 0.00</strong>
           </div>
         </div>
 
@@ -186,9 +230,7 @@
             <th style="text-align: right;">Azioni</th>
           </tr>
         </thead>
-        <tbody id="viaggi-table-body">
-          <!-- Righe inserite dinamicamente via JS -->
-        </tbody>
+        <tbody id="viaggi-table-body"></tbody>
       </table>
     </div>
   </div>
@@ -201,7 +243,6 @@
         <button id="close-summary-btn" class="btn-secondary">Chiudi</button>
       </div>
 
-      <!-- Tessere Totali Globali -->
       <div class="flex" style="margin: 15px 0; gap: 10px; flex-wrap: wrap;">
         <div class="stat-card">
           <small>Totale Camping</small>
@@ -221,7 +262,6 @@
         </div>
       </div>
 
-      <!-- Tabella dettaglio viaggi -->
       <h3>Dettaglio Spese per Viaggio</h3>
       <table>
         <thead>
@@ -233,9 +273,7 @@
             <th>Totale</th>
           </tr>
         </thead>
-        <tbody id="summary-table-body">
-          <!-- Popolato dinamicamente -->
-        </tbody>
+        <tbody id="summary-table-body"></tbody>
       </table>
     </div>
   </div>
@@ -244,7 +282,7 @@
   <div id="settings-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
       <h2>⚙️ Settaggi Camper</h2>
-      <p style="font-size: 13px; color: #666;">I dati servono per il calcolo automatico del carburante stimato.</p>
+      <p style="font-size: 13px; color: #666;">Il costo del carburante al litro serve per il calcolo dei litri nei rifornimenti.</p>
       
       <form id="settings-form">
         <div class="form-group">
@@ -280,7 +318,7 @@
 
   <!-- ==================== MODALE CALENDARIO ==================== -->
   <div id="calendar-modal" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content" style="max-width: 650px;">
       <div class="flex-center">
         <h2>📅 Vista Calendario Viaggi</h2>
         <button id="close-calendar-btn" class="btn-secondary">Chiudi</button>
@@ -305,18 +343,16 @@
     </div>
   </div>
 
-  <!-- ==================== LOGICA JAVASCRIPT ==================== -->
+  <!-- ==================== JAVASCRIPT ==================== -->
   <script>
-    // 1. CONFIGURAZIONE SUPABASE
     const { createClient } = window.supabase;
 
     const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
 
-
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 2. RIFERIMENTI ELEMENTI DOM
+    // DOM References
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authForm = document.getElementById('auth-form');
@@ -339,37 +375,44 @@
     const totaleCampeggioInput = document.getElementById('totale_campeggio');
     const chilometriInput = document.getElementById('chilometri');
     const costoPedaggiInput = document.getElementById('costo_pedaggi');
-    const costoCarburanteInput = document.getElementById('costo_carburante');
     const costoTotalePreview = document.getElementById('costo-totale-preview');
     const formTitle = document.getElementById('form-title');
     const saveBtn = document.getElementById('save-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const viaggiTableBody = document.getElementById('viaggi-table-body');
 
-    // Modale Riepilogo Costi
+    // Refuel Inputs
+    const rifDataInput = document.getElementById('rif-data');
+    const rifCostoInput = document.getElementById('rif-costo');
+    const rifLitriPreview = document.getElementById('rif-litri-preview');
+    const addRefuelBtn = document.getElementById('add-refuel-btn');
+    const refuelTableBody = document.getElementById('refuel-table-body');
+    const totaleCarburanteViaggioDisplay = document.getElementById('totale-carburante-viaggio');
+
+    // Modali
     const openSummaryBtn = document.getElementById('open-summary-btn');
     const closeSummaryBtn = document.getElementById('close-summary-btn');
     const summaryModal = document.getElementById('summary-modal');
 
-    // Modale Settaggi
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const settingsForm = document.getElementById('settings-form');
 
-    // Modale Calendario
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
     const calendarModal = document.getElementById('calendar-modal');
 
-    // Dati Applicazione
+    // State Variables
     let isRegisterMode = false;
     let currentUser = null;
     let viaggiList = [];
+    let tempRefuelings = []; // Rifornimenti in lavorazione per il viaggio selezionato
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85 };
     let currentCalendarDate = new Date();
+    let activeTooltipDay = null;
 
-    // 3. GESTIONE AUTENTICAZIONE
+    // AUTHENTICATION
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         currentUser = session.user;
@@ -416,14 +459,17 @@
 
     logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
 
-    // 4. CALCOLO AUTOMATICO NOTTI E COSTI
+    // CALCOLI AUTOMATICI
     function calculateNights(startStr, endStr) {
       if (!startStr || !endStr) return 0;
       const start = new Date(startStr);
       const end = new Date(endStr);
-      const diffTime = end - start;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
       return diffDays > 0 ? diffDays : 0;
+    }
+
+    function calculateTotalCarburanteTemp() {
+      return tempRefuelings.reduce((sum, r) => sum + parseFloat(r.costo_sostenuto || 0), 0);
     }
 
     function updateFormCalculations() {
@@ -437,29 +483,85 @@
       totaleCampeggioInput.value = totCamping.toFixed(2);
 
       const pedaggi = parseFloat(costoPedaggiInput.value) || 0;
-      const carburante = parseFloat(costoCarburanteInput.value) || 0;
+      const carburante = calculateTotalCarburanteTemp();
+      
+      totaleCarburanteViaggioDisplay.textContent = `€ ${carburante.toFixed(2)}`;
 
       const totaleViaggio = totCamping + pedaggi + carburante;
       costoTotalePreview.textContent = `€ ${totaleViaggio.toFixed(2)}`;
     }
 
-    dataPartenzaInput.addEventListener('change', updateFormCalculations);
+    dataPartenzaInput.addEventListener('change', () => {
+      if (!rifDataInput.value) rifDataInput.value = dataPartenzaInput.value;
+      updateFormCalculations();
+    });
     dataArrivoInput.addEventListener('change', updateFormCalculations);
     costoCampeggioNotteInput.addEventListener('input', updateFormCalculations);
     costoPedaggiInput.addEventListener('input', updateFormCalculations);
-    costoCarburanteInput.addEventListener('input', updateFormCalculations);
 
-    // Auto-calcolo carburante in base ai Km e ai settaggi del camper
-    chilometriInput.addEventListener('input', () => {
-      const km = parseFloat(chilometriInput.value) || 0;
-      if (km > 0 && camperSettings.consumo > 0) {
-        const calcolato = (km * (camperSettings.consumo / 100)) * camperSettings.costoCarburante;
-        costoCarburanteInput.value = calcolato.toFixed(2);
+    // GESTIONE RIFORNIMENTI IN-FORM
+    rifCostoInput.addEventListener('input', () => {
+      const costo = parseFloat(rifCostoInput.value) || 0;
+      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
+      rifLitriPreview.textContent = `${litri.toFixed(2)} L`;
+    });
+
+    addRefuelBtn.addEventListener('click', () => {
+      const dataRif = rifDataInput.value || dataPartenzaInput.value;
+      const costo = parseFloat(rifCostoInput.value) || 0;
+
+      if (!dataRif) {
+        alert('Seleziona una data per il rifornimento.');
+        return;
       }
+      if (costo <= 0) {
+        alert('Inserisci un costo valido per il rifornimento.');
+        return;
+      }
+
+      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
+
+      tempRefuelings.push({
+        data_rifornimento: dataRif,
+        costo_sostenuto: costo,
+        litri: parseFloat(litri.toFixed(2))
+      });
+
+      rifCostoInput.value = '';
+      rifLitriPreview.textContent = '0.00 L';
+      renderRefuelTable();
       updateFormCalculations();
     });
 
-    // 5. CARICAMENTO E SALVATAGGIO SETTAGGI CAMPER
+    function renderRefuelTable() {
+      refuelTableBody.innerHTML = '';
+      if (tempRefuelings.length === 0) {
+        refuelTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #999; font-size: 12px;">Nessun rifornimento aggiunto per questo viaggio.</td></tr>`;
+        return;
+      }
+
+      tempRefuelings.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.fontSize = '13px';
+        tr.innerHTML = `
+          <td>${formatDate(r.data_rifornimento)}</td>
+          <td>€ ${parseFloat(r.costo_sostenuto).toFixed(2)}</td>
+          <td>${parseFloat(r.litri).toFixed(2)} L</td>
+          <td style="text-align: right;">
+            <button type="button" class="btn-danger btn-sm" onclick="removeRefuel(${idx})">&times;</button>
+          </td>
+        `;
+        refuelTableBody.appendChild(tr);
+      });
+    }
+
+    window.removeRefuel = function(index) {
+      tempRefuelings.splice(index, 1);
+      renderRefuelTable();
+      updateFormCalculations();
+    };
+
+    // SETTAGGI CAMPER
     async function fetchSettings() {
       const { data } = await supabaseClient
         .from('camper_settings')
@@ -506,11 +608,12 @@
     openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-    // 6. GESTIONE VIAGGI (FETCH, INSERT, UPDATE, DELETE)
+    // GESTIONE VIAGGI CON RIFORNIMENTI
     async function fetchViaggi() {
+      // Fetch viaggi inclusi i rifornimenti correlati
       const { data, error } = await supabaseClient
         .from('viaggi')
-        .select('*')
+        .select('*, rifornimenti(*)')
         .order('data_partenza', { ascending: false });
 
       if (error) {
@@ -531,10 +634,12 @@
 
       viaggi.forEach(item => {
         const notti = calculateNights(item.data_partenza, item.data_arrivo);
-        const costoCampingNotte = Number(item.costo_campeggio_notte || 0);
-        const totCamping = notti * costoCampingNotte;
+        const totCamping = notti * Number(item.costo_campeggio_notte || 0);
         const pedaggi = Number(item.costo_pedaggi || 0);
-        const carburante = Number(item.costo_carburante || 0);
+        
+        // Calcolo totale carburante dai rifornimenti collegati
+        const rifList = item.rifornimenti || [];
+        const carburante = rifList.reduce((sum, r) => sum + Number(r.costo_sostenuto || 0), 0);
         const totaleViaggio = totCamping + pedaggi + carburante;
 
         const tr = document.createElement('tr');
@@ -543,7 +648,7 @@
           <td style="font-size: 13px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#666;">(${notti} notti)</small></td>
           <td>${item.chilometri} km</td>
           <td>€ ${totCamping.toFixed(2)}</td>
-          <td>€ ${carburante.toFixed(2)}</td>
+          <td>€ ${carburante.toFixed(2)} <small style="color:#666;">(${rifList.length} rif.)</small></td>
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
           <td style="text-align: right;">
@@ -558,27 +663,48 @@
     viaggioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = viaggioIdInput.value;
-      const payload = {
+      const payloadViaggio = {
         destinazione: destinazioneInput.value,
         data_partenza: dataPartenzaInput.value,
         data_arrivo: dataArrivoInput.value,
         costo_campeggio_notte: parseFloat(costoCampeggioNotteInput.value) || 0,
         chilometri: parseFloat(chilometriInput.value) || 0,
         costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
-        costo_carburante: parseFloat(costoCarburanteInput.value) || 0,
+        costo_carburante: calculateTotalCarburanteTemp(),
         user_id: currentUser.id
       };
 
-      const { error } = id 
-        ? await supabaseClient.from('viaggi').update(payload).eq('id', id)
-        : await supabaseClient.from('viaggi').insert([payload]);
+      let tripId = id;
 
-      if (error) {
-        alert('Errore salvataggio: ' + error.message);
+      if (id) {
+        // Aggiorna viaggio
+        const { error } = await supabaseClient.from('viaggi').update(payloadViaggio).eq('id', id);
+        if (error) { alert('Errore aggiornamento viaggio: ' + error.message); return; }
+        // Cancella vecchi rifornimenti per reinserirli
+        await supabaseClient.from('rifornimenti').delete().eq('viaggio_id', id);
       } else {
-        resetViaggioForm();
-        fetchViaggi();
+        // Inserisci viaggio
+        const { data, error } = await supabaseClient.from('viaggi').insert([payloadViaggio]).select();
+        if (error || !data || data.length === 0) { alert('Errore inserimento viaggio: ' + (error ? error.message : '')); return; }
+        tripId = data[0].id;
       }
+
+      // Salva rifornimenti correlati
+      if (tempRefuelings.length > 0) {
+        const rifPayloads = tempRefuelings.map(r => ({
+          viaggio_id: tripId,
+          data_rifornimento: r.data_rifornimento,
+          costo_sostenuto: r.costo_sostenuto,
+          litri: r.litri,
+          user_id: currentUser.id
+        }));
+
+        const { error: rifError } = await supabaseClient.from('rifornimenti').insert(rifPayloads);
+        if (rifError) alert('Errore salvataggio rifornimenti: ' + rifError.message);
+      }
+
+      resetViaggioForm();
+      fetchViaggi();
     });
 
     window.prepareEdit = function(id) {
@@ -592,8 +718,16 @@
       costoCampeggioNotteInput.value = v.costo_campeggio_notte || 0;
       chilometriInput.value = v.chilometri;
       costoPedaggiInput.value = v.costo_pedaggi;
-      costoCarburanteInput.value = v.costo_carburante;
 
+      // Carica i rifornimenti esistenti
+      tempRefuelings = (v.rifornimenti || []).map(r => ({
+        data_rifornimento: r.data_rifornimento,
+        costo_sostenuto: r.costo_sostenuto,
+        litri: r.litri
+      }));
+
+      rifDataInput.value = v.data_partenza;
+      renderRefuelTable();
       updateFormCalculations();
 
       formTitle.textContent = 'Modifica Viaggio';
@@ -609,7 +743,8 @@
       viaggioForm.reset();
       costoCampeggioNotteInput.value = 0;
       costoPedaggiInput.value = 0;
-      costoCarburanteInput.value = 0;
+      tempRefuelings = [];
+      renderRefuelTable();
       updateFormCalculations();
 
       formTitle.textContent = 'Aggiungi Nuovo Viaggio';
@@ -619,12 +754,12 @@
     }
 
     window.deleteViaggio = async function(id) {
-      if (!confirm('Eliminare questo viaggio?')) return;
+      if (!confirm('Eliminare questo viaggio e i suoi rifornimenti?')) return;
       const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
       if (!error) fetchViaggi();
     };
 
-    // 7. MODALE RIEPILOGO COSTI
+    // MODALE RIEPILOGO COSTI
     openSummaryBtn.addEventListener('click', () => {
       renderSummaryModal();
       summaryModal.classList.remove('hidden');
@@ -646,7 +781,7 @@
         viaggiList.forEach(item => {
           const notti = calculateNights(item.data_partenza, item.data_arrivo);
           const camping = notti * Number(item.costo_campeggio_notte || 0);
-          const fuel = Number(item.costo_carburante || 0);
+          const fuel = (item.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
           const tolls = Number(item.costo_pedaggi || 0);
           const total = camping + fuel + tolls;
 
@@ -674,7 +809,7 @@
       document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
     }
 
-    // 8. MODALE CALENDARIO
+    // CALENDARIO CON TOOLTIP INTERATTIVO AL CLICK
     openCalendarBtn.addEventListener('click', () => {
       calendarModal.classList.remove('hidden');
       renderCalendar();
@@ -701,7 +836,7 @@
 
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-      const startingDay = (firstDay.getDay() + 6) % 7; // Lunedì = 0
+      const startingDay = (firstDay.getDay() + 6) % 7;
 
       const daysContainer = document.getElementById('calendar-days-container');
       daysContainer.innerHTML = '';
@@ -717,15 +852,53 @@
 
         const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         
+        // Trova se c'è un viaggio in questo giorno
         const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
+        
         if (tripInDay) {
           dayDiv.classList.add('has-trip');
-          dayDiv.title = tripInDay.destinazione;
+          
+          // Evento Click per aprire il Tooltip con i dati del viaggio
+          dayDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Chiudi eventuali tooltip aperti
+            document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
+
+            const notti = calculateNights(tripInDay.data_partenza, tripInDay.data_arrivo);
+            const camping = notti * Number(tripInDay.costo_campeggio_notte || 0);
+            const pedaggi = Number(tripInDay.costo_pedaggi || 0);
+            const rifList = tripInDay.rifornimenti || [];
+            const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+            const totLitri = rifList.reduce((s, r) => s + Number(r.litri || 0), 0);
+            const totale = camping + pedaggi + carburante;
+
+            // Costruzione elemento Tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'calendar-tooltip';
+            tooltip.innerHTML = `
+              <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
+              <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} notti)</p>
+              <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
+              <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
+              <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+              <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)} (${totLitri.toFixed(1)} L)</p>
+              ${rifList.length > 0 ? `<ul>${rifList.map(r => `<li>${formatDate(r.data_rifornimento)}: €${Number(r.costo_sostenuto).toFixed(2)} (${Number(r.litri).toFixed(1)}L)</li>`).join('')}</ul>` : ''}
+              <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+            `;
+
+            dayDiv.appendChild(tooltip);
+          });
         }
 
         daysContainer.appendChild(dayDiv);
       }
     }
+
+    // Chiude i tooltip quando si clicca altrove nel calendario
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
+    });
 
     // Helper Utility
     function formatDate(str) {
