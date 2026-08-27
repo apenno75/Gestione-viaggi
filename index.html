@@ -1,10 +1,11 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestione Viaggi Multi-Utente</title>
-  <!-- Supabase JS Client via CDN -->
+  
+  <!-- Caricamento SDK Supabase via CDN (obbligatorio nel head) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -37,12 +38,12 @@
     th { background: #f8f9fa; }
     .flex { display: flex; gap: 10px; }
     .flex-center { display: flex; justify-content: space-between; align-items: center; }
-    .error { color: #dc3545; font-size: 14px; margin-bottom: 10px; }
+    .error { color: #dc3545; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <!-- ==================== SCHERMATA LOGIN / REGISTRAZIONE ==================== -->
+  <!-- SCHERMATA LOGIN / REGISTRAZIONE -->
   <div id="auth-section" class="card" style="max-width: 400px; margin: 50px auto;">
     <h2 id="auth-title">Accedi</h2>
     <div id="auth-error" class="error hidden"></div>
@@ -50,11 +51,11 @@
     <form id="auth-form">
       <div class="form-group">
         <label for="auth-email">Email</label>
-        <input type="email" id="auth-email" required>
+        <input type="email" id="auth-email" required placeholder="inserisci@email.com">
       </div>
       <div class="form-group">
         <label for="auth-password">Password</label>
-        <input type="password" id="auth-password" required>
+        <input type="password" id="auth-password" required minlength="6" placeholder="Almeno 6 caratteri">
       </div>
       <button type="submit" id="auth-submit-btn" class="btn-primary" style="width: 100%;">Accedi</button>
     </form>
@@ -65,7 +66,7 @@
     </p>
   </div>
 
-  <!-- ==================== DASHBOARD GESTIONE VIAGGIO ==================== -->
+  <!-- DASHBOARD GESTIONE VIAGGI -->
   <div id="app-section" class="hidden">
     <div class="flex-center" style="margin-bottom: 20px;">
       <div>
@@ -121,16 +122,18 @@
     </div>
   </div>
 
-  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <!-- LOGICA JAVASCRIPT -->
   <script>
-        // Inizializzazione Supabase
-        const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
-		
-		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 1. INIZIALIZZAZIONE SICURA DI SUPABASE
+    const { createClient } = window.supabase;
 
-    // 2. ELEMENTI DOM
+    // Sostituisci con i tuoi dati reali di Supabase (Project Settings > API)
+    const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+	
+	
+    // 2. RIFERIMENTI ELEMENTI DOM
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authForm = document.getElementById('auth-form');
@@ -155,8 +158,8 @@
     let isRegisterMode = false;
     let currentUser = null;
 
-    // 3. GESTIONE AUTENTICAZIONE E SESSIONE
-    supabase.auth.onAuthStateChange((event, session) => {
+    // 3. ASCOLTO STATO AUTENTICAZIONE
+    supabaseClient.auth.onAuthStateChange((event, session) => {
       if (session) {
         currentUser = session.user;
         userEmailDisplay.textContent = `Utente: ${currentUser.email}`;
@@ -170,7 +173,7 @@
       }
     });
 
-    // Toggle tra Login e Registrazione
+    // Switch Login / Registrazione
     authToggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
@@ -188,49 +191,49 @@
       }
     });
 
-    // Invia Form Login / Registrazione
+    // Invia Login / Registrazione
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       authError.classList.add('hidden');
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
 
-      let result;
+      let response;
       if (isRegisterMode) {
-        result = await supabase.auth.signUp({ email, password });
+        response = await supabaseClient.auth.signUp({ email, password });
       } else {
-        result = await supabase.auth.signInWithPassword({ email, password });
+        response = await supabaseClient.auth.signInWithPassword({ email, password });
       }
 
-      if (result.error) {
-        authError.textContent = result.error.message;
+      if (response.error) {
+        authError.textContent = response.error.message;
         authError.classList.remove('hidden');
       } else if (isRegisterMode) {
-        alert('Registrazione completata! Controlla la tua email per confermare o effettua il login.');
+        alert('Registrazione completata! Puoi effettuare il login.');
+        authToggleBtn.click(); // Torna al form di login
       }
     });
 
     // Logout
     logoutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
     });
 
-    // 4. LETTURA VIAGGI (READ)
+    // 4. CARICAMENTO DATI (READ)
     async function fetchViaggi() {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('viaggi')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Errore durante il recupero dei dati:', error.message);
+        console.error('Errore nel recupero dei dati:', error.message);
         return;
       }
 
       renderViaggi(data || []);
     }
 
-    // Renderizza i dati nella tabella HTML
     function renderViaggi(viaggi) {
       viaggiTableBody.innerHTML = '';
 
@@ -260,7 +263,7 @@
       });
     }
 
-    // 5. SALVATAGGIO VIAGGIO (CREATE / UPDATE)
+    // 5. SALVATAGGIO / MODIFICA (CREATE / UPDATE)
     viaggioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -275,11 +278,11 @@
       let error;
       if (id) {
         // MODIFICA
-        const res = await supabase.from('viaggi').update(payload).eq('id', id);
+        const res = await supabaseClient.from('viaggi').update(payload).eq('id', id);
         error = res.error;
       } else {
         // NUOVO INSERIMENTO
-        const res = await supabase.from('viaggi').insert([payload]);
+        const res = await supabaseClient.from('viaggi').insert([payload]);
         error = res.error;
       }
 
@@ -291,7 +294,7 @@
       }
     });
 
-    // Prepara i dati nel form per la Modifica
+    // Prepara Form per la Modifica
     window.prepareEdit = function(id, destinazione, chilometri, costoPedaggi) {
       viaggioIdInput.value = id;
       destinazioneInput.value = destinazione;
@@ -304,7 +307,6 @@
       cancelEditBtn.classList.remove('hidden');
     };
 
-    // Annulla Modifica
     cancelEditBtn.addEventListener('click', resetViaggioForm);
 
     function resetViaggioForm() {
@@ -317,11 +319,11 @@
       cancelEditBtn.classList.add('hidden');
     }
 
-    // 6. ELIMINAZIONE VIAGGIO (DELETE)
+    // 6. CANCELLAZIONE (DELETE)
     window.deleteViaggio = async function(id) {
       if (!confirm('Sei sicuro di voler eliminare questo viaggio?')) return;
 
-      const { error } = await supabase.from('viaggi').delete().eq('id', id);
+      const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
       if (error) {
         alert('Errore durante l\'eliminazione: ' + error.message);
       } else {
@@ -329,7 +331,7 @@
       }
     };
 
-    // Helper per sicurezza caratteri speciali
+    // Helper di sicurezza per stringhe
     function escapeHtml(str) {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
