@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestione Viaggi Camper</title>
+  <title>Gestione Camper & Viaggi</title>
+  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -15,13 +16,14 @@
       --accent-hover: #0284c7;
       --border-color: #334155;
       --star-color: #f59e0b;
+      --danger: #ef4444;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: var(--bg-main); color: var(--text-main); padding: 20px; line-height: 1.5; }
     .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 
-    .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+    .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
     h2, h3, h4 { color: var(--text-main); margin-bottom: 12px; }
 
     /* Header e Auth */
@@ -30,94 +32,98 @@
     .btn:hover { background: var(--accent-hover); color: #fff; }
     .btn-secondary { background: #475569; color: #fff; }
     .btn-secondary:hover { background: #64748b; }
-    .btn-sm { padding: 4px 8px; font-size: 0.85rem; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 4px 10px; font-size: 0.85rem; }
 
     /* Forms & Inputs */
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    label { font-size: 0.85rem; color: var(--text-muted); }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
     input, select { background: #0f172a; border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 6px; outline: none; }
     input:focus { border-color: var(--accent); }
 
-    /* Stelline Valutazione */
+    /* Range Sliders Camper */
+    .range-container { display: flex; align-items: center; gap: 12px; }
+    .range-container input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+    /* Valutazioni a Stelline */
     .star-rating { display: inline-flex; flex-direction: row-reverse; font-size: 1.5rem; justify-content: flex-end; }
     .star-rating input { display: none; }
-    .star-rating label { color: #475569; cursor: pointer; padding: 0 2px; transition: color 0.2s; }
+    .star-rating label { color: #475569; cursor: pointer; padding: 0 3px; transition: color 0.2s; }
     .star-rating input:checked ~ label,
     .star-rating label:hover,
     .star-rating label:hover ~ label { color: var(--star-color); }
     .stars-display { color: var(--star-color); letter-spacing: 2px; }
 
-    /* Range Sliders Camper */
-    .range-group { display: flex; align-items: center; gap: 12px; }
-    .range-group input[type="range"] { flex: 1; }
-
     /* Calendario */
-    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-    .calendar-day-header { text-align: center; font-weight: bold; color: var(--text-muted); padding: 4px; font-size: 0.85rem; }
-    .calendar-day { background: #0f172a; border: 1px solid var(--border-color); min-height: 60px; border-radius: 6px; padding: 4px; position: relative; cursor: pointer; }
+    .calendar-day-header { text-align: center; font-weight: bold; color: var(--text-muted); padding: 6px; font-size: 0.85rem; }
+    .calendar-day { background: #0f172a; border: 1px solid var(--border-color); min-height: 65px; border-radius: 8px; padding: 6px; position: relative; cursor: pointer; transition: transform 0.1s; }
+    .calendar-day:hover { transform: translateY(-2px); }
     .calendar-day.has-trip { border-width: 2px; font-weight: bold; }
     .day-num { font-size: 0.8rem; opacity: 0.8; }
-    .trip-initial { display: block; font-size: 0.85rem; text-align: center; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trip-badge { display: block; font-size: 0.8rem; text-align: center; margin-top: 6px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(255,255,255,0.15); }
 
-    /* Tooltip Calendario */
+    /* Tooltip / Popup Calendario */
     .calendar-tooltip {
       position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%);
-      background: #020617; border: 1px solid var(--border-color); padding: 12px;
-      border-radius: 8px; width: 260px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      background: #020617; border: 1px solid var(--border-color); padding: 14px;
+      border-radius: 10px; width: 270px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
       font-size: 0.85rem; font-weight: normal; color: var(--text-main);
     }
-    .calendar-tooltip h4 { margin-bottom: 6px; color: var(--accent); }
-    .calendar-tooltip p { margin: 2px 0; }
+    .calendar-tooltip h4 { margin-bottom: 8px; color: var(--accent); font-size: 1rem; }
+    .calendar-tooltip p { margin: 4px 0; }
 
-    /* Tabelle */
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color); }
-    th { color: var(--text-muted); }
+    /* Tabella Storico */
+    .table-responsive { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; text-align: left; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); }
+    th { color: var(--text-muted); font-weight: 600; background: #0f172a; }
   </style>
 </head>
 <body>
 
 <div class="container">
 
-  <!-- HEADER -->
+  <!-- HEADER & USER AUTH -->
   <div class="header">
     <h1>🚐 Gestione Camper & Viaggi</h1>
     <div id="auth-status">
-      <span id="user-email">Caricamento...</span>
+      <span id="user-email">Caricamento utente...</span>
       <button onclick="handleLogout()" class="btn btn-secondary btn-sm" style="margin-left: 10px;">Logout</button>
     </div>
   </div>
 
-  <!-- STATO CAMPER (SETTINGS) -->
+  <!-- PANNELLO STATO CAMPER -->
   <div class="card">
     <h3>🛠️ Stato Attuale Camper</h3>
     <div class="form-grid">
       <div class="form-group">
-        <label>⛽ Carburante Residuo: <strong id="lbl-carburante">50</strong>%</label>
-        <div class="range-group">
+        <label>⛽ Serbatoio Carburante: <strong id="lbl-carburante">50</strong>%</label>
+        <div class="range-container">
           <input type="range" id="livello_carburante" min="0" max="100" step="5" value="50" oninput="document.getElementById('lbl-carburante').innerText = this.value">
         </div>
       </div>
       <div class="form-group">
-        <label>💧 Acque Chiare: <strong id="lbl-acqua">50</strong>%</label>
-        <div class="range-group">
+        <label>💧 Serbatoio Acque Chiare: <strong id="lbl-acqua">50</strong>%</label>
+        <div class="range-container">
           <input type="range" id="livello_acqua" min="0" max="100" step="5" value="50" oninput="document.getElementById('lbl-acqua').innerText = this.value">
         </div>
       </div>
     </div>
-    <button onclick="salvaSettingsCamper()" class="btn btn-sm">Salva Stato Camper</button>
+    <button onclick="salvaSettingsCamper()" class="btn btn-sm">Aggiorna Livelli Camper</button>
   </div>
 
-  <!-- NUOVO VIAGGIO -->
+  <!-- REGISTRAZIONE NUOVO VIAGGIO -->
   <div class="card">
     <h3>➕ Inserisci Nuovo Viaggio</h3>
     <form id="form-viaggio" onsubmit="event.preventDefault(); salvaViaggio();">
       <div class="form-grid">
         <div class="form-group">
           <label>Destinazione</label>
-          <input type="text" id="destinazione" required placeholder="Es. Maremma">
+          <input type="text" id="destinazione" required placeholder="Es. Costa Azzurra">
         </div>
         <div class="form-group">
           <label>Data Partenza</label>
@@ -128,23 +134,23 @@
           <input type="date" id="data_arrivo" required>
         </div>
         <div class="form-group">
-          <label>Chilometri</label>
-          <input type="number" id="chilometri" value="0">
+          <label>Chilometri Percorsi</label>
+          <input type="number" id="chilometri" value="0" min="0">
         </div>
         <div class="form-group">
-          <label>Costo Camping / Notte (€)</label>
-          <input type="number" step="0.01" id="costo_campeggio_notte" value="0">
+          <label>Costo Camping / Sosta (€/notte)</label>
+          <input type="number" step="0.01" id="costo_campeggio_notte" value="0" min="0">
         </div>
         <div class="form-group">
-          <label>Costo Pedaggi (€)</label>
-          <input type="number" step="0.01" id="costo_pedaggi" value="0">
+          <label>Costo Pedaggi / Autostrada (€)</label>
+          <input type="number" step="0.01" id="costo_pedaggi" value="0" min="0">
         </div>
       </div>
 
       <div class="form-grid">
-        <!-- Rating Luogo -->
+        <!-- Valutazione Luogo -->
         <div class="form-group">
-          <label>Valutazione Luogo:</label>
+          <label>Valutazione Luogo Visitato:</label>
           <div class="star-rating">
             <input type="radio" id="l5" name="voto_luogo" value="5"><label for="l5">★</label>
             <input type="radio" id="l4" name="voto_luogo" value="4"><label for="l4">★</label>
@@ -153,9 +159,10 @@
             <input type="radio" id="l1" name="voto_luogo" value="1"><label for="l1">★</label>
           </div>
         </div>
-        <!-- Rating Campeggio -->
+
+        <!-- Valutazione Campeggio -->
         <div class="form-group">
-          <label>Valutazione Campeggio/Sosta:</label>
+          <label>Valutazione Campeggio / Sosta:</label>
           <div class="star-rating">
             <input type="radio" id="c5" name="voto_campeggio" value="5"><label for="c5">★</label>
             <input type="radio" id="c4" name="voto_campeggio" value="4"><label for="c4">★</label>
@@ -170,12 +177,12 @@
     </form>
   </div>
 
-  <!-- CALENDARIO -->
+  <!-- CALENDARIO INTERATTIVO -->
   <div class="card">
     <div class="calendar-header">
-      <button onclick="changeMonth(-1)" class="btn btn-secondary btn-sm">◀</button>
+      <button onclick="changeMonth(-1)" class="btn btn-secondary btn-sm">◀ Mese Prec.</button>
       <h3 id="calendar-month-year"></h3>
-      <button onclick="changeMonth(1)" class="btn btn-secondary btn-sm">▶</button>
+      <button onclick="changeMonth(1)" class="btn btn-secondary btn-sm">Mese Succ. ▶</button>
     </div>
     <div class="calendar-grid">
       <div class="calendar-day-header">Lun</div>
@@ -189,28 +196,32 @@
     <div id="calendar-days-container" class="calendar-grid"></div>
   </div>
 
-  <!-- TABELLA VIAGGI -->
+  <!-- TABELLA STORICO VIAGGI -->
   <div class="card">
     <h3>📜 Storico Viaggi</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Destinazione</th>
-          <th>Date</th>
-          <th>Km</th>
-          <th>Valutazione Luogo</th>
-          <th>Valutazione Camping</th>
-          <th>Azioni</th>
-        </tr>
-      </thead>
-      <tbody id="viaggi-table-body"></tbody>
-    </table>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Destinazione</th>
+            <th>Periodo</th>
+            <th>Km</th>
+            <th>Voto Luogo</th>
+            <th>Voto Camping</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="viaggi-table-body"></tbody>
+      </table>
+    </div>
   </div>
 
 </div>
 
 <script>
+  // ==========================================
   // CONFIGURAZIONE SUPABASE
+  // ==========================================
     const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -226,11 +237,11 @@
     { bg: '#7c2d12', border: '#f97316', text: '#ffedd5' }
   ];
 
-  // INIZIALIZZAZIONE & AUTH
+  // INIZIALIZZAZIONE
   async function init() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
-      alert("Utente non autenticato.");
+      alert("Utente non autenticato. Effettua prima il login.");
       return;
     }
     currentUser = session.user;
@@ -247,7 +258,7 @@
     window.location.reload();
   }
 
-  // FETCH VIAGGI (FILTRATI PER UTENTE LOGGATO)
+  // RECUPERO VIAGGI
   async function fetchViaggi() {
     const { data, error } = await supabaseClient
       .from('viaggi')
@@ -285,7 +296,7 @@
     const { error } = await supabaseClient.from('viaggi').insert([payload]);
 
     if (error) {
-      alert('Errore nel salvataggio: ' + error.message);
+      alert('Errore nel salvataggio del viaggio: ' + error.message);
     } else {
       document.getElementById('form-viaggio').reset();
       fetchViaggi();
@@ -298,7 +309,7 @@
     if (!error) fetchViaggi();
   }
 
-  // CAMPER SETTINGS
+  // IMPOSTAZIONI CAMPER
   async function loadCamperSettings() {
     const { data } = await supabaseClient
       .from('camper_settings')
@@ -324,11 +335,11 @@
       .from('camper_settings')
       .upsert({ user_id: currentUser.id, livello_carburante: carb, livello_acqua: acq });
 
-    if (error) alert("Errore salvataggio: " + error.message);
-    else alert("Stato camper salvato!");
+    if (error) alert("Errore nel salvataggio impostazioni: " + error.message);
+    else alert("Stato livelli camper aggiornato!");
   }
 
-  // RENDERING CALENDARIO
+  // RENDER CALENDARIO
   function renderCalendar() {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
@@ -363,8 +374,7 @@
         dayDiv.style.borderColor = color.border;
         dayDiv.style.color = color.text;
 
-        const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
-        dayDiv.innerHTML = `<span class="day-num">${day}</span><span class="trip-initial">${iniziale}</span>`;
+        dayDiv.innerHTML = `<span class="day-num">${day}</span><span class="trip-badge">${escapeHtml(tripInDay.destinazione)}</span>`;
 
         dayDiv.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -386,17 +396,15 @@
 
           const tooltip = document.createElement('div');
           tooltip.className = 'calendar-tooltip';
-          
-          // BLOCCO DELLA PROPAGAZIONE PER EVITARE RE-OPEN DEL TOOLTIP
           tooltip.addEventListener('click', (evt) => evt.stopPropagation());
 
           tooltip.innerHTML = `
             <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
-            <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
+            <p>📅 <strong>Periodo:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
             <p>🏙️ <strong>Voto Luogo:</strong> ${getStarsHTML(tripInDay.voto_luogo)}</p>
             <p>🏕️ <strong>Voto Camping:</strong> ${getStarsHTML(tripInDay.voto_campeggio)}</p>
             <p>💶 <strong>Spesa Totale:</strong> € ${totale.toFixed(2)}</p>
-            <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi Dettaglio</button>
+            <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:10px;">Chiudi Dettagli</button>
           `;
 
           dayDiv.appendChild(tooltip);
@@ -414,7 +422,7 @@
     renderCalendar();
   }
 
-  // TABELLA STORICO
+  // RENDER TABELLA STORICO
   function renderViaggiTable() {
     const tbody = document.getElementById('viaggi-table-body');
     tbody.innerHTML = '';
@@ -427,7 +435,7 @@
         <td>${v.chilometri} km</td>
         <td>${getStarsHTML(v.voto_luogo)}</td>
         <td>${getStarsHTML(v.voto_campeggio)}</td>
-        <td><button onclick="eliminaViaggio(${v.id})" class="btn-secondary btn-sm">❌ Elimina</button></td>
+        <td><button onclick="eliminaViaggio(${v.id})" class="btn-danger btn-sm">❌ Elimina</button></td>
       `;
       tbody.appendChild(tr);
     });
@@ -449,7 +457,7 @@
     const d1 = new Date(start);
     const d2 = new Date(end);
     const diff = Math.abs(d2 - d1);
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }
 
   function formatDate(str) {
@@ -462,7 +470,12 @@
     return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  // Avvio script al caricamento pagina
+  // Chiusura tooltip quando si clicca fuori dal calendario
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
+  });
+
+  // Avvio script al caricamento
   window.addEventListener('DOMContentLoaded', init);
 </script>
 
