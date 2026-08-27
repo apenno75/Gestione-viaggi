@@ -660,17 +660,18 @@
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
     // GESTIONE VIAGGI CON RIFORNIMENTI
-    async function fetchViaggi() {
-      const { data, error } = await supabaseClient
-        .from('viaggi')
-        .select('*, rifornimenti(*)')
-        .order('data_partenza', { ascending: false });
+	async function fetchViaggi() {
+	  const { data, error } = await supabaseClient
+		.from('viaggi')
+		.select('*, rifornimenti(*)')
+		.eq('user_id', currentUser.id) // <-- Filtra solo i viaggi dell'utente loggato
+		.order('data_partenza', { ascending: false });
 
-      if (error) { console.error('Errore caricamento viaggi:', error.message); return; }
+	  if (error) { console.error('Errore caricamento viaggi:', error.message); return; }
 
-      viaggiList = data || [];
-      renderViaggiTable(viaggiList);
-    }
+	  viaggiList = data || [];
+	  renderViaggiTable(viaggiList);
+	}
 
     function renderViaggiTable(viaggi) {
       viaggiTableBody.innerHTML = '';
