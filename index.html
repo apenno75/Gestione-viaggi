@@ -869,84 +869,95 @@
     });
 
     function renderCalendar() {
-      const year = currentCalendarDate.getFullYear();
-      const month = currentCalendarDate.getMonth();
+  const year = currentCalendarDate.getFullYear();
+  const month = currentCalendarDate.getMonth();
 
-      const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-      document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+  const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+  document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
 
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const startingDay = (firstDay.getDay() + 6) % 7;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startingDay = (firstDay.getDay() + 6) % 7;
 
-      const daysContainer = document.getElementById('calendar-days-container');
-      daysContainer.innerHTML = '';
+  const daysContainer = document.getElementById('calendar-days-container');
+  daysContainer.innerHTML = '';
 
-      for (let i = 0; i < startingDay; i++) {
-        daysContainer.appendChild(document.createElement('div'));
-      }
+  for (let i = 0; i < startingDay; i++) {
+    daysContainer.appendChild(document.createElement('div'));
+  }
 
-      for (let day = 1; day <= lastDay.getDate(); day++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'calendar-day';
 
-        const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
+    const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
+    
+    if (tripInDay) {
+      dayDiv.classList.add('has-trip');
+      
+      const tripIndex = viaggiList.findIndex(v => v.id === tripInDay.id);
+      const color = TRIP_COLORS[tripIndex % TRIP_COLORS.length];
+      
+      dayDiv.style.backgroundColor = color.bg;
+      dayDiv.style.borderColor = color.border;
+      dayDiv.style.color = color.text;
+
+      const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
+
+      dayDiv.innerHTML = `
+        <span class="day-num">${day}</span>
+        <span class="trip-initial" title="${escapeHtml(tripInDay.destinazione)}">${iniziale}</span>
+      `;
+      
+      dayDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
         
-        if (tripInDay) {
-          dayDiv.classList.add('has-trip');
-          
-          // Assegna colore dinamico unico basato sull'indice del viaggio
-          const tripIndex = viaggiList.findIndex(v => v.id === tripInDay.id);
-          const color = TRIP_COLORS[tripIndex % TRIP_COLORS.length];
-          
-          dayDiv.style.backgroundColor = color.bg;
-          dayDiv.style.borderColor = color.border;
-          dayDiv.style.color = color.text;
-
-          // Estrae la prima lettera in stampatello maiuscolo
-          const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
-
-          dayDiv.innerHTML = `
-            <span class="day-num">${day}</span>
-            <span class="trip-initial" title="${escapeHtml(tripInDay.destinazione)}">${iniziale}</span>
-          `;
-          
-          dayDiv.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
-
-            const notti = calculateNights(tripInDay.data_partenza, tripInDay.data_arrivo);
-            const camping = notti * Number(tripInDay.costo_campeggio_notte || 0);
-            const pedaggi = Number(tripInDay.costo_pedaggi || 0);
-            const rifList = tripInDay.rifornimenti || [];
-            const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-            const totLitri = rifList.reduce((s, r) => s + Number(r.litri || 0), 0);
-            const totale = camping + pedaggi + carburante;
-
-            const tooltip = document.createElement('div');
-            tooltip.className = 'calendar-tooltip';
-            tooltip.innerHTML = `
-              <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
-              <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
-              <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
-              <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
-              <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
-              <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)} (${totLitri.toFixed(1)} L)</p>
-              ${rifList.length > 0 ? `<ul>${rifList.map(r => `<li>${formatDate(r.data_rifornimento)}: €${Number(r.costo_sostenuto).toFixed(2)} (${Number(r.litri).toFixed(1)}L)</li>`).join('')}</ul>` : ''}
-              <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
-              <button onclick="this.parentElement.remove()" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi Dettaglio</button>
-            `;
-
-            dayDiv.appendChild(tooltip);
-          });
-        } else {
-          dayDiv.innerHTML = `<span class="day-num">${day}</span>`;
+        // Se il tooltip per questa cella è già aperto, lo chiudiamo (toggle)
+        const existingTooltip = dayDiv.querySelector('.calendar-tooltip');
+        if (existingTooltip) {
+          existingTooltip.remove();
+          return;
         }
 
-        daysContainer.appendChild(dayDiv);
-      }
+        // Chiude eventuali altri tooltip aperti altrove
+        document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
+
+        const notti = calculateNights(tripInDay.data_partenza, tripInDay.data_arrivo);
+        const camping = notti * Number(tripInDay.costo_campeggio_notte || 0);
+        const pedaggi = Number(tripInDay.costo_pedaggi || 0);
+        const rifList = tripInDay.rifornimenti || [];
+        const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+        const totLitri = rifList.reduce((s, r) => s + Number(r.litri || 0), 0);
+        const totale = camping + pedaggi + carburante;
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'calendar-tooltip';
+        
+        // FONDAMENTALE: Impedisce ai click dentro il tooltip di riattivare il click della cella madre
+        tooltip.addEventListener('click', (evt) => evt.stopPropagation());
+
+        tooltip.innerHTML = `
+          <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
+          <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
+          <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
+          <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)} (${totLitri.toFixed(1)} L)</p>
+          ${rifList.length > 0 ? `<ul>${rifList.map(r => `<li>${formatDate(r.data_rifornimento)}: €${Number(r.costo_sostenuto).toFixed(2)} (${Number(r.litri).toFixed(1)}L)</li>`).join('')}</ul>` : ''}
+          <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+          <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi Dettaglio</button>
+        `;
+
+        dayDiv.appendChild(tooltip);
+      });
+    } else {
+      dayDiv.innerHTML = `<span class="day-num">${day}</span>`;
     }
+
+    daysContainer.appendChild(dayDiv);
+  }
+}
 
     document.addEventListener('click', () => {
       document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
