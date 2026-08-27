@@ -1,11 +1,10 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Gestione Viaggi Camper</title>
   
-  <!-- SDK Supabase via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -46,6 +45,7 @@
     .btn-secondary { background: #64748b; color: white; }
     .btn-warning { background: #d97706; color: white; }
     .btn-info { background: #0284c7; color: white; }
+    .btn-purple { background: #8b5cf6; color: white; }
     .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 32px; }
     
     /* Contenitore Tabelle Responsive */
@@ -126,7 +126,6 @@
 </head>
 <body>
 
-  <!-- ==================== AUTH SECTION ==================== -->
   <div id="auth-section" class="card" style="max-width: 400px; margin: 30px auto;">
     <h2 id="auth-title" style="margin-top:0;">Accedi</h2>
     <div id="auth-error" class="error hidden"></div>
@@ -147,7 +146,6 @@
     </p>
   </div>
 
-  <!-- ==================== DASHBOARD APP ==================== -->
   <div id="app-section" class="hidden">
     <div class="app-header flex-center" style="margin-bottom: 16px;">
       <div>
@@ -156,6 +154,7 @@
       </div>
       
       <div class="header-actions flex">
+        <button id="open-viaggi-btn" class="btn-purple">📋 Elenco Viaggi</button>
         <button id="open-summary-btn" class="btn-info">📊 Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
         <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
@@ -163,7 +162,6 @@
       </div>
     </div>
 
-    <!-- FORM INSERIMENTO / MODIFICA VIAGGIO -->
     <div class="card">
       <h3 id="form-title" style="margin-top:0; font-size: 16px;">Aggiungi Nuovo Viaggio</h3>
       <form id="viaggio-form">
@@ -198,16 +196,15 @@
             <input type="text" id="totale_campeggio" value="0.00" readonly style="font-weight: bold; color: #16a34a;">
           </div>
           <div style="flex: 1;">
-            <label for="chilometri">Chilometri (Km)</label>
+            <label for="chilometri">Chilometri A/R (Km)</label>
             <input type="number" step="0.1" id="chilometri" required placeholder="0">
           </div>
           <div style="flex: 1;">
-            <label for="costo_pedaggi">Pedaggi (€)</label>
+            <label for="costo_pedaggi">Pedaggi A/R (€)</label>
             <input type="number" step="0.01" id="costo_pedaggi" value="0">
           </div>
         </div>
 
-        <!-- SEZIONE RATING E NOTE -->
         <div class="flex flex-mobile-col" style="margin-top: 10px;">
           <div style="flex: 1;">
             <label for="rating_luogo">Rating Luogo</label>
@@ -236,7 +233,6 @@
           <textarea id="note_viaggio" rows="2" placeholder="Note, consigli o impressioni sul viaggio..."></textarea>
         </div>
 
-        <!-- SEZIONE RIFORNIMENTI MULTIPLI -->
         <div class="refuel-box">
           <label style="color: #0369a1; font-size: 13px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
           <div class="flex flex-mobile-col" style="align-items: flex-end;">
@@ -285,11 +281,16 @@
         </div>
       </form>
     </div>
+  </div>
 
-    <!-- TABELLA DATI VIAGGI -->
-    <div class="card">
-      <h3 style="margin-top: 0; font-size: 16px;">Elenco Viaggi</h3>
-      <div class="table-container">
+  <div id="viaggi-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 950px;">
+      <div class="flex-center">
+        <h2 style="margin:0; font-size: 18px;">📋 Elenco Viaggi</h2>
+        <button id="close-viaggi-btn" class="btn-secondary btn-sm">Chiudi</button>
+      </div>
+      
+      <div class="table-container" style="margin-top: 15px;">
         <table>
           <thead>
             <tr>
@@ -310,7 +311,6 @@
     </div>
   </div>
 
-  <!-- ==================== MODALE RIEPILOGO COSTI ==================== -->
   <div id="summary-modal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="flex-center">
@@ -355,7 +355,6 @@
     </div>
   </div>
 
-  <!-- ==================== MODALE SETTAGGI CAMPER ==================== -->
   <div id="settings-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
       <h2 style="margin-top:0; font-size: 18px;">⚙️ Settaggi Camper</h2>
@@ -366,27 +365,37 @@
           <label for="camper-nome">Nome / Modello Camper</label>
           <input type="text" id="camper-nome" value="Il mio Camper">
         </div>
-        <div class="form-group">
-          <label for="camper-consumo">Consumo Medio (L/100km)</label>
-          <input type="number" step="0.1" id="camper-consumo" value="10.0" required>
+        
+        <div class="flex">
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-consumo">Consumo (L/100km)</label>
+            <input type="number" step="0.1" id="camper-consumo" value="10.0" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-costo-carburante">Carburante (€ / L)</label>
+            <input type="number" step="0.001" id="camper-costo-carburante" value="1.85" required>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="camper-costo-carburante">Costo Carburante (€ / Litro)</label>
-          <input type="number" step="0.001" id="camper-costo-carburante" value="1.85" required>
+        
+        <div class="form-group" style="background: #f1f5f9; padding: 10px; border-radius: 6px;">
+          <label for="camper-km-totali" style="color: #0369a1;">🛣️ Km Totali Camper</label>
+          <input type="number" step="0.1" id="camper-km-totali" value="0">
+          <small style="color: #64748b; font-size: 11px; margin-top: 4px; display: block;">Questo valore si aggiorna automaticamente aggiungendo/modificando i viaggi.</small>
         </div>
+
         <div class="flex">
           <div class="form-group" style="flex: 1;">
             <label for="camper-altezza">Altezza (m)</label>
             <input type="number" step="0.01" id="camper-altezza" value="3.0">
           </div>
           <div class="form-group" style="flex: 1;">
-            <label for="camper-peso">Peso (Tonnellate)</label>
+            <label for="camper-peso">Peso (Ton.)</label>
             <input type="number" step="0.1" id="camper-peso" value="3.5">
           </div>
         </div>
         <div class="flex">
           <div class="form-group" style="flex: 1;">
-            <label for="camper-livello-carburante">⛽ Carburante Rimanente (%)</label>
+            <label for="camper-livello-carburante">⛽ Rimanente (%)</label>
             <input type="number" min="0" max="100" id="camper-livello-carburante" value="100">
           </div>
           <div class="form-group" style="flex: 1;">
@@ -403,7 +412,6 @@
     </div>
   </div>
 
-  <!-- ==================== MODALE CALENDARIO ==================== -->
   <div id="calendar-modal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="flex-center">
@@ -430,7 +438,6 @@
     </div>
   </div>
 
-  <!-- ==================== JAVASCRIPT ==================== -->
   <script>
     const { createClient } = window.supabase;
 
@@ -492,6 +499,10 @@
     const totaleCarburanteViaggioDisplay = document.getElementById('totale-carburante-viaggio');
 
     // Modali
+    const openViaggiBtn = document.getElementById('open-viaggi-btn');
+    const closeViaggiBtn = document.getElementById('close-viaggi-btn');
+    const viaggiModal = document.getElementById('viaggi-modal');
+
     const openSummaryBtn = document.getElementById('open-summary-btn');
     const closeSummaryBtn = document.getElementById('close-summary-btn');
     const summaryModal = document.getElementById('summary-modal');
@@ -500,6 +511,7 @@
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const settingsForm = document.getElementById('settings-form');
+    const camperKmTotaliInput = document.getElementById('camper-km-totali');
 
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
@@ -510,7 +522,7 @@
     let currentUser = null;
     let viaggiList = [];
     let tempRefuelings = [];
-    let camperSettings = { consumo: 10.0, costoCarburante: 1.85 };
+    let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0 };
     let currentCalendarDate = new Date();
 
     // AUTHENTICATION
@@ -560,7 +572,7 @@
 
     logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
 
-    // CALCOLI AUTOMATICI
+    // CALCOLI AUTOMATICI E LOGICA KM
     function calculateNights(startStr, endStr) {
       if (!startStr || !endStr) return 0;
       const start = new Date(startStr);
@@ -590,6 +602,18 @@
 
       const totaleViaggio = totCamping + pedaggi + carburante;
       costoTotalePreview.textContent = `€ ${totaleViaggio.toFixed(2)}`;
+    }
+
+    async function updateKmTotaliAutomatic(kmDiff) {
+      if (kmDiff === 0) return;
+      camperSettings.kmTotali = (camperSettings.kmTotali || 0) + kmDiff;
+      camperKmTotaliInput.value = camperSettings.kmTotali;
+      
+      // Salva silenziosamente su DB
+      await supabaseClient
+        .from('camper_settings')
+        .update({ km_totali: camperSettings.kmTotali })
+        .eq('user_id', currentUser.id);
     }
 
     dataPartenzaInput.addEventListener('change', () => {
@@ -667,7 +691,8 @@
       if (data) {
         camperSettings = {
           consumo: parseFloat(data.consumo_medio) || 10.0,
-          costoCarburante: parseFloat(data.costo_carburante) || 1.85
+          costoCarburante: parseFloat(data.costo_carburante) || 1.85,
+          kmTotali: parseFloat(data.km_totali) || 0
         };
         document.getElementById('camper-nome').value = data.nome_camper || '';
         document.getElementById('camper-consumo').value = camperSettings.consumo;
@@ -676,6 +701,7 @@
         document.getElementById('camper-peso').value = data.peso || 3.5;
         document.getElementById('camper-livello-carburante').value = data.livello_carburante_pct !== undefined ? data.livello_carburante_pct : 100;
         document.getElementById('camper-livello-acque').value = data.livello_acque_chiare_pct !== undefined ? data.livello_acque_chiare_pct : 100;
+        camperKmTotaliInput.value = camperSettings.kmTotali;
       }
     }
 
@@ -689,7 +715,8 @@
         altezza: parseFloat(document.getElementById('camper-altezza').value),
         peso: parseFloat(document.getElementById('camper-peso').value),
         livello_carburante_pct: parseInt(document.getElementById('camper-livello-carburante').value) || 0,
-        livello_acque_chiare_pct: parseInt(document.getElementById('camper-livello-acque').value) || 0
+        livello_acque_chiare_pct: parseInt(document.getElementById('camper-livello-acque').value) || 0,
+        km_totali: parseFloat(camperKmTotaliInput.value) || 0
       };
 
       const { error } = await supabaseClient.from('camper_settings').upsert(payload, { onConflict: 'user_id' });
@@ -699,6 +726,7 @@
       } else {
         camperSettings.consumo = payload.consumo_medio;
         camperSettings.costoCarburante = payload.costo_carburante;
+        camperSettings.kmTotali = payload.km_totali;
         settingsModal.classList.add('hidden');
         alert('Impostazioni salvate!');
       }
@@ -707,7 +735,10 @@
     openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-    // GESTIONE VIAGGI CON RIFORNIMENTI
+    // GESTIONE VIAGGI (ELENCO E CRUD)
+    openViaggiBtn.addEventListener('click', () => viaggiModal.classList.remove('hidden'));
+    closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
+
     async function fetchViaggi() {
       const { data, error } = await supabaseClient
         .from('viaggi')
@@ -738,7 +769,7 @@
         const totCamping = notti * Number(item.costo_campeggio_notte || 0);
         const pedaggi = Number(item.costo_pedaggi || 0);
         const rifList = item.rifornimenti || [];
-        const carburante = rifList.reduce((sum, r) => sum + Number(r.costo_sostenuto || 0), 0);
+        const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
         const totaleViaggio = totCamping + pedaggi + carburante;
 
         const tr = document.createElement('tr');
@@ -755,7 +786,7 @@
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
           <td style="text-align: right;">
-            <button class="btn-secondary btn-sm" onclick="prepareEdit(${item.id})">Modifica</button>
+            <button class="btn-secondary btn-sm" onclick="prepareEdit(${item.id})" style="margin-bottom: 4px;">Modifica</button>
             <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">Elimina</button>
           </td>
         `;
@@ -766,12 +797,24 @@
     viaggioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = viaggioIdInput.value;
+      const newKm = parseFloat(chilometriInput.value) || 0;
+      let kmDiff = 0;
+
+      // Calcola la differenza di Km se stiamo modificando, altrimenti prendi i nuovi Km interamente
+      if (id) {
+        const oldTrip = viaggiList.find(x => x.id == id);
+        const oldKm = oldTrip ? parseFloat(oldTrip.chilometri) || 0 : 0;
+        kmDiff = newKm - oldKm;
+      } else {
+        kmDiff = newKm;
+      }
+
       const payloadViaggio = {
         destinazione: destinazioneInput.value,
         data_partenza: dataPartenzaInput.value,
         data_arrivo: dataArrivoInput.value,
         costo_campeggio_notte: parseFloat(costoCampeggioNotteInput.value) || 0,
-        chilometri: parseFloat(chilometriInput.value) || 0,
+        chilometri: newKm,
         costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
         costo_carburante: calculateTotalCarburanteTemp(),
         rating_luogo: parseInt(ratingLuogoInput.value) || 3,
@@ -804,9 +847,13 @@
         const { error: rifError } = await supabaseClient.from('rifornimenti').insert(rifPayloads);
         if (rifError) alert('Errore rifornimenti: ' + rifError.message);
       }
+      
+      // Aggiorna il contatore dei KM in DB e UI
+      await updateKmTotaliAutomatic(kmDiff);
 
       resetViaggioForm();
       fetchViaggi();
+      alert('Viaggio salvato con successo!');
     });
 
     window.prepareEdit = function(id) {
@@ -838,6 +885,9 @@
       saveBtn.textContent = 'Aggiorna Viaggio';
       saveBtn.className = 'btn-success';
       cancelEditBtn.classList.remove('hidden');
+      
+      // Chiude il modale dell'elenco per far vedere il form
+      viaggiModal.classList.add('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -862,9 +912,20 @@
     }
 
     window.deleteViaggio = async function(id) {
-      if (!confirm('Eliminare questo viaggio?')) return;
+      if (!confirm('Sicuro di voler eliminare questo viaggio? I chilometri verranno scalati dal totale.')) return;
+      
+      const tripToDelete = viaggiList.find(x => x.id === id);
+      const kmToDelete = tripToDelete ? parseFloat(tripToDelete.chilometri) || 0 : 0;
+
       const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
-      if (!error) fetchViaggi();
+      
+      if (!error) {
+        // Scala i KM del viaggio eliminato dal totale generale
+        await updateKmTotaliAutomatic(-kmToDelete);
+        fetchViaggi();
+      } else {
+        alert("Errore nell'eliminazione: " + error.message);
+      }
     };
 
     // MODALE RIEPILOGO COSTI
