@@ -48,7 +48,6 @@
     .btn-purple { background: #8b5cf6; color: white; }
     .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 32px; }
     
-    /* Contenitore Tabelle Responsive */
     .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
     th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
@@ -58,7 +57,6 @@
     .flex-center { display: flex; justify-content: space-between; align-items: center; }
     .error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
 
-    /* Card Luogo Padre/Figlio */
     .luogo-card {
       background: #ffffff;
       border: 1px solid #cbd5e1;
@@ -67,7 +65,6 @@
       margin-bottom: 14px;
     }
 
-    /* Modali */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
@@ -78,7 +75,6 @@
       max-height: 90vh; overflow-y: auto; position: relative;
     }
 
-    /* Calendario Grid */
     .calendar-grid {
       display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-top: 12px;
     }
@@ -99,7 +95,6 @@
       line-height: 1; margin-bottom: 1px;
     }
 
-    /* Popover Tooltip Calendario */
     .calendar-tooltip {
       position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
       background: #0f172a; color: white; padding: 12px; border-radius: 8px;
@@ -110,14 +105,11 @@
     .calendar-tooltip p { margin: 3px 0; }
     .calendar-tooltip ul { margin: 5px 0 0 0; padding-left: 15px; font-size: 11px; color: #cbd5e1; }
 
-    /* Rifornimenti Box */
     .refuel-box { background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px solid #e2e8f0; }
 
-    /* Stat Cards */
     .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 110px; }
     .stat-card .amount { font-size: 16px; font-weight: bold; color: #0284c7; margin-top: 4px; }
 
-    /* RESPONSIVE DESIGN PER MOBILE */
     @media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
       .header-actions button { width: 100%; font-size: 12px; padding: 8px; }
@@ -188,19 +180,11 @@
             <label for="data_arrivo">Data Arrivo</label>
             <input type="date" id="data_arrivo" required>
           </div>
-          <div style="flex: 0.8;">
-            <label for="notti_calcolate">Notti</label>
-            <input type="text" id="notti_calcolate" value="0" readonly style="font-weight: bold; text-align: center;">
-          </div>
         </div>
 
         <div class="flex flex-mobile-col" style="margin-top: 10px; align-items: flex-end;">
           <div style="flex: 1;">
-            <label for="costo_campeggio_notte">Camping (€/notte)</label>
-            <input type="number" step="0.01" id="costo_campeggio_notte" value="0" placeholder="0.00">
-          </div>
-          <div style="flex: 1;">
-            <label for="totale_campeggio">Tot. Camping (€)</label>
+            <label for="totale_campeggio">Tot. Camping Viaggio (€)</label>
             <input type="text" id="totale_campeggio" value="0.00" readonly style="font-weight: bold; color: #16a34a;">
           </div>
           <div style="flex: 1;">
@@ -236,7 +220,6 @@
           </div>
         </div>
 
-        <!-- SEZIONE LUOGHI COLLEGATI AL VIAGGIO -->
         <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
           <div class="flex-center" style="margin-bottom: 10px;">
             <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Viaggio (Collegati)</label>
@@ -244,7 +227,6 @@
           </div>
           
           <div id="luoghi-list-container">
-            <!-- I luoghi verranno inseriti dinamicamente qui -->
           </div>
         </div>
 
@@ -318,7 +300,7 @@
               <th>Date</th>
               <th>Rating</th>
               <th>Km</th>
-              <th>Camping</th>
+              <th>Camping Tot.</th>
               <th>Extra Luoghi</th>
               <th>Carburante</th>
               <th>Pedaggi</th>
@@ -483,7 +465,6 @@
       { bg: '#ffedd5', border: '#f97316', text: '#c2410c' }
     ];
 
-    // DOM References
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authForm = document.getElementById('auth-form');
@@ -495,14 +476,11 @@
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Viaggi Form
     const viaggioForm = document.getElementById('viaggio-form');
     const viaggioIdInput = document.getElementById('viaggio-id');
     const destinazioneInput = document.getElementById('destinazione');
     const dataPartenzaInput = document.getElementById('data_partenza');
     const dataArrivoInput = document.getElementById('data_arrivo');
-    const nottiCalcolateInput = document.getElementById('notti_calcolate');
-    const costoCampeggioNotteInput = document.getElementById('costo_campeggio_notte');
     const totaleCampeggioInput = document.getElementById('totale_campeggio');
     const chilometriInput = document.getElementById('chilometri');
     const costoPedaggiInput = document.getElementById('costo_pedaggi');
@@ -516,7 +494,6 @@
     const viaggiTableBody = document.getElementById('viaggi-table-body');
     const luoghiListContainer = document.getElementById('luoghi-list-container');
 
-    // Refuel Inputs
     const rifDataInput = document.getElementById('rif-data');
     const rifCostoInput = document.getElementById('rif-costo');
     const rifLitriPreview = document.getElementById('rif-litri-preview');
@@ -524,7 +501,6 @@
     const refuelTableBody = document.getElementById('refuel-table-body');
     const totaleCarburanteViaggioDisplay = document.getElementById('totale-carburante-viaggio');
 
-    // Modali
     const openViaggiBtn = document.getElementById('open-viaggi-btn');
     const closeViaggiBtn = document.getElementById('close-viaggi-btn');
     const viaggiModal = document.getElementById('viaggi-modal');
@@ -544,16 +520,14 @@
     const calendarModal = document.getElementById('calendar-modal');
     const addLuogoBtn = document.getElementById('add-luogo-btn');
 
-    // State Variables
     let isRegisterMode = false;
     let currentUser = null;
     let viaggiList = [];
     let tempRefuelings = [];
-    let tempLuoghi = []; // Lista luoghi collegati al viaggio
+    let tempLuoghi = [];
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0 };
     let currentCalendarDate = new Date();
 
-    // AUTHENTICATION
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         currentUser = session.user;
@@ -600,11 +574,13 @@
 
     logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
 
-    // LOGICA LUOGHI E COSTI EXTRA (FIGLI DEL VIAGGIO)
     addLuogoBtn.addEventListener('click', () => {
       tempLuoghi.push({
         id: Date.now(),
         nome_luogo: '',
+        nome_campeggio: '',
+        costo_giornaliero: 0,
+        notti: 0,
         costi_extra: [],
         note_luogo: ''
       });
@@ -644,8 +620,15 @@
       cards.forEach((card, lIdx) => {
         if (!tempLuoghi[lIdx]) return;
         const nomeInput = card.querySelector('.luogo-nome-input');
+        const campingInput = card.querySelector('.luogo-camping-input');
+        const costoNotteInput = card.querySelector('.luogo-costo-notte-input');
+        const nottiInput = card.querySelector('.luogo-notti-input');
         const noteInput = card.querySelector('.luogo-note-input');
+
         if (nomeInput) tempLuoghi[lIdx].nome_luogo = nomeInput.value;
+        if (campingInput) tempLuoghi[lIdx].nome_campeggio = campingInput.value;
+        if (costoNotteInput) tempLuoghi[lIdx].costo_giornaliero = parseFloat(costoNotteInput.value) || 0;
+        if (nottiInput) tempLuoghi[lIdx].notti = parseInt(nottiInput.value) || 0;
         if (noteInput) tempLuoghi[lIdx].note_luogo = noteInput.value;
 
         const extraRows = card.querySelectorAll('.extra-cost-row');
@@ -678,16 +661,36 @@
       tempLuoghi.forEach((l, lIdx) => {
         const div = document.createElement('div');
         div.className = 'luogo-card';
+        const subtotalCampingLuogo = ((parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0)).toFixed(2);
+
         div.innerHTML = `
           <div class="flex-center" style="margin-bottom: 8px;">
-            <div style="flex: 1; margin-right: 10px;">
+            <strong style="color: #0070f3; font-size: 13px;">📍 Luogo #${lIdx + 1}</strong>
+            <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${lIdx})">&times; Rimuovi Luogo</button>
+          </div>
+
+          <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 2;">
               <label style="font-size: 12px; color: #0f172a;">Nome del Luogo / Tappa</label>
               <input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo || '')}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()">
             </div>
-            <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${lIdx})" style="margin-top: 18px;">&times; Rimuovi Luogo</button>
+            <div style="flex: 2;">
+              <label style="font-size: 12px; color: #0f172a;">Nome Camping / Struttura</label>
+              <input type="text" class="luogo-camping-input" value="${escapeHtml(l.nome_campeggio || '')}" placeholder="Es. Camping Toblacher See" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Costo (€/notte)</label>
+              <input type="number" step="0.01" class="luogo-costo-notte-input" value="${l.costo_giornaliero || 0}" placeholder="0.00" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Notti</label>
+              <input type="number" min="0" class="luogo-notti-input" value="${l.notti || 0}" placeholder="0" oninput="updateFormCalculations()">
+            </div>
+          </div>
+          <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">
+            Totale Camping Luogo: € <span>${subtotalCampingLuogo}</span>
           </div>
 
-          <!-- TABELLA COSTI EXTRA PRIMA DEL CAMPO NOTE -->
           <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
           <div class="table-container">
             <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 600px;">
@@ -737,7 +740,6 @@
           </div>
           <button type="button" class="btn-info btn-sm" onclick="addCostoExtraRow(${lIdx})" style="margin-top: 6px;">+ Aggiungi Costo Extra</button>
 
-          <!-- CAMPO NOTE DEL LUOGO (DOPO LA TABELLA COSTI EXTRA) -->
           <div style="margin-top: 10px;">
             <label style="font-size: 12px; color: #475569;">Note del Luogo</label>
             <textarea class="luogo-note-input" rows="2" placeholder="Note specifiche o dettagli su questo luogo...">${escapeHtml(l.note_luogo || '')}</textarea>
@@ -758,7 +760,28 @@
       return total;
     }
 
-    // CALCOLI AUTOMATICI E LOGICA KM
+    function calculateTotalCampingLuoghi() {
+      syncLuoghiDataFromDOM();
+      let total = 0;
+      tempLuoghi.forEach(l => {
+        const costo = parseFloat(l.costo_giornaliero) || 0;
+        const notti = parseInt(l.notti) || 0;
+        total += (costo * notti);
+      });
+      return total;
+    }
+
+    function getCampingTotalFromTrip(item) {
+      const luoghiList = item.luoghi || [];
+      let total = 0;
+      luoghiList.forEach(l => {
+        const costo = parseFloat(l.costo_giornaliero) || 0;
+        const notti = parseInt(l.notti) || 0;
+        total += (costo * notti);
+      });
+      return total;
+    }
+
     function calculateNights(startStr, endStr) {
       if (!startStr || !endStr) return 0;
       const start = new Date(startStr);
@@ -772,13 +795,7 @@
     }
 
     function updateFormCalculations() {
-      const start = dataPartenzaInput.value;
-      const end = dataArrivoInput.value;
-      const notti = calculateNights(start, end);
-      nottiCalcolateInput.value = notti;
-
-      const costoNotte = parseFloat(costoCampeggioNotteInput.value) || 0;
-      const totCamping = notti * costoNotte;
+      const totCamping = calculateTotalCampingLuoghi();
       totaleCampeggioInput.value = totCamping.toFixed(2);
 
       const pedaggi = parseFloat(costoPedaggiInput.value) || 0;
@@ -807,10 +824,8 @@
       updateFormCalculations();
     });
     dataArrivoInput.addEventListener('change', updateFormCalculations);
-    costoCampeggioNotteInput.addEventListener('input', updateFormCalculations);
     costoPedaggiInput.addEventListener('input', updateFormCalculations);
 
-    // GESTIONE RIFORNIMENTI
     rifCostoInput.addEventListener('input', () => {
       const costo = parseFloat(rifCostoInput.value) || 0;
       const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
@@ -866,7 +881,6 @@
       updateFormCalculations();
     };
 
-    // SETTAGGI CAMPER
     async function fetchSettings() {
       const { data } = await supabaseClient
         .from('camper_settings')
@@ -921,7 +935,6 @@
     openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-    // GESTIONE VIAGGI (ELENCO E CRUD)
     openViaggiBtn.addEventListener('click', () => viaggiModal.classList.remove('hidden'));
     closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
 
@@ -952,7 +965,7 @@
 
       viaggi.forEach(item => {
         const notti = calculateNights(item.data_partenza, item.data_arrivo);
-        const totCamping = notti * Number(item.costo_campeggio_notte || 0);
+        const totCamping = getCampingTotalFromTrip(item);
         const pedaggi = Number(item.costo_pedaggi || 0);
         const rifList = item.rifornimenti || [];
         const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
@@ -972,7 +985,7 @@
             ${luoghiList.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: ${luoghiList.map(l => escapeHtml(l.nome_luogo)).join(', ')}</small>` : ''}
             ${item.note ? `<br><small style="color:#64748b;">📝 ${escapeHtml(item.note)}</small>` : ''}
           </td>
-          <td style="font-size: 12px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#64748b;">(${notti} notti)</small></td>
+          <td style="font-size: 12px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#64748b;">(${notti} notti tot.)</small></td>
           <td style="font-size: 11px;">
             📍 ${renderStars(item.rating_luogo || 3)}<br>
             🏕️ ${renderStars(item.rating_campeggio || 3)}
@@ -1012,14 +1025,14 @@
         destinazione: destinazioneInput.value,
         data_partenza: dataPartenzaInput.value,
         data_arrivo: dataArrivoInput.value,
-        costo_campeggio_notte: parseFloat(costoCampeggioNotteInput.value) || 0,
+        costo_campeggio_notte: 0,
         chilometri: newKm,
         costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
         costo_carburante: calculateTotalCarburanteTemp(),
         rating_luogo: parseInt(ratingLuogoInput.value) || 3,
         rating_campeggio: parseInt(ratingCampeggioInput.value) || 3,
         note: noteViaggioInput.value,
-        luoghi: tempLuoghi, // Array dei luoghi con la tabella dei 5 campi ricorsivi extra
+        luoghi: tempLuoghi,
         user_id: currentUser.id
       };
 
@@ -1063,7 +1076,6 @@
       destinazioneInput.value = v.destinazione;
       dataPartenzaInput.value = v.data_partenza;
       dataArrivoInput.value = v.data_arrivo;
-      costoCampeggioNotteInput.value = v.costo_campeggio_notte || 0;
       chilometriInput.value = v.chilometri;
       costoPedaggiInput.value = v.costo_pedaggi;
       ratingLuogoInput.value = v.rating_luogo || 3;
@@ -1097,8 +1109,8 @@
     function resetViaggioForm() {
       viaggioIdInput.value = '';
       viaggioForm.reset();
-      costoCampeggioNotteInput.value = 0;
       costoPedaggiInput.value = 0;
+      totaleCampeggioInput.value = '0.00';
       ratingLuogoInput.value = 3;
       ratingCampeggioInput.value = 3;
       noteViaggioInput.value = '';
@@ -1130,7 +1142,6 @@
       }
     };
 
-    // MODALE RIEPILOGO COSTI
     openSummaryBtn.addEventListener('click', () => {
       renderSummaryModal();
       summaryModal.classList.remove('hidden');
@@ -1151,8 +1162,7 @@
         summaryTableBody.innerHTML = `<tr><td colSpan="6" style="text-align:center; color:#94a3b8;">Nessun dato.</td></tr>`;
       } else {
         viaggiList.forEach(item => {
-          const notti = calculateNights(item.data_partenza, item.data_arrivo);
-          const camping = notti * Number(item.costo_campeggio_notte || 0);
+          const camping = getCampingTotalFromTrip(item);
           const fuel = (item.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
           const tolls = Number(item.costo_pedaggi || 0);
           
@@ -1190,7 +1200,6 @@
       document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
     }
 
-    // CALENDARIO
     openCalendarBtn.addEventListener('click', () => {
       calendarModal.classList.remove('hidden');
       renderCalendar();
@@ -1262,7 +1271,7 @@
             document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
 
             const notti = calculateNights(tripInDay.data_partenza, tripInDay.data_arrivo);
-            const camping = notti * Number(tripInDay.costo_campeggio_notte || 0);
+            const camping = getCampingTotalFromTrip(tripInDay);
             const pedaggi = Number(tripInDay.costo_pedaggi || 0);
             const rifList = tripInDay.rifornimenti || [];
             const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
@@ -1285,7 +1294,7 @@
               ${(tripInDay.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripInDay.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
               <p>⭐ <strong>Rating:</strong> Rating ${renderStars(tripInDay.rating_luogo || 3)} | Camping ${renderStars(tripInDay.rating_campeggio || 3)}</p>
               <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
-              <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
+              <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
               <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
               <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
               <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
@@ -1307,7 +1316,6 @@
       document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
     });
 
-    // Helper Utility
     function formatDate(str) {
       if (!str) return '-';
       const p = str.split('-');
