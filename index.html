@@ -197,29 +197,6 @@
           </div>
         </div>
 
-        <div class="flex flex-mobile-col" style="margin-top: 10px;">
-          <div style="flex: 1;">
-            <label for="rating_luogo">Rating Luoghi Generale</label>
-            <select id="rating_luogo">
-              <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
-              <option value="4">⭐⭐⭐⭐ (4/5)</option>
-              <option value="3" selected>⭐⭐⭐ (3/5)</option>
-              <option value="2">⭐⭐ (2/5)</option>
-              <option value="1">⭐ (1/5)</option>
-            </select>
-          </div>
-          <div style="flex: 1;">
-            <label for="rating_campeggio">Rating Campeggio</label>
-            <select id="rating_campeggio">
-              <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
-              <option value="4">⭐⭐⭐⭐ (4/5)</option>
-              <option value="3" selected>⭐⭐⭐ (3/5)</option>
-              <option value="2">⭐⭐ (2/5)</option>
-              <option value="1">⭐ (1/5)</option>
-            </select>
-          </div>
-        </div>
-
         <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
           <div class="flex-center" style="margin-bottom: 10px;">
             <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Viaggio (Collegati)</label>
@@ -298,7 +275,7 @@
             <tr>
               <th>Nome Viaggio (Padre) / Luoghi</th>
               <th>Date</th>
-              <th>Rating</th>
+              <th>Rating Luoghi</th>
               <th>Km</th>
               <th>Camping Tot.</th>
               <th>Extra Luoghi</th>
@@ -484,8 +461,6 @@
     const totaleCampeggioInput = document.getElementById('totale_campeggio');
     const chilometriInput = document.getElementById('chilometri');
     const costoPedaggiInput = document.getElementById('costo_pedaggi');
-    const ratingLuogoInput = document.getElementById('rating_luogo');
-    const ratingCampeggioInput = document.getElementById('rating_campeggio');
     const noteViaggioInput = document.getElementById('note_viaggio');
     const costoTotalePreview = document.getElementById('costo-totale-preview');
     const formTitle = document.getElementById('form-title');
@@ -581,6 +556,8 @@
         nome_campeggio: '',
         costo_giornaliero: 0,
         notti: 0,
+        rating_luogo: 3,
+        rating_campeggio: 3,
         costi_extra: [],
         note_luogo: ''
       });
@@ -623,12 +600,16 @@
         const campingInput = card.querySelector('.luogo-camping-input');
         const costoNotteInput = card.querySelector('.luogo-costo-notte-input');
         const nottiInput = card.querySelector('.luogo-notti-input');
+        const ratingLuogoInput = card.querySelector('.luogo-rating-luogo-input');
+        const ratingCampingInput = card.querySelector('.luogo-rating-campeggio-input');
         const noteInput = card.querySelector('.luogo-note-input');
 
         if (nomeInput) tempLuoghi[lIdx].nome_luogo = nomeInput.value;
         if (campingInput) tempLuoghi[lIdx].nome_campeggio = campingInput.value;
         if (costoNotteInput) tempLuoghi[lIdx].costo_giornaliero = parseFloat(costoNotteInput.value) || 0;
         if (nottiInput) tempLuoghi[lIdx].notti = parseInt(nottiInput.value) || 0;
+        if (ratingLuogoInput) tempLuoghi[lIdx].rating_luogo = parseInt(ratingLuogoInput.value) || 3;
+        if (ratingCampingInput) tempLuoghi[lIdx].rating_campeggio = parseInt(ratingCampingInput.value) || 3;
         if (noteInput) tempLuoghi[lIdx].note_luogo = noteInput.value;
 
         const extraRows = card.querySelectorAll('.extra-cost-row');
@@ -687,6 +668,30 @@
               <input type="number" min="0" class="luogo-notti-input" value="${l.notti || 0}" placeholder="0" oninput="updateFormCalculations()">
             </div>
           </div>
+
+          <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Rating Luogo</label>
+              <select class="luogo-rating-luogo-input">
+                <option value="5" ${l.rating_luogo == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5/5)</option>
+                <option value="4" ${l.rating_luogo == 4 ? 'selected' : ''}>⭐⭐⭐⭐ (4/5)</option>
+                <option value="3" ${(!l.rating_luogo || l.rating_luogo == 3) ? 'selected' : ''}>⭐⭐⭐ (3/5)</option>
+                <option value="2" ${l.rating_luogo == 2 ? 'selected' : ''}>⭐⭐ (2/5)</option>
+                <option value="1" ${l.rating_luogo == 1 ? 'selected' : ''}>⭐ (1/5)</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Rating Campeggio</label>
+              <select class="luogo-rating-campeggio-input">
+                <option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5/5)</option>
+                <option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐ (4/5)</option>
+                <option value="3" ${(!l.rating_campeggio || l.rating_campeggio == 3) ? 'selected' : ''}>⭐⭐⭐ (3/5)</option>
+                <option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐ (2/5)</option>
+                <option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐ (1/5)</option>
+              </select>
+            </div>
+          </div>
+
           <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">
             Totale Camping Luogo: € <span>${subtotalCampingLuogo}</span>
           </div>
@@ -978,6 +983,10 @@
 
         const totaleViaggio = totCamping + pedaggi + carburante + extraLuoghiTot;
 
+        const ratingDisplay = luoghiList.length > 0 
+          ? luoghiList.map(l => `📍 ${renderStars(l.rating_luogo || 3)}<br>🏕️ ${renderStars(l.rating_campeggio || 3)}`).join('<br><div style="height:4px;"></div>')
+          : `📍 ${renderStars(item.rating_luogo || 3)}<br>🏕️ ${renderStars(item.rating_campeggio || 3)}`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>
@@ -987,8 +996,7 @@
           </td>
           <td style="font-size: 12px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#64748b;">(${notti} notti tot.)</small></td>
           <td style="font-size: 11px;">
-            📍 ${renderStars(item.rating_luogo || 3)}<br>
-            🏕️ ${renderStars(item.rating_campeggio || 3)}
+            ${ratingDisplay}
           </td>
           <td>${item.chilometri} km</td>
           <td>€ ${totCamping.toFixed(2)}</td>
@@ -1029,8 +1037,6 @@
         chilometri: newKm,
         costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
         costo_carburante: calculateTotalCarburanteTemp(),
-        rating_luogo: parseInt(ratingLuogoInput.value) || 3,
-        rating_campeggio: parseInt(ratingCampeggioInput.value) || 3,
         note: noteViaggioInput.value,
         luoghi: tempLuoghi,
         user_id: currentUser.id
@@ -1078,8 +1084,6 @@
       dataArrivoInput.value = v.data_arrivo;
       chilometriInput.value = v.chilometri;
       costoPedaggiInput.value = v.costo_pedaggi;
-      ratingLuogoInput.value = v.rating_luogo || 3;
-      ratingCampeggioInput.value = v.rating_campeggio || 3;
       noteViaggioInput.value = v.note || '';
 
       tempLuoghi = JSON.parse(JSON.stringify(v.luoghi || []));
@@ -1111,8 +1115,6 @@
       viaggioForm.reset();
       costoPedaggiInput.value = 0;
       totaleCampeggioInput.value = '0.00';
-      ratingLuogoInput.value = 3;
-      ratingCampeggioInput.value = 3;
       noteViaggioInput.value = '';
       tempRefuelings = [];
       tempLuoghi = [];
@@ -1288,11 +1290,15 @@
             
             tooltip.addEventListener('click', (evt) => evt.stopPropagation());
 
+            const ratingsText = (tripInDay.luoghi || []).length > 0
+              ? tripInDay.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+              : `Rating ${renderStars(tripInDay.rating_luogo || 3)} | Camping ${renderStars(tripInDay.rating_campeggio || 3)}`;
+
             tooltip.innerHTML = `
               <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
               <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
               ${(tripInDay.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripInDay.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
-              <p>⭐ <strong>Rating:</strong> Rating ${renderStars(tripInDay.rating_luogo || 3)} | Camping ${renderStars(tripInDay.rating_campeggio || 3)}</p>
+              <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
               <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
               <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
               <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
