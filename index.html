@@ -1,613 +1,128 @@
- <!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Camper</title>
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- FullCalendar CDN -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #27ae60;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --bg: #f4f7f6;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            background-color: var(--bg); 
-            display: flex; 
-        }
-        
-        /* Sidebar Menu (Desktop) */
-        nav { 
-            width: 250px; 
-            background: var(--primary); 
-            color: white; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
-            top: 0;
-            left: 0;
-            z-index: 100;
-        }
-        
-        nav h2 { 
-            text-align: center; 
-            margin-bottom: 20px; 
-            font-size: 1.4rem;
-        }
-
-        .nav-menu {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        nav button { 
-            display: block; 
-            width: 100%; 
-            padding: 15px; 
-            background: none; 
-            border: none; 
-            color: white; 
-            text-align: left; 
-            font-size: 16px; 
-            cursor: pointer; 
-            border-bottom: 1px solid #34495e; 
-        }
-        
-        nav button:hover, nav button.active { 
-            background: #34495e; 
-            border-left: 4px solid var(--secondary); 
-        }
-        
-        /* Main Content (Desktop) */
-        main { 
-            margin-left: 250px; 
-            padding: 30px; 
-            width: calc(100% - 250px); 
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-        
-        .panel { 
-            display: none; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-            max-width: 100%;
-        }
-        
-        .panel.active { 
-            display: block; 
-        }
-        
-        h3 { 
-            color: var(--primary); 
-            border-bottom: 2px solid var(--secondary); 
-            padding-bottom: 10px; 
-            margin-top: 0;
-        }
-
-        h4 {
-            color: var(--primary);
-            margin-top: 25px;
-            margin-bottom: 10px;
-        }
-        
-        /* Forms & Inputs */
-        .form-group { 
-            margin-bottom: 15px; 
-        }
-        
-        label { 
-            display: block; 
-            margin-bottom: 5px; 
-            font-weight: bold; 
-            color: #333; 
-        }
-        
-        input[type="text"], input[type="number"], input[type="date"] { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            font-size: 16px;
-        }
-        
-        .btn-submit { 
-            background: var(--secondary); 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            width: 100%; 
-        }
-        
-        .btn-submit:hover { 
-            background: #219653; 
-        }
-
-        .btn-action {
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            color: white;
-            margin-right: 4px;
-        }
-
-        .btn-edit { background-color: var(--warning); }
-        .btn-edit:hover { background-color: #d35400; }
-        .btn-delete { background-color: var(--danger); }
-        .btn-delete:hover { background-color: #c0392b; }
-        
-        /* Contenitore Tabella Reattivo */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-top: 15px;
-        }
-
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            min-width: 650px;
-        }
-        
-        th, td { 
-            padding: 10px 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
-        }
-        
-        th { 
-            background-color: var(--primary); 
-            color: white; 
-        }
-        
-        .total-row { 
-            background-color: #e9ecef; 
-            font-weight: bold; 
-        }
-
-        .grid-2 { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 15px; 
-        }
-
-        /* Contenitore Calendario */
-        #calendar-container {
-            width: 100%;
-            max-width: 100%;
-        }
-
-        /* --- HIGH-CONTRAST VISTA LISTA --- */
-        .fc .fc-list-day-cushion {
-            background-color: var(--primary) !important;
-        }
-
-        .fc .fc-list-day-cushion a,
-        .fc .fc-list-day-text,
-        .fc .fc-list-day-side-text {
-            color: #ffffff !important;
-            font-weight: bold !important;
-            text-decoration: none !important;
-        }
-
-        .fc .fc-list-event td {
-            background-color: #ffffff !important;
-            color: #2c3e50 !important;
-            font-size: 14px !important;
-        }
-
-        .fc .fc-list-event-title a {
-            color: #2c3e50 !important;
-            font-weight: 600 !important;
-            text-decoration: none !important;
-            cursor: pointer;
-        }
-
-        .fc .fc-list-empty-cushion {
-            color: #2c3e50 !important;
-            font-weight: bold;
-        }
-
-        .fc .fc-list-event:hover td {
-            background-color: #f0f4f8 !important;
-        }
-
-        /* --- STILI MODAL --- */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-card {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 420px;
-            width: 90%;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        .modal-card h4 {
-            margin-top: 0;
-            color: var(--primary);
-            border-bottom: 2px solid var(--secondary);
-            padding-bottom: 8px;
-            font-size: 1.2rem;
-        }
-
-        .modal-close {
-            position: absolute;
-            right: 15px;
-            top: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            color: #888;
-        }
-
-        .modal-close:hover {
-            color: #000;
-        }
-
-        .modal-info-row {
-            margin: 8px 0;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .modal-actions {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .modal-actions button {
-            flex: 1;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-        }
-
-        /* --- RISOLUZIONE SMARTPHONE VERTICALE (<= 768px) --- */
-        @media (max-width: 768px) {
-            body { 
-                flex-direction: column; 
-            }
-
-            nav { 
-                width: 100%; 
-                height: auto; 
-                position: sticky; 
-                top: 0; 
-                padding-top: 10px; 
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            }
-
-            nav h2 { 
-                margin-bottom: 10px; 
-                font-size: 1.2rem;
-            }
-
-            .nav-menu {
-                flex-direction: row;
-                overflow-x: auto;
-                white-space: nowrap;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            nav button { 
-                display: inline-block; 
-                width: auto; 
-                padding: 12px 16px; 
-                border-bottom: 3px solid transparent; 
-                border-right: none;
-                font-size: 14px;
-                flex-shrink: 0;
-            }
-
-            nav button:hover, nav button.active { 
-                background: #34495e; 
-                border-left: none; 
-                border-bottom: 3px solid var(--secondary); 
-            }
-
-            main { 
-                margin-left: 0 !important; 
-                width: 100% !important; 
-                padding: 10px 6px !important; 
-            }
-
-            .grid-2 { 
-                grid-template-columns: 1fr; 
-                gap: 10px; 
-            }
-
-            .panel {
-                padding: 10px 8px !important;
-            }
-
-            #calendar-container {
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .fc .fc-toolbar {
-                flex-direction: column !important;
-                gap: 6px !important;
-                align-items: center !important;
-                margin-bottom: 8px !important;
-            }
-
-            .fc .fc-toolbar-title {
-                font-size: 1rem !important;
-            }
-
-            .fc .fc-button {
-                padding: 5px 8px !important;
-                font-size: 12px !important;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestione Viaggi Multi-Utente</title>
+  <!-- Supabase JS Client via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 20px;
+      background-color: #f4f6f8;
+      color: #333;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .hidden { display: none !important; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: bold; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-primary { background: #0070f3; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-secondary { background: #e2e8f0; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+    th { background: #f8f9fa; }
+    .flex { display: flex; gap: 10px; }
+    .flex-center { display: flex; justify-content: space-between; align-items: center; }
+    .error { color: #dc3545; font-size: 14px; margin-bottom: 10px; }
+  </style>
 </head>
 <body>
 
-    <nav>
-        <h2>🏕️ CamperApp</h2>
-        <div class="nav-menu">
-            <button onclick="switchMenu('dashboard')" class="active" id="btn-dashboard">Stato Camper</button>
-            <button onclick="switchMenu('viaggi')" id="btn-viaggi">Gestione Viaggi</button>
-            <button onclick="switchMenu('calendario')" id="btn-calendario">Calendario</button>
-            <button onclick="switchMenu('costi')" id="btn-costi">Costi Sostenuti</button>
-        </div>
-    </nav>
+  <!-- ==================== SCHERMATA LOGIN / REGISTRAZIONE ==================== -->
+  <div id="auth-section" class="card" style="max-width: 400px; margin: 50px auto;">
+    <h2 id="auth-title">Accedi</h2>
+    <div id="auth-error" class="error hidden"></div>
+    
+    <form id="auth-form">
+      <div class="form-group">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" required>
+      </div>
+      <div class="form-group">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" required>
+      </div>
+      <button type="submit" id="auth-submit-btn" class="btn-primary" style="width: 100%;">Accedi</button>
+    </form>
 
-    <main>
-        <!-- PANNELLO: STATO CAMPER -->
-        <div id="dashboard" class="panel active">
-            <h3>Impostazioni e Stato Attuale</h3>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Km Attuali</label>
-                    <input type="number" id="km_attuali">
-                </div>
-                <div class="form-group">
-                    <label>Livello Carburante (%)</label>
-                    <input type="number" id="livello_carburante" max="100">
-                </div>
-                <div class="form-group">
-                    <label>Acque Chiare (%)</label>
-                    <input type="number" id="acque_chiare" max="100">
-                </div>
-            </div>
-            <button class="btn-submit" onclick="salvaStatoCamper()">Aggiorna Stato</button>
-        </div>
+    <p style="text-align: center; font-size: 14px; margin-top: 15px;">
+      <span id="auth-toggle-text">Non hai un account?</span>
+      <a href="#" id="auth-toggle-btn" style="color: #0070f3;">Registrati</a>
+    </p>
+  </div>
 
-        <!-- PANNELLO: GESTIONE VIAGGI & RIFORNIMENTI -->
-        <div id="viaggi" class="panel">
-            <h3>Registra un nuovo Viaggio</h3>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Luogo</label>
-                    <input type="text" id="luogo" placeholder="Es. Dolomiti, Mare Toscana...">
-                </div>
-                <div class="form-group">
-                    <label>Costo Giornaliero Campeggio (€)</label>
-                    <input type="number" id="costo_giornaliero" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Costo Pedaggi / Traghetti (€)</label>
-                    <input type="number" id="costo_pedaggi" step="0.01" placeholder="Es. 45.50">
-                </div>
-                <div class="form-group">
-                    <label>Data Dal</label>
-                    <input type="date" id="data_dal">
-                </div>
-                <div class="form-group">
-                    <label>Data Al</label>
-                    <input type="date" id="data_al">
-                </div>
-            </div>
-            <p><strong>Notti calcolate: </strong><span id="notti_calcolate">0</span></p>
-            <button class="btn-submit" onclick="salvaViaggio()">Salva Viaggio</button>
-
-            <hr style="margin: 25px 0; border: 0; border-top: 1px solid #ccc;">
-
-            <h3>Registra Rifornimento</h3>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Luogo / Viaggio Associato</label>
-                    <input type="text" id="rifornimento_luogo" list="lista-luoghi-suggeriti" placeholder="Seleziona o scrivi luogo...">
-                    <datalist id="lista-luoghi-suggeriti"></datalist>
-                </div>
-                <div class="form-group">
-                    <label>Data Rifornimento</label>
-                    <input type="date" id="data_rifornimento">
-                </div>
-                <div class="form-group">
-                    <label>Litri</label>
-                    <input type="number" id="litri_rifornimento" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Costo Totale (€)</label>
-                    <input type="number" id="costo_rifornimento" step="0.01">
-                </div>
-            </div>
-            <button class="btn-submit" onclick="salvaRifornimento()" style="background-color: var(--primary);">Aggiungi Rifornimento</button>
-
-            <hr style="margin: 30px 0; border: 0; border-top: 2px solid var(--primary);">
-
-            <!-- TABELLA GESTIONE VIAGGI -->
-            <h4>📋 Elenco Viaggi Salvati</h4>
-            <div class="table-responsive">
-                <table id="tabella-gestione-viaggi">
-                    <thead>
-                        <tr>
-                            <th>Luogo</th>
-                            <th>Dal</th>
-                            <th>Al</th>
-                            <th>Notti</th>
-                            <th>€/Giorno</th>
-                            <th>Pedaggi (€)</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody><!-- Popolato da JS --></tbody>
-                </table>
-            </div>
-
-            <!-- TABELLA GESTIONE RIFORNIMENTI -->
-            <h4>⛽ Elenco Rifornimenti Salvati</h4>
-            <div class="table-responsive">
-                <table id="tabella-gestione-rifornimenti">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Luogo</th>
-                            <th>Litri</th>
-                            <th>Costo Totale</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody><!-- Popolato da JS --></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- PANNELLO: CALENDARIO -->
-        <div id="calendario" class="panel">
-            <h3>Calendario Viaggi</h3>
-            <div id="calendar-container"></div>
-        </div>
-
-        <!-- PANNELLO: COSTI SOSTENUTI -->
-        <div id="costi" class="panel">
-            <h3>Riepilogo Spese Raggruppate per Luogo</h3>
-            <button class="btn-submit" onclick="caricaCosti()" style="margin-bottom: 10px;">Aggiorna Dati</button>
-            <div class="table-responsive">
-                <table id="tabella-costi">
-                    <thead>
-                        <tr>
-                            <th>Luogo / Destinazione</th>
-                            <th>Costo Campeggio</th>
-                            <th>Costo Carburante</th>
-                            <th>Pedaggi / Traghetti</th>
-                            <th>Totale Speso (€)</th>
-                        </tr>
-                    </thead>
-                    <tbody><!-- Popolato da JS --></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal Dettagli Viaggio (Calendario) -->
-    <div id="modal-dettagli" class="modal-overlay" onclick="chiudiModalOnClick(event, 'modal-dettagli')">
-        <div class="modal-card">
-            <span class="modal-close" onclick="chiudiModal('modal-dettagli')">&times;</span>
-            <h4 id="modal-titolo">Dettagli Viaggio</h4>
-            <div id="modal-body"></div>
-            <div class="modal-actions">
-                <button class="btn-edit" id="btn-modal-edit-viaggio">✏️ Modifica</button>
-                <button class="btn-delete" id="btn-modal-del-viaggio">🗑️ Elimina</button>
-            </div>
-        </div>
+  <!-- ==================== DASHBOARD GESTIONE VIAGGIO ==================== -->
+  <div id="app-section" class="hidden">
+    <div class="flex-center" style="margin-bottom: 20px;">
+      <div>
+        <h1 style="margin: 0;">I Miei Viaggi</h1>
+        <small id="user-email-display" style="color: #666;"></small>
+      </div>
+      <button id="logout-btn" class="btn-secondary">Logout</button>
     </div>
 
-    <!-- Modal Modifica Viaggio -->
-    <div id="modal-edit-viaggio" class="modal-overlay" onclick="chiudiModalOnClick(event, 'modal-edit-viaggio')">
-        <div class="modal-card">
-            <span class="modal-close" onclick="chiudiModal('modal-edit-viaggio')">&times;</span>
-            <h4>Modifica Viaggio</h4>
-            <input type="hidden" id="edit_v_id">
-            <div class="form-group">
-                <label>Luogo</label>
-                <input type="text" id="edit_v_luogo">
-            </div>
-            <div class="form-group">
-                <label>Data Dal</label>
-                <input type="date" id="edit_v_dal">
-            </div>
-            <div class="form-group">
-                <label>Data Al</label>
-                <input type="date" id="edit_v_al">
-            </div>
-            <div class="form-group">
-                <label>Costo Giornaliero (€)</label>
-                <input type="number" id="edit_v_costo" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Costo Pedaggi / Traghetti (€)</label>
-                <input type="number" id="edit_v_pedaggi" step="0.01">
-            </div>
-            <button class="btn-submit" onclick="salvaModificaViaggio()">Salva Modifiche</button>
+    <!-- FORM INSERIMENTO / MODIFICA -->
+    <div class="card">
+      <h3 id="form-title" style="margin-top:0;">Aggiungi Nuovo Viaggio</h3>
+      <form id="viaggio-form">
+        <input type="hidden" id="viaggio-id">
+        
+        <div class="flex" style="flex-wrap: wrap;">
+          <div style="flex: 2; min-width: 200px;">
+            <label for="destinazione">Destinazione</label>
+            <input type="text" id="destinazione" required>
+          </div>
+          <div style="flex: 1; min-width: 100px;">
+            <label for="chilometri">Chilometri</label>
+            <input type="number" step="0.1" id="chilometri" required>
+          </div>
+          <div style="flex: 1; min-width: 100px;">
+            <label for="costo_pedaggi">Pedaggio (€)</label>
+            <input type="number" step="0.01" id="costo_pedaggi" value="0">
+          </div>
         </div>
+
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+          <button type="submit" id="save-btn" class="btn-primary">Aggiungi Viaggio</button>
+          <button type="button" id="cancel-edit-btn" class="btn-secondary hidden">Annulla</button>
+        </div>
+      </form>
     </div>
 
-    <!-- Modal Modifica Rifornimento -->
-    <div id="modal-edit-rifornimento" class="modal-overlay" onclick="chiudiModalOnClick(event, 'modal-edit-rifornimento')">
-        <div class="modal-card">
-            <span class="modal-close" onclick="chiudiModal('modal-edit-rifornimento')">&times;</span>
-            <h4>Modifica Rifornimento</h4>
-            <input type="hidden" id="edit_r_id">
-            <div class="form-group">
-                <label>Luogo / Viaggio</label>
-                <input type="text" id="edit_r_luogo">
-            </div>
-            <div class="form-group">
-                <label>Data Rifornimento</label>
-                <input type="date" id="edit_r_data">
-            </div>
-            <div class="form-group">
-                <label>Litri</label>
-                <input type="number" id="edit_r_litri" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Costo Totale (€)</label>
-                <input type="number" id="edit_r_costo" step="0.01">
-            </div>
-            <button class="btn-submit" onclick="salvaModificaRifornimento()">Salva Modifiche</button>
-        </div>
+    <!-- TABELLA DATI -->
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Destinazione</th>
+            <th>Chilometri</th>
+            <th>Costo Pedaggi</th>
+            <th style="text-align: right;">Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="viaggi-table-body">
+          <!-- Righe inserite dinamicamente via JS -->
+        </tbody>
+      </table>
     </div>
+  </div>
 
-    <script>
-
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
         // Inizializzazione Supabase
         const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
@@ -615,475 +130,212 @@
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const PALETTE_COLORI = [
-            '#27ae60', '#2980b9', '#8e44ad', '#d35400', 
-            '#c0392b', '#16a085', '#d63031', '#e67e22',
-            '#00b894', '#6c5ce7', '#0984e3', '#fdcb6e'
-        ];
+    // 2. ELEMENTI DOM
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const authForm = document.getElementById('auth-form');
+    const authTitle = document.getElementById('auth-title');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const authToggleText = document.getElementById('auth-toggle-text');
+    const authToggleBtn = document.getElementById('auth-toggle-btn');
+    const authError = document.getElementById('auth-error');
+    const userEmailDisplay = document.getElementById('user-email-display');
+    const logoutBtn = document.getElementById('logout-btn');
 
-        document.addEventListener('DOMContentLoaded', () => {
-            caricaStatoCamper();
-            aggiornaSuggerimentiLuoghi();
-            caricaTabellaViaggi();
-            caricaTabellaRifornimenti();
-        });
+    const viaggioForm = document.getElementById('viaggio-form');
+    const viaggioIdInput = document.getElementById('viaggio-id');
+    const destinazioneInput = document.getElementById('destinazione');
+    const chilometriInput = document.getElementById('chilometri');
+    const costoPedaggiInput = document.getElementById('costo_pedaggi');
+    const formTitle = document.getElementById('form-title');
+    const saveBtn = document.getElementById('save-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const viaggiTableBody = document.getElementById('viaggi-table-body');
 
-        // --- GESTIONE MENU ---
-        function switchMenu(menuId) {
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-menu button').forEach(b => b.classList.remove('active'));
-            document.getElementById(menuId).classList.add('active');
-            document.getElementById('btn-' + menuId).classList.add('active');
+    let isRegisterMode = false;
+    let currentUser = null;
 
-            if(menuId === 'dashboard') caricaStatoCamper();
-            if(menuId === 'viaggi') {
-                aggiornaSuggerimentiLuoghi();
-                caricaTabellaViaggi();
-                caricaTabellaRifornimenti();
-            }
-            if(menuId === 'calendario') inizializzaCalendario();
-            if(menuId === 'costi') caricaCosti();
-        }
+    // 3. GESTIONE AUTENTICAZIONE E SESSIONE
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        currentUser = session.user;
+        userEmailDisplay.textContent = `Utente: ${currentUser.email}`;
+        authSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
+        fetchViaggi();
+      } else {
+        currentUser = null;
+        appSection.classList.add('hidden');
+        authSection.classList.remove('hidden');
+      }
+    });
 
-        // --- CALCOLO AUTOMATICO NOTTI ---
-        const inputDal = document.getElementById('data_dal');
-        const inputAl = document.getElementById('data_al');
-        const displayNotti = document.getElementById('notti_calcolate');
+    // Toggle tra Login e Registrazione
+    authToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      authError.classList.add('hidden');
+      if (isRegisterMode) {
+        authTitle.textContent = 'Registrazione';
+        authSubmitBtn.textContent = 'Registrati';
+        authToggleText.textContent = 'Hai già un account?';
+        authToggleBtn.textContent = 'Accedi';
+      } else {
+        authTitle.textContent = 'Accedi';
+        authSubmitBtn.textContent = 'Accedi';
+        authToggleText.textContent = 'Non hai un account?';
+        authToggleBtn.textContent = 'Registrati';
+      }
+    });
 
-        function calcolaNotti() {
-            if(inputDal.value && inputAl.value) {
-                const dal = new Date(inputDal.value);
-                const al = new Date(inputAl.value);
-                if(al >= dal) {
-                    const diffTempo = Math.abs(al - dal);
-                    const notti = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
-                    displayNotti.innerText = notti;
-                } else {
-                    displayNotti.innerText = "Errore: 'Al' precedente a 'Dal'";
-                }
-            }
-        }
-        inputDal.addEventListener('change', calcolaNotti);
-        inputAl.addEventListener('change', calcolaNotti);
+    // Invia Form Login / Registrazione
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authError.classList.add('hidden');
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
 
-        async function aggiornaSuggerimentiLuoghi() {
-            const { data: viaggi } = await supabaseClient.from('viaggi').select('luogo');
-            const datalist = document.getElementById('lista-luoghi-suggeriti');
-            datalist.innerHTML = '';
-            
-            if (viaggi) {
-                const luoghiUnici = [...new Set(viaggi.map(v => v.luogo).filter(Boolean))];
-                luoghiUnici.forEach(luogo => {
-                    const option = document.createElement('option');
-                    option.value = luogo;
-                    datalist.appendChild(option);
-                });
-            }
-        }
+      let result;
+      if (isRegisterMode) {
+        result = await supabase.auth.signUp({ email, password });
+      } else {
+        result = await supabase.auth.signInWithPassword({ email, password });
+      }
 
-        // --- STATO CAMPER ---
-        async function caricaStatoCamper() {
-            const { data, error } = await supabaseClient
-                .from('stato_camper')
-                .select('*')
-                .order('id', { ascending: false })
-                .limit(1);
+      if (result.error) {
+        authError.textContent = result.error.message;
+        authError.classList.remove('hidden');
+      } else if (isRegisterMode) {
+        alert('Registrazione completata! Controlla la tua email per confermare o effettua il login.');
+      }
+    });
 
-            if (error) return console.error("Errore recupero stato:", error);
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+    });
 
-            if (data && data.length > 0) {
-                const ultimoStato = data[0];
-                document.getElementById('km_attuali').value = ultimoStato.km_attuali ?? '';
-                document.getElementById('livello_carburante').value = ultimoStato.livello_carburante ?? '';
-                document.getElementById('acque_chiare').value = ultimoStato.livello_acque_chiare ?? '';
-            }
-        }
+    // 4. LETTURA VIAGGI (READ)
+    async function fetchViaggi() {
+      const { data, error } = await supabase
+        .from('viaggi')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        async function salvaStatoCamper() {
-            const km = document.getElementById('km_attuali').value;
-            const carb = document.getElementById('livello_carburante').value;
-            const acqua = document.getElementById('acque_chiare').value;
+      if (error) {
+        console.error('Errore durante il recupero dei dati:', error.message);
+        return;
+      }
 
-            const { error } = await supabaseClient
-                .from('stato_camper')
-                .insert([{ km_attuali: km, livello_carburante: carb, livello_acque_chiare: acqua }]);
-            
-            if (error) alert("Errore salvataggio: " + error.message);
-            else alert("Stato aggiornato correttamente.");
-        }
+      renderViaggi(data || []);
+    }
 
-        // --- VIAGGI (INSERIMENTO, ELENCO, MODIFICA, ELIMINAZIONE) ---
-        async function salvaViaggio() {
-            const luogo = document.getElementById('luogo').value;
-            const dal = document.getElementById('data_dal').value;
-            const al = document.getElementById('data_al').value;
-            const costo = document.getElementById('costo_giornaliero').value;
-            const pedaggi = document.getElementById('costo_pedaggi').value || 0;
-            const notti = parseInt(document.getElementById('notti_calcolate').innerText);
+    // Renderizza i dati nella tabella HTML
+    function renderViaggi(viaggi) {
+      viaggiTableBody.innerHTML = '';
 
-            if(!luogo || !dal || !al || isNaN(notti)) return alert("Compila correttamente i campi");
+      if (viaggi.length === 0) {
+        viaggiTableBody.innerHTML = `
+          <tr>
+            <td colSpan="4" style="text-align: center; color: #888;">Nessun viaggio trovato.</td>
+          </tr>
+        `;
+        return;
+      }
 
-            const { error } = await supabaseClient
-                .from('viaggi')
-                .insert([{ 
-                    luogo: luogo, 
-                    data_dal: dal, 
-                    data_al: al, 
-                    notti: notti, 
-                    costo_giornaliero: costo,
-                    costo_pedaggi: pedaggi 
-                }]);
-            
-            if (error) alert("Errore salvataggio: " + error.message);
-            else {
-                alert("Viaggio salvato!");
-                document.getElementById('luogo').value = '';
-                document.getElementById('costo_pedaggi').value = '';
-                caricaTabellaViaggi();
-                aggiornaSuggerimentiLuoghi();
-            }
-        }
+      viaggi.forEach(item => {
+        const tr = document.createElement('tr');
+        const pedaggio = Number(item.costo_pedaggi || 0).toFixed(2);
+        
+        tr.innerHTML = `
+          <td>${escapeHtml(item.destinazione)}</td>
+          <td>${item.chilometri} km</td>
+          <td>€ ${pedaggio}</td>
+          <td style="text-align: right;">
+            <button class="btn-secondary" onclick="prepareEdit(${item.id}, '${escapeJs(item.destinazione)}', ${item.chilometri}, ${item.costo_pedaggi || 0})">Modifica</button>
+            <button class="btn-danger" onclick="deleteViaggio(${item.id})">Elimina</button>
+          </td>
+        `;
+        viaggiTableBody.appendChild(tr);
+      });
+    }
 
-        async function caricaTabellaViaggi() {
-            const tbody = document.querySelector('#tabella-gestione-viaggi tbody');
-            const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*').order('data_dal', { ascending: false });
-            if(error) return console.error(error);
+    // 5. SALVATAGGIO VIAGGIO (CREATE / UPDATE)
+    viaggioForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-            tbody.innerHTML = (viaggi || []).map(v => `
-                <tr>
-                    <td><strong>${v.luogo}</strong></td>
-                    <td>${v.data_dal}</td>
-                    <td>${v.data_al}</td>
-                    <td>${v.notti || 0}</td>
-                    <td>${parseFloat(v.costo_giornaliero || 0).toFixed(2)} €</td>
-                    <td>${parseFloat(v.costo_pedaggi || 0).toFixed(2)} €</td>
-                    <td>
-                        <button class="btn-action btn-edit" onclick='apriModificaViaggio(${JSON.stringify(v)})'>✏️</button>
-                        <button class="btn-action btn-delete" onclick="eliminaViaggio(${v.id})">🗑️</button>
-                    </td>
-                </tr>
-            `).join('') || '<tr><td colspan="7">Nessun viaggio registrato.</td></tr>';
-        }
+      const id = viaggioIdInput.value;
+      const payload = {
+        destinazione: destinazioneInput.value,
+        chilometri: parseFloat(chilometriInput.value) || 0,
+        costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
+        user_id: currentUser.id
+      };
 
-        function apriModificaViaggio(viaggio) {
-            document.getElementById('edit_v_id').value = viaggio.id;
-            document.getElementById('edit_v_luogo').value = viaggio.luogo;
-            document.getElementById('edit_v_dal').value = viaggio.data_dal;
-            document.getElementById('edit_v_al').value = viaggio.data_al;
-            document.getElementById('edit_v_costo').value = viaggio.costo_giornaliero;
-            document.getElementById('edit_v_pedaggi').value = viaggio.costo_pedaggi || 0;
-            
-            chiudiModal('modal-dettagli');
-            apriModal('modal-edit-viaggio');
-        }
+      let error;
+      if (id) {
+        // MODIFICA
+        const res = await supabase.from('viaggi').update(payload).eq('id', id);
+        error = res.error;
+      } else {
+        // NUOVO INSERIMENTO
+        const res = await supabase.from('viaggi').insert([payload]);
+        error = res.error;
+      }
 
-        async function salvaModificaViaggio() {
-            const id = document.getElementById('edit_v_id').value;
-            const luogo = document.getElementById('edit_v_luogo').value;
-            const dal = document.getElementById('edit_v_dal').value;
-            const al = document.getElementById('edit_v_al').value;
-            const costo = document.getElementById('edit_v_costo').value;
-            const pedaggi = document.getElementById('edit_v_pedaggi').value || 0;
+      if (error) {
+        alert('Errore durante il salvataggio: ' + error.message);
+      } else {
+        resetViaggioForm();
+        fetchViaggi();
+      }
+    });
 
-            const dDal = new Date(dal);
-            const dAl = new Date(al);
-            const notti = Math.ceil(Math.abs(dAl - dDal) / (1000 * 60 * 60 * 24)) || 0;
+    // Prepara i dati nel form per la Modifica
+    window.prepareEdit = function(id, destinazione, chilometri, costoPedaggi) {
+      viaggioIdInput.value = id;
+      destinazioneInput.value = destinazione;
+      chilometriInput.value = chilometri;
+      costoPedaggiInput.value = costoPedaggi;
 
-            const { error } = await supabaseClient
-                .from('viaggi')
-                .update({ luogo, data_dal: dal, data_al: al, notti, costo_giornaliero: costo, costo_pedaggi: pedaggi })
-                .eq('id', id);
+      formTitle.textContent = 'Modifica Viaggio';
+      saveBtn.textContent = 'Aggiorna Viaggio';
+      saveBtn.className = 'btn-success';
+      cancelEditBtn.classList.remove('hidden');
+    };
 
-            if(error) alert("Errore aggiornamento: " + error.message);
-            else {
-                alert("Viaggio aggiornato!");
-                chiudiModal('modal-edit-viaggio');
-                caricaTabellaViaggi();
-                if(calendarInstance) inizializzaCalendario();
-            }
-        }
+    // Annulla Modifica
+    cancelEditBtn.addEventListener('click', resetViaggioForm);
 
-        async function eliminaViaggio(id) {
-            if(!confirm("Sei sicuro di voler eliminare questo viaggio?")) return;
+    function resetViaggioForm() {
+      viaggioIdInput.value = '';
+      viaggioForm.reset();
+      costoPedaggiInput.value = 0;
+      formTitle.textContent = 'Aggiungi Nuovo Viaggio';
+      saveBtn.textContent = 'Aggiungi Viaggio';
+      saveBtn.className = 'btn-primary';
+      cancelEditBtn.classList.add('hidden');
+    }
 
-            const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
-            if(error) alert("Errore eliminazione: " + error.message);
-            else {
-                alert("Viaggio eliminato!");
-                chiudiModal('modal-dettagli');
-                caricaTabellaViaggi();
-                if(calendarInstance) inizializzaCalendario();
-            }
-        }
+    // 6. ELIMINAZIONE VIAGGIO (DELETE)
+    window.deleteViaggio = async function(id) {
+      if (!confirm('Sei sicuro di voler eliminare questo viaggio?')) return;
 
-        // --- RIFORNIMENTI (INSERIMENTO, ELENCO, MODIFICA, ELIMINAZIONE) ---
-        async function salvaRifornimento() {
-            const luogo = document.getElementById('rifornimento_luogo').value || 'Generico / Fuori Viaggio';
-            const dataRif = document.getElementById('data_rifornimento').value;
-            const litri = document.getElementById('litri_rifornimento').value;
-            const costo = document.getElementById('costo_rifornimento').value;
+      const { error } = await supabase.from('viaggi').delete().eq('id', id);
+      if (error) {
+        alert('Errore durante l\'eliminazione: ' + error.message);
+      } else {
+        fetchViaggi();
+      }
+    };
 
-            if(!dataRif || !litri || !costo) return alert("Inserisci data, litri e costo");
-
-            const { error } = await supabaseClient
-                .from('rifornimenti')
-                .insert([{ luogo: luogo, data_rifornimento: dataRif, litri: litri, costo_totale: costo }]);
-            
-            if (error) alert("Errore salvataggio: " + error.message);
-            else {
-                alert("Rifornimento inserito!");
-                document.getElementById('litri_rifornimento').value = '';
-                document.getElementById('costo_rifornimento').value = '';
-                caricaTabellaRifornimenti();
-            }
-        }
-
-        async function caricaTabellaRifornimenti() {
-            const tbody = document.querySelector('#tabella-gestione-rifornimenti tbody');
-            const { data: rifornimenti, error } = await supabaseClient.from('rifornimenti').select('*').order('data_rifornimento', { ascending: false });
-            if(error) return console.error(error);
-
-            tbody.innerHTML = (rifornimenti || []).map(r => `
-                <tr>
-                    <td>${r.data_rifornimento}</td>
-                    <td><strong>${r.luogo}</strong></td>
-                    <td>${parseFloat(r.litri || 0).toFixed(1)} L</td>
-                    <td>${parseFloat(r.costo_totale || 0).toFixed(2)} €</td>
-                    <td>
-                        <button class="btn-action btn-edit" onclick='apriModificaRifornimento(${JSON.stringify(r)})'>✏️</button>
-                        <button class="btn-action btn-delete" onclick="eliminaRifornimento(${r.id})">🗑️</button>
-                    </td>
-                </tr>
-            `).join('') || '<tr><td colspan="5">Nessun rifornimento registrato.</td></tr>';
-        }
-
-        function apriModificaRifornimento(rif) {
-            document.getElementById('edit_r_id').value = rif.id;
-            document.getElementById('edit_r_luogo').value = rif.luogo;
-            document.getElementById('edit_r_data').value = rif.data_rifornimento;
-            document.getElementById('edit_r_litri').value = rif.litri;
-            document.getElementById('edit_r_costo').value = rif.costo_totale;
-
-            apriModal('modal-edit-rifornimento');
-        }
-
-        async function salvaModificaRifornimento() {
-            const id = document.getElementById('edit_r_id').value;
-            const luogo = document.getElementById('edit_r_luogo').value;
-            const dataRif = document.getElementById('edit_r_data').value;
-            const litri = document.getElementById('edit_r_litri').value;
-            const costo = document.getElementById('edit_r_costo').value;
-
-            const { error } = await supabaseClient
-                .from('rifornimenti')
-                .update({ luogo, data_rifornimento: dataRif, litri, costo_totale: costo })
-                .eq('id', id);
-
-            if(error) alert("Errore aggiornamento: " + error.message);
-            else {
-                alert("Rifornimento aggiornato!");
-                chiudiModal('modal-edit-rifornimento');
-                caricaTabellaRifornimenti();
-            }
-        }
-
-        async function eliminaRifornimento(id) {
-            if(!confirm("Sei sicuro di voler eliminare questo rifornimento?")) return;
-
-            const { error } = await supabaseClient.from('rifornimenti').delete().eq('id', id);
-            if(error) alert("Errore eliminazione: " + error.message);
-            else {
-                alert("Rifornimento eliminato!");
-                caricaTabellaRifornimenti();
-            }
-        }
-
-        // --- CALENDARIO MENSILE ---
-        let calendarInstance = null;
-
-        async function inizializzaCalendario() {
-            const { data: viaggi, error } = await supabaseClient.from('viaggi').select('*');
-            if (error) return console.error("Errore recupero viaggi:", error);
-
-            let eventi = (viaggi || []).map((v, index) => {
-                let dataFine = new Date(v.data_al);
-                dataFine.setDate(dataFine.getDate() + 1);
-                let endIso = dataFine.toISOString().split('T')[0];
-                let coloreAssegnato = PALETTE_COLORI[index % PALETTE_COLORI.length];
-                
-                const notti = parseInt(v.notti) || 0;
-                const costoG = parseFloat(v.costo_giornaliero) || 0;
-                const pedaggi = parseFloat(v.costo_pedaggi) || 0;
-                const costoTotCampeggio = notti * costoG;
-                const costoTotViaggio = costoTotCampeggio + pedaggi;
-
-                return {
-                    title: v.luogo,
-                    start: v.data_dal,
-                    end: endIso,
-                    allDay: true,
-                    backgroundColor: coloreAssegnato,
-                    borderColor: coloreAssegnato,
-                    textColor: '#ffffff',
-                    extendedProps: {
-                        rawObject: v,
-                        luogo: v.luogo,
-                        dal: v.data_dal,
-                        al: v.data_al,
-                        notti: notti,
-                        costoGiornaliero: costoG.toFixed(2),
-                        costoCampeggio: costoTotCampeggio.toFixed(2),
-                        pedaggi: pedaggi.toFixed(2),
-                        costoTotViaggio: costoTotViaggio.toFixed(2)
-                    }
-                };
-            });
-
-            const calendarEl = document.getElementById('calendar-container');
-            const isMobile = window.innerWidth <= 768;
-
-            if (!calendarInstance) {
-                calendarInstance = new FullCalendar.Calendar(calendarEl, {
-                    initialView: isMobile ? 'listMonth' : 'dayGridMonth',
-                    locale: 'it',
-                    firstDay: 1,
-                    events: eventi,
-                    height: 'auto',
-                    headerToolbar: isMobile ? {
-                        left: 'prev,next',
-                        center: 'title',
-                        right: 'today,dayGridMonth,listMonth'
-                    } : {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,listMonth'
-                    },
-                    eventClick: function(info) {
-                        const props = info.event.extendedProps;
-                        const raw = props.rawObject;
-                        
-                        document.getElementById('modal-titolo').innerText = '🏕️ ' + props.luogo;
-                        document.getElementById('modal-body').innerHTML = `
-                            <div class="modal-info-row"><strong>Data Inizio:</strong> ${props.dal}</div>
-                            <div class="modal-info-row"><strong>Data Fine:</strong> ${props.al}</div>
-                            <div class="modal-info-row"><strong>Notti Totali:</strong> ${props.notti}</div>
-                            <div class="modal-info-row"><strong>Costo/Giorno Campeggio:</strong> ${props.costoGiornaliero} €</div>
-                            <div class="modal-info-row"><strong>Spesa Campeggio:</strong> ${props.costoCampeggio} €</div>
-                            <div class="modal-info-row"><strong>Pedaggi / Traghetti:</strong> ${props.pedaggi} €</div>
-                            <hr style="margin:10px 0; border:0; border-top:1px solid #eee;">
-                            <div class="modal-info-row" style="font-size:16px;"><strong>Spesa Totale Viaggio:</strong> <span style="color:var(--secondary); font-weight:bold;">${props.costoTotViaggio} €</span></div>
-                        `;
-                        
-                        document.getElementById('btn-modal-edit-viaggio').onclick = () => apriModificaViaggio(raw);
-                        document.getElementById('btn-modal-del-viaggio').onclick = () => eliminaViaggio(raw.id);
-
-                        apriModal('modal-dettagli');
-                    }
-                });
-                calendarInstance.render();
-            } else {
-                calendarInstance.removeAllEvents();
-                calendarInstance.addEventSource(eventi);
-                calendarInstance.updateSize();
-            }
-        }
-
-        // --- UTILITIES MODAL ---
-        function apriModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
-
-        function chiudiModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
-        function chiudiModalOnClick(event, id) {
-            if (event.target.id === id) {
-                chiudiModal(id);
-            }
-        }
-
-        // --- TABELLA COSTI AGGREGATI ---
-        async function caricaCosti() {
-            const tbody = document.querySelector('#tabella-costi tbody');
-            tbody.innerHTML = '<tr><td colspan="5">Caricamento in corso...</td></tr>';
-
-            const { data: viaggi } = await supabaseClient.from('viaggi').select('*');
-            const { data: rifornimenti } = await supabaseClient.from('rifornimenti').select('*');
-
-            const mappaLuoghi = {};
-
-            if (viaggi) {
-                viaggi.forEach(v => {
-                    const nomeLuogo = (v.luogo || 'Senza Nome').trim();
-                    const notti = parseInt(v.notti) || 0;
-                    const costoG = parseFloat(v.costo_giornaliero) || 0;
-                    const pedaggi = parseFloat(v.costo_pedaggi) || 0;
-                    const costoTotCampeggio = notti * costoG;
-
-                    if (!mappaLuoghi[nomeLuogo]) {
-                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0, pedaggi: 0 };
-                    }
-                    mappaLuoghi[nomeLuogo].campeggio += costoTotCampeggio;
-                    mappaLuoghi[nomeLuogo].notti += notti;
-                    mappaLuoghi[nomeLuogo].pedaggi += pedaggi;
-                });
-            }
-
-            if (rifornimenti) {
-                rifornimenti.forEach(r => {
-                    const nomeLuogo = (r.luogo || 'Generico / Fuori Viaggio').trim();
-                    const litri = parseFloat(r.litri) || 0;
-                    const costoRif = parseFloat(r.costo_totale) || 0;
-
-                    if (!mappaLuoghi[nomeLuogo]) {
-                        mappaLuoghi[nomeLuogo] = { campeggio: 0, notti: 0, carburante: 0, litri: 0, pedaggi: 0 };
-                    }
-                    mappaLuoghi[nomeLuogo].carburante += costoRif;
-                    mappaLuoghi[nomeLuogo].litri += litri;
-                });
-            }
-
-            let html = '';
-            let totaleGenerale = 0;
-            let totaleCampeggi = 0;
-            let totaleCarburante = 0;
-            let totalePedaggi = 0;
-
-            const luoghiChiavi = Object.keys(mappaLuoghi);
-
-            if (luoghiChiavi.length === 0) {
-                html = '<tr><td colspan="5">Nessun costo registrato finora.</td></tr>';
-            } else {
-                luoghiChiavi.forEach(luogo => {
-                    const dati = mappaLuoghi[luogo];
-                    const totaleLuogo = dati.campeggio + dati.carburante + dati.pedaggi;
-                    
-                    totaleCampeggi += dati.campeggio;
-                    totaleCarburante += dati.carburante;
-                    totalePedaggi += dati.pedaggi;
-                    totaleGenerale += totaleLuogo;
-
-                    html += `<tr>
-                        <td><strong>${luogo}</strong></td>
-                        <td>${dati.campeggio.toFixed(2)} € <small style="color:#666;">(${dati.notti} notti)</small></td>
-                        <td>${dati.carburante.toFixed(2)} € <small style="color:#666;">(${dati.litri.toFixed(1)} L)</small></td>
-                        <td>${dati.pedaggi.toFixed(2)} €</td>
-                        <td><strong>${totaleLuogo.toFixed(2)} €</strong></td>
-                    </tr>`;
-                });
-
-                html += `<tr class="total-row">
-                    <td>TOTALE COMPLESSIVO</td>
-                    <td>${totaleCampeggi.toFixed(2)} €</td>
-                    <td>${totaleCarburante.toFixed(2)} €</td>
-                    <td>${totalePedaggi.toFixed(2)} €</td>
-                    <td style="color: var(--secondary);">${totaleGenerale.toFixed(2)} €</td>
-                </tr>`;
-            }
-
-            tbody.innerHTML = html;
-        }
-    </script>
+    // Helper per sicurezza caratteri speciali
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escapeJs(str) {
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+  </script>
 </body>
 </html>
