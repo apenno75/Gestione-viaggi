@@ -51,12 +51,21 @@
     /* Contenitore Tabelle Responsive */
     .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
-    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
     th { background: #f8fafc; color: #64748b; }
     
     .flex { display: flex; gap: 10px; }
     .flex-center { display: flex; justify-content: space-between; align-items: center; }
     .error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
+
+    /* Card Luogo Padre/Figlio */
+    .luogo-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
 
     /* Modali */
     .modal-overlay {
@@ -75,7 +84,6 @@
     }
     .calendar-day-header { font-weight: bold; padding: 6px 2px; background: #f1f5f9; font-size: 11px; border-radius: 4px; color: #475569; }
     
-    /* Cella Calendario con Iniziale */
     .calendar-day {
       padding: 5px 2px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px;
       min-height: 48px; position: relative; display: flex; flex-direction: column;
@@ -96,7 +104,7 @@
       position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
       background: #0f172a; color: white; padding: 12px; border-radius: 8px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-size: 12px; text-align: left;
-      z-index: 100; width: 230px; font-weight: normal; margin-top: 5px;
+      z-index: 100; width: 250px; font-weight: normal; margin-top: 5px;
     }
     .calendar-tooltip h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 14px; }
     .calendar-tooltip p { margin: 3px 0; }
@@ -106,7 +114,7 @@
     .refuel-box { background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px solid #e2e8f0; }
 
     /* Stat Cards */
-    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 120px; }
+    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 110px; }
     .stat-card .amount { font-size: 16px; font-weight: bold; color: #0284c7; margin-top: 4px; }
 
     /* RESPONSIVE DESIGN PER MOBILE */
@@ -163,14 +171,14 @@
     </div>
 
     <div class="card">
-      <h3 id="form-title" style="margin-top:0; font-size: 16px;">Aggiungi Nuovo Viaggio</h3>
+      <h3 id="form-title" style="margin-top:0; font-size: 16px;">Aggiungi Nuovo Viaggio (Chiave Padre)</h3>
       <form id="viaggio-form">
         <input type="hidden" id="viaggio-id">
         
         <div class="flex flex-mobile-col" style="align-items: flex-end;">
           <div style="flex: 2;">
-            <label for="destinazione">Destinazione</label>
-            <input type="text" id="destinazione" required placeholder="Es. Dolomiti">
+            <label for="destinazione">Nome del Viaggio (Padre)</label>
+            <input type="text" id="destinazione" required placeholder="Es. Tour delle Dolomiti 2026">
           </div>
           <div style="flex: 1;">
             <label for="data_partenza">Data Partenza</label>
@@ -207,7 +215,7 @@
 
         <div class="flex flex-mobile-col" style="margin-top: 10px;">
           <div style="flex: 1;">
-            <label for="rating_luogo">Rating Luogo</label>
+            <label for="rating_luogo">Rating Luoghi Generale</label>
             <select id="rating_luogo">
               <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
               <option value="4">⭐⭐⭐⭐ (4/5)</option>
@@ -228,9 +236,21 @@
           </div>
         </div>
 
+        <!-- SEZIONE LUOGHI COLLEGATI AL VIAGGIO -->
+        <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
+          <div class="flex-center" style="margin-bottom: 10px;">
+            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Viaggio (Collegati)</label>
+            <button type="button" id="add-luogo-btn" class="btn-purple btn-sm">+ Aggiungi Luogo</button>
+          </div>
+          
+          <div id="luoghi-list-container">
+            <!-- I luoghi verranno inseriti dinamicamente qui -->
+          </div>
+        </div>
+
         <div style="margin-top: 10px;">
-          <label for="note_viaggio">Note Viaggio</label>
-          <textarea id="note_viaggio" rows="2" placeholder="Note, consigli o impressioni sul viaggio..."></textarea>
+          <label for="note_viaggio">Note Generali Viaggio</label>
+          <textarea id="note_viaggio" rows="2" placeholder="Note generali del viaggio..."></textarea>
         </div>
 
         <div class="refuel-box">
@@ -294,11 +314,12 @@
         <table>
           <thead>
             <tr>
-              <th>Destinazione</th>
+              <th>Nome Viaggio (Padre) / Luoghi</th>
               <th>Date</th>
               <th>Rating</th>
               <th>Km</th>
               <th>Camping</th>
+              <th>Extra Luoghi</th>
               <th>Carburante</th>
               <th>Pedaggi</th>
               <th>Totale</th>
@@ -324,6 +345,10 @@
           <div class="amount" id="summary-total-camping">€ 0.00</div>
         </div>
         <div class="stat-card">
+          <small>Extra Luoghi</small>
+          <div class="amount" id="summary-total-extra" style="color: #8b5cf6;">€ 0.00</div>
+        </div>
+        <div class="stat-card">
           <small>Carburante</small>
           <div class="amount" id="summary-total-fuel">€ 0.00</div>
         </div>
@@ -344,6 +369,7 @@
             <tr>
               <th>Viaggio</th>
               <th>Camping</th>
+              <th>Extra Luoghi</th>
               <th>Carburante</th>
               <th>Pedaggi</th>
               <th>Totale</th>
@@ -446,16 +472,15 @@
 
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Palette colori per distinguere visivamente ciascun viaggio
     const TRIP_COLORS = [
-      { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af' }, // Blu
-      { bg: '#dcfce7', border: '#22c55e', text: '#15803d' }, // Verde
-      { bg: '#fef3c7', border: '#f59e0b', text: '#b45309' }, // Ambra
-      { bg: '#f3e8ff', border: '#a855f7', text: '#6b21a8' }, // Viola
-      { bg: '#ffe4e6', border: '#f43f5e', text: '#be123c' }, // Rosso
-      { bg: '#e0e7ff', border: '#6366f1', text: '#3730a3' }, // Indaco
-      { bg: '#ccfbf1', border: '#14b8a6', text: '#0f766e' }, // Turchese
-      { bg: '#ffedd5', border: '#f97316', text: '#c2410c' }  // Arancio
+      { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af' },
+      { bg: '#dcfce7', border: '#22c55e', text: '#15803d' },
+      { bg: '#fef3c7', border: '#f59e0b', text: '#b45309' },
+      { bg: '#f3e8ff', border: '#a855f7', text: '#6b21a8' },
+      { bg: '#ffe4e6', border: '#f43f5e', text: '#be123c' },
+      { bg: '#e0e7ff', border: '#6366f1', text: '#3730a3' },
+      { bg: '#ccfbf1', border: '#14b8a6', text: '#0f766e' },
+      { bg: '#ffedd5', border: '#f97316', text: '#c2410c' }
     ];
 
     // DOM References
@@ -489,6 +514,7 @@
     const saveBtn = document.getElementById('save-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const viaggiTableBody = document.getElementById('viaggi-table-body');
+    const luoghiListContainer = document.getElementById('luoghi-list-container');
 
     // Refuel Inputs
     const rifDataInput = document.getElementById('rif-data');
@@ -516,12 +542,14 @@
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
     const calendarModal = document.getElementById('calendar-modal');
+    const addLuogoBtn = document.getElementById('add-luogo-btn');
 
     // State Variables
     let isRegisterMode = false;
     let currentUser = null;
     let viaggiList = [];
     let tempRefuelings = [];
+    let tempLuoghi = []; // Lista luoghi collegati al viaggio
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0 };
     let currentCalendarDate = new Date();
 
@@ -572,6 +600,164 @@
 
     logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
 
+    // LOGICA LUOGHI E COSTI EXTRA (FIGLI DEL VIAGGIO)
+    addLuogoBtn.addEventListener('click', () => {
+      tempLuoghi.push({
+        id: Date.now(),
+        nome_luogo: '',
+        costi_extra: [],
+        note_luogo: ''
+      });
+      renderLuoghi();
+      updateFormCalculations();
+    });
+
+    window.removeLuogo = function(lIdx) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi.splice(lIdx, 1);
+      renderLuoghi();
+      updateFormCalculations();
+    };
+
+    window.addCostoExtraRow = function(lIdx) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi[lIdx].costi_extra.push({
+        valore: 0,
+        categoria: 'ristorante',
+        nome: '',
+        luogo: '',
+        note: ''
+      });
+      renderLuoghi();
+      updateFormCalculations();
+    };
+
+    window.removeCostoExtraRow = function(lIdx, cIdx) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi[lIdx].costi_extra.splice(cIdx, 1);
+      renderLuoghi();
+      updateFormCalculations();
+    };
+
+    function syncLuoghiDataFromDOM() {
+      const cards = luoghiListContainer.querySelectorAll('.luogo-card');
+      cards.forEach((card, lIdx) => {
+        if (!tempLuoghi[lIdx]) return;
+        const nomeInput = card.querySelector('.luogo-nome-input');
+        const noteInput = card.querySelector('.luogo-note-input');
+        if (nomeInput) tempLuoghi[lIdx].nome_luogo = nomeInput.value;
+        if (noteInput) tempLuoghi[lIdx].note_luogo = noteInput.value;
+
+        const extraRows = card.querySelectorAll('.extra-cost-row');
+        tempLuoghi[lIdx].costi_extra = [];
+        extraRows.forEach(row => {
+          const val = parseFloat(row.querySelector('.extra-valore').value) || 0;
+          const cat = row.querySelector('.extra-categoria').value;
+          const nom = row.querySelector('.extra-nome').value;
+          const luo = row.querySelector('.extra-luogo').value;
+          const not = row.querySelector('.extra-note').value;
+
+          tempLuoghi[lIdx].costi_extra.push({
+            valore: val,
+            categoria: cat,
+            nome: nom,
+            luogo: luo,
+            note: not
+          });
+        });
+      });
+    }
+
+    function renderLuoghi() {
+      luoghiListContainer.innerHTML = '';
+      if (tempLuoghi.length === 0) {
+        luoghiListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;">Nessun luogo aggiunto a questo viaggio. Clicca "+ Aggiungi Luogo".</div>`;
+        return;
+      }
+
+      tempLuoghi.forEach((l, lIdx) => {
+        const div = document.createElement('div');
+        div.className = 'luogo-card';
+        div.innerHTML = `
+          <div class="flex-center" style="margin-bottom: 8px;">
+            <div style="flex: 1; margin-right: 10px;">
+              <label style="font-size: 12px; color: #0f172a;">Nome del Luogo / Tappa</label>
+              <input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo || '')}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()">
+            </div>
+            <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${lIdx})" style="margin-top: 18px;">&times; Rimuovi Luogo</button>
+          </div>
+
+          <!-- TABELLA COSTI EXTRA PRIMA DEL CAMPO NOTE -->
+          <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
+          <div class="table-container">
+            <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 600px;">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">Valore (€)</th>
+                  <th style="width: 20%;">Categoria Extra</th>
+                  <th style="width: 20%;">Nome</th>
+                  <th style="width: 20%;">Luogo</th>
+                  <th style="width: 20%;">Note Extra</th>
+                  <th style="width: 5%; text-align: right;">Azione</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(l.costi_extra || []).map((c, cIdx) => `
+                  <tr class="extra-cost-row">
+                    <td>
+                      <input type="number" step="0.01" class="extra-valore" value="${c.valore || 0}" placeholder="0.00" oninput="updateFormCalculations()" style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td>
+                      <select class="extra-categoria" style="padding: 6px; min-height: 34px;">
+                        <option value="ristorante" ${c.categoria === 'ristorante' ? 'selected' : ''}>Ristorante</option>
+                        <option value="souvenir" ${c.categoria === 'souvenir' ? 'selected' : ''}>Souvenir</option>
+                        <option value="bar" ${c.categoria === 'bar' ? 'selected' : ''}>Bar / Caffè</option>
+                        <option value="attività" ${c.categoria === 'attività' ? 'selected' : ''}>Attività / Musei</option>
+                        <option value="spesa" ${c.categoria === 'spesa' ? 'selected' : ''}>Spesa Alimentare</option>
+                        <option value="altro" ${c.categoria === 'altro' ? 'selected' : ''}>Altro</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="text" class="extra-nome" value="${escapeHtml(c.nome || '')}" placeholder="Es. Pranzo Malga" style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td>
+                      <input type="text" class="extra-luogo" value="${escapeHtml(c.luogo || '')}" placeholder="Es. Braies" style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td>
+                      <input type="text" class="extra-note" value="${escapeHtml(c.note || '')}" placeholder="Note..." style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td style="text-align: right;">
+                      <button type="button" class="btn-danger btn-sm" onclick="removeCostoExtraRow(${lIdx}, ${cIdx})" style="padding: 2px 6px;">&times;</button>
+                    </td>
+                  </tr>
+                `).join('')}
+                ${(!l.costi_extra || l.costi_extra.length === 0) ? `<tr><td colspan="6" style="text-align: center; color: #94a3b8; font-size: 11px;">Nessun costo extra inserito per questo luogo.</td></tr>` : ''}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-info btn-sm" onclick="addCostoExtraRow(${lIdx})" style="margin-top: 6px;">+ Aggiungi Costo Extra</button>
+
+          <!-- CAMPO NOTE DEL LUOGO (DOPO LA TABELLA COSTI EXTRA) -->
+          <div style="margin-top: 10px;">
+            <label style="font-size: 12px; color: #475569;">Note del Luogo</label>
+            <textarea class="luogo-note-input" rows="2" placeholder="Note specifiche o dettagli su questo luogo...">${escapeHtml(l.note_luogo || '')}</textarea>
+          </div>
+        `;
+        luoghiListContainer.appendChild(div);
+      });
+    }
+
+    function calculateTotalExtraCostsLuoghi() {
+      syncLuoghiDataFromDOM();
+      let total = 0;
+      tempLuoghi.forEach(l => {
+        (l.costi_extra || []).forEach(c => {
+          total += parseFloat(c.valore) || 0;
+        });
+      });
+      return total;
+    }
+
     // CALCOLI AUTOMATICI E LOGICA KM
     function calculateNights(startStr, endStr) {
       if (!startStr || !endStr) return 0;
@@ -597,10 +783,11 @@
 
       const pedaggi = parseFloat(costoPedaggiInput.value) || 0;
       const carburante = calculateTotalCarburanteTemp();
+      const extraLuoghi = calculateTotalExtraCostsLuoghi();
       
       totaleCarburanteViaggioDisplay.textContent = `€ ${carburante.toFixed(2)}`;
 
-      const totaleViaggio = totCamping + pedaggi + carburante;
+      const totaleViaggio = totCamping + pedaggi + carburante + extraLuoghi;
       costoTotalePreview.textContent = `€ ${totaleViaggio.toFixed(2)}`;
     }
 
@@ -609,7 +796,6 @@
       camperSettings.kmTotali = (camperSettings.kmTotali || 0) + kmDiff;
       camperKmTotaliInput.value = camperSettings.kmTotali;
       
-      // Salva silenziosamente su DB
       await supabaseClient
         .from('camper_settings')
         .update({ km_totali: camperSettings.kmTotali })
@@ -760,7 +946,7 @@
     function renderViaggiTable(viaggi) {
       viaggiTableBody.innerHTML = '';
       if (viaggi.length === 0) {
-        viaggiTableBody.innerHTML = `<tr><td colSpan="9" style="text-align:center; color:#94a3b8;">Nessun viaggio inserito.</td></tr>`;
+        viaggiTableBody.innerHTML = `<tr><td colSpan="10" style="text-align:center; color:#94a3b8;">Nessun viaggio inserito.</td></tr>`;
         return;
       }
 
@@ -770,11 +956,22 @@
         const pedaggi = Number(item.costo_pedaggi || 0);
         const rifList = item.rifornimenti || [];
         const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-        const totaleViaggio = totCamping + pedaggi + carburante;
+        
+        const luoghiList = item.luoghi || [];
+        let extraLuoghiTot = 0;
+        luoghiList.forEach(l => {
+          (l.costi_extra || []).forEach(c => extraLuoghiTot += parseFloat(c.valore) || 0);
+        });
+
+        const totaleViaggio = totCamping + pedaggi + carburante + extraLuoghiTot;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${escapeHtml(item.destinazione)}</strong>${item.note ? `<br><small style="color:#64748b;">📝 ${escapeHtml(item.note)}</small>` : ''}</td>
+          <td>
+            <strong>${escapeHtml(item.destinazione)}</strong>
+            ${luoghiList.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: ${luoghiList.map(l => escapeHtml(l.nome_luogo)).join(', ')}</small>` : ''}
+            ${item.note ? `<br><small style="color:#64748b;">📝 ${escapeHtml(item.note)}</small>` : ''}
+          </td>
           <td style="font-size: 12px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#64748b;">(${notti} notti)</small></td>
           <td style="font-size: 11px;">
             📍 ${renderStars(item.rating_luogo || 3)}<br>
@@ -782,6 +979,7 @@
           </td>
           <td>${item.chilometri} km</td>
           <td>€ ${totCamping.toFixed(2)}</td>
+          <td>€ ${extraLuoghiTot.toFixed(2)}</td>
           <td>€ ${carburante.toFixed(2)} <small style="color:#64748b;">(${rifList.length})</small></td>
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
@@ -796,11 +994,12 @@
 
     viaggioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      syncLuoghiDataFromDOM();
+
       const id = viaggioIdInput.value;
       const newKm = parseFloat(chilometriInput.value) || 0;
       let kmDiff = 0;
 
-      // Calcola la differenza di Km se stiamo modificando, altrimenti prendi i nuovi Km interamente
       if (id) {
         const oldTrip = viaggiList.find(x => x.id == id);
         const oldKm = oldTrip ? parseFloat(oldTrip.chilometri) || 0 : 0;
@@ -820,6 +1019,7 @@
         rating_luogo: parseInt(ratingLuogoInput.value) || 3,
         rating_campeggio: parseInt(ratingCampeggioInput.value) || 3,
         note: noteViaggioInput.value,
+        luoghi: tempLuoghi, // Array dei luoghi con la tabella dei 5 campi ricorsivi extra
         user_id: currentUser.id
       };
 
@@ -848,7 +1048,6 @@
         if (rifError) alert('Errore rifornimenti: ' + rifError.message);
       }
       
-      // Aggiorna il contatore dei KM in DB e UI
       await updateKmTotaliAutomatic(kmDiff);
 
       resetViaggioForm();
@@ -871,6 +1070,9 @@
       ratingCampeggioInput.value = v.rating_campeggio || 3;
       noteViaggioInput.value = v.note || '';
 
+      tempLuoghi = JSON.parse(JSON.stringify(v.luoghi || []));
+      renderLuoghi();
+
       tempRefuelings = (v.rifornimenti || []).map(r => ({
         data_rifornimento: r.data_rifornimento,
         costo_sostenuto: r.costo_sostenuto,
@@ -886,7 +1088,6 @@
       saveBtn.className = 'btn-success';
       cancelEditBtn.classList.remove('hidden');
       
-      // Chiude il modale dell'elenco per far vedere il form
       viaggiModal.classList.add('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -902,10 +1103,12 @@
       ratingCampeggioInput.value = 3;
       noteViaggioInput.value = '';
       tempRefuelings = [];
+      tempLuoghi = [];
+      renderLuoghi();
       renderRefuelTable();
       updateFormCalculations();
 
-      formTitle.textContent = 'Aggiungi Nuovo Viaggio';
+      formTitle.textContent = 'Aggiungi Nuovo Viaggio (Chiave Padre)';
       saveBtn.textContent = 'Salva Viaggio';
       saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
@@ -920,7 +1123,6 @@
       const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
       
       if (!error) {
-        // Scala i KM del viaggio eliminato dal totale generale
         await updateKmTotaliAutomatic(-kmToDelete);
         fetchViaggi();
       } else {
@@ -943,25 +1145,34 @@
       let globalCamping = 0;
       let globalFuel = 0;
       let globalTolls = 0;
+      let globalExtra = 0;
 
       if (viaggiList.length === 0) {
-        summaryTableBody.innerHTML = `<tr><td colSpan="5" style="text-align:center; color:#94a3b8;">Nessun dato.</td></tr>`;
+        summaryTableBody.innerHTML = `<tr><td colSpan="6" style="text-align:center; color:#94a3b8;">Nessun dato.</td></tr>`;
       } else {
         viaggiList.forEach(item => {
           const notti = calculateNights(item.data_partenza, item.data_arrivo);
           const camping = notti * Number(item.costo_campeggio_notte || 0);
           const fuel = (item.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
           const tolls = Number(item.costo_pedaggi || 0);
-          const total = camping + fuel + tolls;
+          
+          let extraLuoghi = 0;
+          (item.luoghi || []).forEach(l => {
+            (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
+          });
+
+          const total = camping + fuel + tolls + extraLuoghi;
 
           globalCamping += camping;
           globalFuel += fuel;
           globalTolls += tolls;
+          globalExtra += extraLuoghi;
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><strong>${escapeHtml(item.destinazione)}</strong></td>
             <td>€ ${camping.toFixed(2)}</td>
+            <td>€ ${extraLuoghi.toFixed(2)}</td>
             <td>€ ${fuel.toFixed(2)}</td>
             <td>€ ${tolls.toFixed(2)}</td>
             <td><strong>€ ${total.toFixed(2)}</strong></td>
@@ -970,15 +1181,16 @@
         });
       }
 
-      const grandTotal = globalCamping + globalFuel + globalTolls;
+      const grandTotal = globalCamping + globalFuel + globalTolls + globalExtra;
 
       document.getElementById('summary-total-camping').textContent = `€ ${globalCamping.toFixed(2)}`;
+      document.getElementById('summary-total-extra').textContent = `€ ${globalExtra.toFixed(2)}`;
       document.getElementById('summary-total-fuel').textContent = `€ ${globalFuel.toFixed(2)}`;
       document.getElementById('summary-total-tolls').textContent = `€ ${globalTolls.toFixed(2)}`;
       document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
     }
 
-    // CALENDARIO CON COLORI MULTIPLI ED INIZIALE
+    // CALENDARIO
     openCalendarBtn.addEventListener('click', () => {
       calendarModal.classList.remove('hidden');
       renderCalendar();
@@ -1054,8 +1266,13 @@
             const pedaggi = Number(tripInDay.costo_pedaggi || 0);
             const rifList = tripInDay.rifornimenti || [];
             const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-            const totLitri = rifList.reduce((s, r) => s + Number(r.litri || 0), 0);
-            const totale = camping + pedaggi + carburante;
+            
+            let extraLuoghi = 0;
+            (tripInDay.luoghi || []).forEach(l => {
+              (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
+            });
+
+            const totale = camping + pedaggi + carburante + extraLuoghi;
 
             const tooltip = document.createElement('div');
             tooltip.className = 'calendar-tooltip';
@@ -1065,15 +1282,15 @@
             tooltip.innerHTML = `
               <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
               <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
-              <p>⭐ <strong>Rating:</strong> Luogo ${renderStars(tripInDay.rating_luogo || 3)} | Camping ${renderStars(tripInDay.rating_campeggio || 3)}</p>
+              ${(tripInDay.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripInDay.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
+              <p>⭐ <strong>Rating:</strong> Rating ${renderStars(tripInDay.rating_luogo || 3)} | Camping ${renderStars(tripInDay.rating_campeggio || 3)}</p>
               <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
               <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
+              <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
               <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
-              <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)} (${totLitri.toFixed(1)} L)</p>
-              ${tripInDay.note ? `<p>📝 <strong>Note:</strong> ${escapeHtml(tripInDay.note)}</p>` : ''}
-              ${rifList.length > 0 ? `<ul>${rifList.map(r => `<li>${formatDate(r.data_rifornimento)}: €${Number(r.costo_sostenuto).toFixed(2)} (${Number(r.litri).toFixed(1)}L)</li>`).join('')}</ul>` : ''}
+              <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
               <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
-              <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi Dettaglio</button>
+              <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi</button>
             `;
 
             dayDiv.appendChild(tooltip);
@@ -1098,7 +1315,7 @@
     }
 
     function escapeHtml(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
   </script>
 </body>
