@@ -1,92 +1,121 @@
-<!DOCTYPE html>
+
+  <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Gestione Viaggi Camper</title>
   
   <!-- SDK Supabase via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       max-width: 1050px;
-      margin: 30px auto;
-      padding: 0 20px;
+      margin: 15px auto;
+      padding: 0 12px;
       background-color: #f4f6f8;
       color: #333;
     }
     .card {
       background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
     }
     .hidden { display: none !important; }
     .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: bold; }
-    input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-    input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
-    button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-primary { background: #0070f3; color: white; }
-    .btn-success { background: #28a745; color: white; }
-    .btn-danger { background: #dc3545; color: white; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-warning { background: #f59e0b; color: white; }
-    .btn-info { background: #0ea5e9; color: white; }
-    .btn-sm { padding: 4px 8px; font-size: 12px; }
+    label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: 600; color: #475569; }
+    input, select {
+      width: 100%; padding: 10px; font-size: 14px;
+      border: 1px solid #cbd5e1; border-radius: 6px; min-height: 42px;
+    }
+    input[readonly] { background-color: #f1f5f9; cursor: not-allowed; }
     
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
-    th { background: #f8f9fa; }
+    button {
+      padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer;
+      font-weight: 600; font-size: 14px; min-height: 42px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary { background: #0070f3; color: white; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-info { background: #0284c7; color: white; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 32px; }
+    
+    /* Contenitore Tabelle Responsive */
+    .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    th { background: #f8fafc; color: #64748b; }
+    
     .flex { display: flex; gap: 10px; }
     .flex-center { display: flex; justify-content: space-between; align-items: center; }
-    .error { color: #dc3545; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
+    .error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
 
     /* Modali */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+      background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
+      z-index: 1000; padding: 12px;
     }
     .modal-content {
-      background: white; padding: 25px; border-radius: 8px; width: 92%; max-width: 700px; max-height: 85vh; overflow-y: auto; position: relative;
+      background: white; padding: 20px; border-radius: 12px; width: 100%; max-width: 650px;
+      max-height: 90vh; overflow-y: auto; position: relative;
     }
 
     /* Calendario Grid */
     .calendar-grid {
-      display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 15px;
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-top: 12px;
     }
-    .calendar-day-header { font-weight: bold; padding: 5px; background: #eee; font-size: 12px; }
-    .calendar-day { padding: 10px 2px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-height: 40px; position: relative; cursor: default; }
+    .calendar-day-header { font-weight: bold; padding: 6px 2px; background: #f1f5f9; font-size: 11px; border-radius: 4px; color: #475569; }
+    .calendar-day { padding: 8px 2px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; min-height: 42px; position: relative; }
     .calendar-day.has-trip { background-color: #dbeafe; border-color: #3b82f6; font-weight: bold; color: #1e40af; cursor: pointer; }
-    .calendar-day.has-trip:hover { background-color: #bfdbfe; }
 
     /* Popover Tooltip Calendario */
     .calendar-tooltip {
       position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-      background: #1e293b; color: white; padding: 12px; border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25); font-size: 12px; text-align: left;
-      z-index: 100; width: 220px; font-weight: normal; margin-top: 5px;
+      background: #0f172a; color: white; padding: 12px; border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-size: 12px; text-align: left;
+      z-index: 100; width: 230px; font-weight: normal; margin-top: 5px;
     }
     .calendar-tooltip h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 14px; }
     .calendar-tooltip p { margin: 3px 0; }
     .calendar-tooltip ul { margin: 5px 0 0 0; padding-left: 15px; font-size: 11px; color: #cbd5e1; }
 
     /* Rifornimenti Box */
-    .refuel-box { background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; }
+    .refuel-box { background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px solid #e2e8f0; }
 
     /* Stat Cards */
-    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; text-align: center; flex: 1; }
-    .stat-card .amount { font-size: 18px; font-weight: bold; color: #0284c7; margin-top: 4px; }
+    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 120px; }
+    .stat-card .amount { font-size: 16px; font-weight: bold; color: #0284c7; margin-top: 4px; }
+
+    /* RESPONSIVE DESIGN PER MOBILE */
+    @media (max-width: 768px) {
+      .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .header-actions button { width: 100%; font-size: 12px; padding: 8px; }
+      .flex-mobile-col { flex-direction: column !important; }
+      .flex-mobile-col > div { width: 100% !important; }
+      .app-header { flex-direction: column; align-items: flex-start; }
+      
+      /* Tooltip al centro schermo su mobile per evitare uscite dai bordi */
+      .calendar-tooltip {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 88%; max-width: 320px; z-index: 10001; margin-top: 0;
+      }
+    }
   </style>
 </head>
 <body>
 
   <!-- ==================== AUTH SECTION ==================== -->
-  <div id="auth-section" class="card" style="max-width: 400px; margin: 50px auto;">
-    <h2 id="auth-title">Accedi</h2>
+  <div id="auth-section" class="card" style="max-width: 400px; margin: 30px auto;">
+    <h2 id="auth-title" style="margin-top:0;">Accedi</h2>
     <div id="auth-error" class="error hidden"></div>
     <form id="auth-form">
       <div class="form-group">
@@ -101,65 +130,65 @@
     </form>
     <p style="text-align: center; font-size: 14px; margin-top: 15px;">
       <span id="auth-toggle-text">Non hai un account?</span>
-      <a href="#" id="auth-toggle-btn" style="color: #0070f3;">Registrati</a>
+      <a href="#" id="auth-toggle-btn" style="color: #0070f3; text-decoration: none; font-weight: bold;">Registrati</a>
     </p>
   </div>
 
   <!-- ==================== DASHBOARD APP ==================== -->
   <div id="app-section" class="hidden">
-    <div class="flex-center" style="margin-bottom: 20px;">
+    <div class="app-header flex-center" style="margin-bottom: 16px;">
       <div>
-        <h1 style="margin: 0;">🚐 I Miei Viaggi in Camper</h1>
-        <small id="user-email-display" style="color: #666;"></small>
+        <h1 style="margin: 0; font-size: 22px;">🚐 Viaggi Camper</h1>
+        <small id="user-email-display" style="color: #64748b;"></small>
       </div>
       
-      <div class="flex" style="flex-wrap: wrap;">
-        <button id="open-summary-btn" class="btn-info">📊 Riepilogo Costi</button>
+      <div class="header-actions flex">
+        <button id="open-summary-btn" class="btn-info">📊 Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
-        <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi Camper</button>
+        <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
         <button id="logout-btn" class="btn-danger">Logout</button>
       </div>
     </div>
 
     <!-- FORM INSERIMENTO / MODIFICA VIAGGIO -->
     <div class="card">
-      <h3 id="form-title" style="margin-top:0;">Aggiungi Nuovo Viaggio</h3>
+      <h3 id="form-title" style="margin-top:0; font-size: 16px;">Aggiungi Nuovo Viaggio</h3>
       <form id="viaggio-form">
         <input type="hidden" id="viaggio-id">
         
-        <div class="flex" style="flex-wrap: wrap; align-items: flex-end;">
-          <div style="flex: 2; min-width: 180px;">
+        <div class="flex flex-mobile-col" style="align-items: flex-end;">
+          <div style="flex: 2;">
             <label for="destinazione">Destinazione</label>
             <input type="text" id="destinazione" required placeholder="Es. Dolomiti">
           </div>
-          <div style="flex: 1; min-width: 130px;">
+          <div style="flex: 1;">
             <label for="data_partenza">Data Partenza</label>
             <input type="date" id="data_partenza" required>
           </div>
-          <div style="flex: 1; min-width: 130px;">
+          <div style="flex: 1;">
             <label for="data_arrivo">Data Arrivo</label>
             <input type="date" id="data_arrivo" required>
           </div>
-          <div style="flex: 0.8; min-width: 90px;">
+          <div style="flex: 0.8;">
             <label for="notti_calcolate">Notti</label>
             <input type="text" id="notti_calcolate" value="0" readonly style="font-weight: bold; text-align: center;">
           </div>
         </div>
 
-        <div class="flex" style="flex-wrap: wrap; margin-top: 10px; align-items: flex-end;">
-          <div style="flex: 1; min-width: 120px;">
+        <div class="flex flex-mobile-col" style="margin-top: 10px; align-items: flex-end;">
+          <div style="flex: 1;">
             <label for="costo_campeggio_notte">Camping (€/notte)</label>
             <input type="number" step="0.01" id="costo_campeggio_notte" value="0" placeholder="0.00">
           </div>
-          <div style="flex: 1; min-width: 120px;">
+          <div style="flex: 1;">
             <label for="totale_campeggio">Tot. Camping (€)</label>
-            <input type="text" id="totale_campeggio" value="0.00" readonly style="font-weight: bold; color: #15803d;">
+            <input type="text" id="totale_campeggio" value="0.00" readonly style="font-weight: bold; color: #16a34a;">
           </div>
-          <div style="flex: 1; min-width: 100px;">
+          <div style="flex: 1;">
             <label for="chilometri">Chilometri (Km)</label>
             <input type="number" step="0.1" id="chilometri" required placeholder="0">
           </div>
-          <div style="flex: 1; min-width: 100px;">
+          <div style="flex: 1;">
             <label for="costo_pedaggi">Pedaggi (€)</label>
             <input type="number" step="0.01" id="costo_pedaggi" value="0">
           </div>
@@ -167,48 +196,49 @@
 
         <!-- SEZIONE RIFORNIMENTI MULTIPLI -->
         <div class="refuel-box">
-          <label style="color: #0369a1; font-size: 14px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
-          <div class="flex" style="align-items: flex-end; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 120px;">
+          <label style="color: #0369a1; font-size: 13px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
+          <div class="flex flex-mobile-col" style="align-items: flex-end;">
+            <div style="flex: 1;">
               <label for="rif-data">Data Rifornimento</label>
               <input type="date" id="rif-data">
             </div>
-            <div style="flex: 1; min-width: 120px;">
+            <div style="flex: 1;">
               <label for="rif-costo">Costo Sostenuto (€)</label>
               <input type="number" step="0.01" id="rif-costo" placeholder="Es. 50.00">
             </div>
-            <div style="flex: 1; min-width: 120px; padding-bottom: 8px; font-size: 13px; color: #555;">
+            <div style="flex: 1; padding-bottom: 8px; font-size: 13px;">
               Litri stimati: <strong id="rif-litri-preview" style="color: #2563eb;">0.00 L</strong>
             </div>
-            <button type="button" id="add-refuel-btn" class="btn-info btn-sm" style="margin-bottom: 2px;">+ Aggiungi Rifornimento</button>
+            <button type="button" id="add-refuel-btn" class="btn-info btn-sm" style="width: 100%;">+ Aggiungi Rifornimento</button>
           </div>
 
-          <!-- Tabella locale Rifornimenti del viaggio -->
-          <table style="margin-top: 10px; background: white; border-radius: 4px;">
-            <thead>
-              <tr style="font-size: 12px;">
-                <th>Data</th>
-                <th>Costo (€)</th>
-                <th>Litri (L)</th>
-                <th style="text-align: right;">Azione</th>
-              </tr>
-            </thead>
-            <tbody id="refuel-table-body">
-              <tr><td colspan="4" style="text-align: center; color: #999; font-size: 12px;">Nessun rifornimento aggiunto per questo viaggio.</td></tr>
-            </tbody>
-          </table>
-          <div style="text-align: right; margin-top: 6px; font-size: 13px;">
+          <div class="table-container">
+            <table style="margin-top: 10px; background: white; border-radius: 6px; min-width: 100%;">
+              <thead>
+                <tr style="font-size: 12px;">
+                  <th>Data</th>
+                  <th>Costo (€)</th>
+                  <th>Litri (L)</th>
+                  <th style="text-align: right;">Azione</th>
+                </tr>
+              </thead>
+              <tbody id="refuel-table-body">
+                <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun rifornimento aggiunto.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="text-align: right; margin-top: 8px; font-size: 13px;">
             Totale Carburante Viaggio: <strong id="totale-carburante-viaggio" style="color: #2563eb;">€ 0.00</strong>
           </div>
         </div>
 
-        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-size: 16px;">
-            Costo Totale Viaggio: <strong id="costo-totale-preview" style="color: #0284c7;">€ 0.00</strong>
+        <div class="flex flex-mobile-col" style="margin-top: 15px; justify-content: space-between; align-items: center;">
+          <div style="font-size: 16px; margin-bottom: 8px;">
+            Totale Viaggio: <strong id="costo-totale-preview" style="color: #0284c7;">€ 0.00</strong>
           </div>
-          <div class="flex">
-            <button type="button" id="cancel-edit-btn" class="btn-secondary hidden">Annulla</button>
-            <button type="submit" id="save-btn" class="btn-primary">Aggiungi Viaggio</button>
+          <div class="flex" style="width: 100%; justify-content: flex-end;">
+            <button type="button" id="cancel-edit-btn" class="btn-secondary hidden" style="flex:1;">Annulla</button>
+            <button type="submit" id="save-btn" class="btn-primary" style="flex:1;">Salva Viaggio</button>
           </div>
         </div>
       </form>
@@ -216,22 +246,24 @@
 
     <!-- TABELLA DATI VIAGGI -->
     <div class="card">
-      <h3 style="margin-top: 0;">Elenco Viaggi</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Destinazione</th>
-            <th>Date (Notti)</th>
-            <th>Km</th>
-            <th>Camping</th>
-            <th>Carburante</th>
-            <th>Pedaggi</th>
-            <th>Totale</th>
-            <th style="text-align: right;">Azioni</th>
-          </tr>
-        </thead>
-        <tbody id="viaggi-table-body"></tbody>
-      </table>
+      <h3 style="margin-top: 0; font-size: 16px;">Elenco Viaggi</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Destinazione</th>
+              <th>Date</th>
+              <th>Km</th>
+              <th>Camping</th>
+              <th>Carburante</th>
+              <th>Pedaggi</th>
+              <th>Totale</th>
+              <th style="text-align: right;">Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="viaggi-table-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -239,50 +271,52 @@
   <div id="summary-modal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="flex-center">
-        <h2>📊 Riepilogo Costi Sostenuti</h2>
-        <button id="close-summary-btn" class="btn-secondary">Chiudi</button>
+        <h2 style="margin:0; font-size: 18px;">📊 Riepilogo Costi</h2>
+        <button id="close-summary-btn" class="btn-secondary btn-sm">Chiudi</button>
       </div>
 
-      <div class="flex" style="margin: 15px 0; gap: 10px; flex-wrap: wrap;">
+      <div class="flex" style="margin: 15px 0; gap: 8px; flex-wrap: wrap;">
         <div class="stat-card">
-          <small>Totale Camping</small>
+          <small>Camping</small>
           <div class="amount" id="summary-total-camping">€ 0.00</div>
         </div>
         <div class="stat-card">
-          <small>Totale Carburante</small>
+          <small>Carburante</small>
           <div class="amount" id="summary-total-fuel">€ 0.00</div>
         </div>
         <div class="stat-card">
-          <small>Totale Pedaggi</small>
+          <small>Pedaggi</small>
           <div class="amount" id="summary-total-tolls">€ 0.00</div>
         </div>
         <div class="stat-card" style="background: #e0f2fe; border-color: #bae6fd;">
           <small style="color: #0369a1; font-weight: bold;">TOTALE SPESO</small>
-          <div class="amount" id="summary-grand-total" style="color: #0369a1; font-size: 20px;">€ 0.00</div>
+          <div class="amount" id="summary-grand-total" style="color: #0369a1; font-size: 18px;">€ 0.00</div>
         </div>
       </div>
 
-      <h3>Dettaglio Spese per Viaggio</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Viaggio</th>
-            <th>Camping</th>
-            <th>Carburante</th>
-            <th>Pedaggi</th>
-            <th>Totale</th>
-          </tr>
-        </thead>
-        <tbody id="summary-table-body"></tbody>
-      </table>
+      <h3 style="font-size: 15px; margin-bottom: 5px;">Dettaglio Spese</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Viaggio</th>
+              <th>Camping</th>
+              <th>Carburante</th>
+              <th>Pedaggi</th>
+              <th>Totale</th>
+            </tr>
+          </thead>
+          <tbody id="summary-table-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- ==================== MODALE SETTAGGI CAMPER ==================== -->
   <div id="settings-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
-      <h2>⚙️ Settaggi Camper</h2>
-      <p style="font-size: 13px; color: #666;">Il costo del carburante al litro serve per il calcolo dei litri nei rifornimenti.</p>
+      <h2 style="margin-top:0; font-size: 18px;">⚙️ Settaggi Camper</h2>
+      <p style="font-size: 12px; color: #64748b;">Il costo del carburante al litro serve per il calcolo dei litri nei rifornimenti.</p>
       
       <form id="settings-form">
         <div class="form-group">
@@ -309,8 +343,8 @@
         </div>
 
         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-          <button type="button" id="close-settings-btn" class="btn-secondary">Annulla</button>
-          <button type="submit" class="btn-success">Salva Impostazioni</button>
+          <button type="button" id="close-settings-btn" class="btn-secondary" style="flex:1;">Annulla</button>
+          <button type="submit" class="btn-success" style="flex:1;">Salva</button>
         </div>
       </form>
     </div>
@@ -318,16 +352,16 @@
 
   <!-- ==================== MODALE CALENDARIO ==================== -->
   <div id="calendar-modal" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 650px;">
+    <div class="modal-content">
       <div class="flex-center">
-        <h2>📅 Vista Calendario Viaggi</h2>
-        <button id="close-calendar-btn" class="btn-secondary">Chiudi</button>
+        <h2 style="margin:0; font-size: 18px;">📅 Calendario Viaggi</h2>
+        <button id="close-calendar-btn" class="btn-secondary btn-sm">Chiudi</button>
       </div>
 
       <div class="flex-center" style="margin: 15px 0;">
-        <button id="prev-month-btn" class="btn-secondary">&lt; Prec.</button>
-        <h3 id="calendar-month-year" style="margin:0;"></h3>
-        <button id="next-month-btn" class="btn-secondary">Succ. &gt;</button>
+        <button id="prev-month-btn" class="btn-secondary btn-sm">&lt; Prec.</button>
+        <h3 id="calendar-month-year" style="margin:0; font-size: 15px;"></h3>
+        <button id="next-month-btn" class="btn-secondary btn-sm">Succ. &gt;</button>
       </div>
 
       <div class="calendar-grid">
@@ -339,7 +373,7 @@
         <div class="calendar-day-header">Sab</div>
         <div class="calendar-day-header">Dom</div>
       </div>
-      <div id="calendar-days-container" class="calendar-grid" style="margin-top: 5px;"></div>
+      <div id="calendar-days-container" class="calendar-grid"></div>
     </div>
   </div>
 
@@ -407,16 +441,15 @@
     let isRegisterMode = false;
     let currentUser = null;
     let viaggiList = [];
-    let tempRefuelings = []; // Rifornimenti in lavorazione per il viaggio selezionato
+    let tempRefuelings = [];
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85 };
     let currentCalendarDate = new Date();
-    let activeTooltipDay = null;
 
     // AUTHENTICATION
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         currentUser = session.user;
-        userEmailDisplay.textContent = `Utente: ${currentUser.email}`;
+        userEmailDisplay.textContent = `${currentUser.email}`;
         authSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         await fetchSettings();
@@ -499,7 +532,7 @@
     costoCampeggioNotteInput.addEventListener('input', updateFormCalculations);
     costoPedaggiInput.addEventListener('input', updateFormCalculations);
 
-    // GESTIONE RIFORNIMENTI IN-FORM
+    // GESTIONE RIFORNIMENTI
     rifCostoInput.addEventListener('input', () => {
       const costo = parseFloat(rifCostoInput.value) || 0;
       const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
@@ -510,14 +543,8 @@
       const dataRif = rifDataInput.value || dataPartenzaInput.value;
       const costo = parseFloat(rifCostoInput.value) || 0;
 
-      if (!dataRif) {
-        alert('Seleziona una data per il rifornimento.');
-        return;
-      }
-      if (costo <= 0) {
-        alert('Inserisci un costo valido per il rifornimento.');
-        return;
-      }
+      if (!dataRif) { alert('Seleziona una data per il rifornimento.'); return; }
+      if (costo <= 0) { alert('Inserisci un costo valido per il rifornimento.'); return; }
 
       const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
 
@@ -536,13 +563,13 @@
     function renderRefuelTable() {
       refuelTableBody.innerHTML = '';
       if (tempRefuelings.length === 0) {
-        refuelTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #999; font-size: 12px;">Nessun rifornimento aggiunto per questo viaggio.</td></tr>`;
+        refuelTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun rifornimento aggiunto.</td></tr>`;
         return;
       }
 
       tempRefuelings.forEach((r, idx) => {
         const tr = document.createElement('tr');
-        tr.style.fontSize = '13px';
+        tr.style.fontSize = '12px';
         tr.innerHTML = `
           <td>${formatDate(r.data_rifornimento)}</td>
           <td>€ ${parseFloat(r.costo_sostenuto).toFixed(2)}</td>
@@ -567,7 +594,7 @@
         .from('camper_settings')
         .select('*')
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         camperSettings = {
@@ -601,7 +628,7 @@
         camperSettings.consumo = payload.consumo_medio;
         camperSettings.costoCarburante = payload.costo_carburante;
         settingsModal.classList.add('hidden');
-        alert('Impostazioni salvate con successo!');
+        alert('Impostazioni salvate!');
       }
     });
 
@@ -610,16 +637,12 @@
 
     // GESTIONE VIAGGI CON RIFORNIMENTI
     async function fetchViaggi() {
-      // Fetch viaggi inclusi i rifornimenti correlati
       const { data, error } = await supabaseClient
         .from('viaggi')
         .select('*, rifornimenti(*)')
         .order('data_partenza', { ascending: false });
 
-      if (error) {
-        console.error('Errore caricamento viaggi:', error.message);
-        return;
-      }
+      if (error) { console.error('Errore caricamento viaggi:', error.message); return; }
 
       viaggiList = data || [];
       renderViaggiTable(viaggiList);
@@ -628,7 +651,7 @@
     function renderViaggiTable(viaggi) {
       viaggiTableBody.innerHTML = '';
       if (viaggi.length === 0) {
-        viaggiTableBody.innerHTML = `<tr><td colSpan="8" style="text-align:center; color:#888;">Nessun viaggio inserito.</td></tr>`;
+        viaggiTableBody.innerHTML = `<tr><td colSpan="8" style="text-align:center; color:#94a3b8;">Nessun viaggio inserito.</td></tr>`;
         return;
       }
 
@@ -636,8 +659,6 @@
         const notti = calculateNights(item.data_partenza, item.data_arrivo);
         const totCamping = notti * Number(item.costo_campeggio_notte || 0);
         const pedaggi = Number(item.costo_pedaggi || 0);
-        
-        // Calcolo totale carburante dai rifornimenti collegati
         const rifList = item.rifornimenti || [];
         const carburante = rifList.reduce((sum, r) => sum + Number(r.costo_sostenuto || 0), 0);
         const totaleViaggio = totCamping + pedaggi + carburante;
@@ -645,15 +666,15 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><strong>${escapeHtml(item.destinazione)}</strong></td>
-          <td style="font-size: 13px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#666;">(${notti} notti)</small></td>
+          <td style="font-size: 12px;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)} <br><small style="color:#64748b;">(${notti} notti)</small></td>
           <td>${item.chilometri} km</td>
           <td>€ ${totCamping.toFixed(2)}</td>
-          <td>€ ${carburante.toFixed(2)} <small style="color:#666;">(${rifList.length} rif.)</small></td>
+          <td>€ ${carburante.toFixed(2)} <small style="color:#64748b;">(${rifList.length})</small></td>
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
           <td style="text-align: right;">
-            <button class="btn-secondary" onclick="prepareEdit(${item.id})">Modifica</button>
-            <button class="btn-danger" onclick="deleteViaggio(${item.id})">Elimina</button>
+            <button class="btn-secondary btn-sm" onclick="prepareEdit(${item.id})">Modifica</button>
+            <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">Elimina</button>
           </td>
         `;
         viaggiTableBody.appendChild(tr);
@@ -677,19 +698,15 @@
       let tripId = id;
 
       if (id) {
-        // Aggiorna viaggio
         const { error } = await supabaseClient.from('viaggi').update(payloadViaggio).eq('id', id);
-        if (error) { alert('Errore aggiornamento viaggio: ' + error.message); return; }
-        // Cancella vecchi rifornimenti per reinserirli
+        if (error) { alert('Errore aggiornamento: ' + error.message); return; }
         await supabaseClient.from('rifornimenti').delete().eq('viaggio_id', id);
       } else {
-        // Inserisci viaggio
         const { data, error } = await supabaseClient.from('viaggi').insert([payloadViaggio]).select();
-        if (error || !data || data.length === 0) { alert('Errore inserimento viaggio: ' + (error ? error.message : '')); return; }
+        if (error || !data || data.length === 0) { alert('Errore inserimento: ' + (error ? error.message : '')); return; }
         tripId = data[0].id;
       }
 
-      // Salva rifornimenti correlati
       if (tempRefuelings.length > 0) {
         const rifPayloads = tempRefuelings.map(r => ({
           viaggio_id: tripId,
@@ -700,7 +717,7 @@
         }));
 
         const { error: rifError } = await supabaseClient.from('rifornimenti').insert(rifPayloads);
-        if (rifError) alert('Errore salvataggio rifornimenti: ' + rifError.message);
+        if (rifError) alert('Errore rifornimenti: ' + rifError.message);
       }
 
       resetViaggioForm();
@@ -719,7 +736,6 @@
       chilometriInput.value = v.chilometri;
       costoPedaggiInput.value = v.costo_pedaggi;
 
-      // Carica i rifornimenti esistenti
       tempRefuelings = (v.rifornimenti || []).map(r => ({
         data_rifornimento: r.data_rifornimento,
         costo_sostenuto: r.costo_sostenuto,
@@ -734,6 +750,7 @@
       saveBtn.textContent = 'Aggiorna Viaggio';
       saveBtn.className = 'btn-success';
       cancelEditBtn.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     cancelEditBtn.addEventListener('click', resetViaggioForm);
@@ -748,13 +765,13 @@
       updateFormCalculations();
 
       formTitle.textContent = 'Aggiungi Nuovo Viaggio';
-      saveBtn.textContent = 'Aggiungi Viaggio';
+      saveBtn.textContent = 'Salva Viaggio';
       saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
     }
 
     window.deleteViaggio = async function(id) {
-      if (!confirm('Eliminare questo viaggio e i suoi rifornimenti?')) return;
+      if (!confirm('Eliminare questo viaggio?')) return;
       const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
       if (!error) fetchViaggi();
     };
@@ -776,7 +793,7 @@
       let globalTolls = 0;
 
       if (viaggiList.length === 0) {
-        summaryTableBody.innerHTML = `<tr><td colSpan="5" style="text-align:center; color:#888;">Nessun dato disponibile.</td></tr>`;
+        summaryTableBody.innerHTML = `<tr><td colSpan="5" style="text-align:center; color:#94a3b8;">Nessun dato.</td></tr>`;
       } else {
         viaggiList.forEach(item => {
           const notti = calculateNights(item.data_partenza, item.data_arrivo);
@@ -809,7 +826,7 @@
       document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
     }
 
-    // CALENDARIO CON TOOLTIP INTERATTIVO AL CLICK
+    // CALENDARIO CON TOOLTIP INTERATTIVO
     openCalendarBtn.addEventListener('click', () => {
       calendarModal.classList.remove('hidden');
       renderCalendar();
@@ -851,18 +868,13 @@
         dayDiv.textContent = day;
 
         const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        // Trova se c'è un viaggio in questo giorno
         const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
         
         if (tripInDay) {
           dayDiv.classList.add('has-trip');
           
-          // Evento Click per aprire il Tooltip con i dati del viaggio
           dayDiv.addEventListener('click', (e) => {
             e.stopPropagation();
-            
-            // Chiudi eventuali tooltip aperti
             document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
 
             const notti = calculateNights(tripInDay.data_partenza, tripInDay.data_arrivo);
@@ -873,18 +885,18 @@
             const totLitri = rifList.reduce((s, r) => s + Number(r.litri || 0), 0);
             const totale = camping + pedaggi + carburante;
 
-            // Costruzione elemento Tooltip
             const tooltip = document.createElement('div');
             tooltip.className = 'calendar-tooltip';
             tooltip.innerHTML = `
               <h4>📍 ${escapeHtml(tripInDay.destinazione)}</h4>
-              <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} notti)</p>
+              <p>📅 <strong>Date:</strong> ${formatDate(tripInDay.data_partenza)} - ${formatDate(tripInDay.data_arrivo)} (${notti} gg)</p>
               <p>🛣️ <strong>Chilometri:</strong> ${tripInDay.chilometri} km</p>
               <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
               <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
               <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)} (${totLitri.toFixed(1)} L)</p>
               ${rifList.length > 0 ? `<ul>${rifList.map(r => `<li>${formatDate(r.data_rifornimento)}: €${Number(r.costo_sostenuto).toFixed(2)} (${Number(r.litri).toFixed(1)}L)</li>`).join('')}</ul>` : ''}
               <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+              <button onclick="this.parentElement.remove()" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi Dettaglio</button>
             `;
 
             dayDiv.appendChild(tooltip);
@@ -895,7 +907,6 @@
       }
     }
 
-    // Chiude i tooltip quando si clicca altrove nel calendario
     document.addEventListener('click', () => {
       document.querySelectorAll('.calendar-tooltip').forEach(el => el.remove());
     });
