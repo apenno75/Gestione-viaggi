@@ -125,10 +125,10 @@
   <script>
         // Inizializzazione Supabase
         const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
+        const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
 		
 		// CORREZIONE: Usiamo "supabaseClient" per evitare conflitti con la libreria caricata dal CDN
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // 2. ELEMENTI DOM
     const authSection = document.getElementById('auth-section');
