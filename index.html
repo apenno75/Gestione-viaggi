@@ -738,71 +738,71 @@
       `;
     }
 	
-	function getMapTooltipHTML(tripItem, user) {
-  // Controlla se l'utente corrente è il creatore del viaggio
-  const isOwner = (user && tripItem.user_id === user.id);
-  
-  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
-  const camping = getCampingTotalFromTrip(tripItem);
-  const pedaggi = Number(tripItem.costo_pedaggi || 0);
-  const rifList = tripItem.rifornimenti || [];
-  const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-  
-  let extraLuoghi = 0;
-  (tripItem.luoghi || []).forEach(l => {
-    (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
-  });
-  const totale = camping + pedaggi + carburante + extraLuoghi;
+		function getMapTooltipHTML(tripItem, user) {
+		  // Controlla se l'utente corrente è il creatore del viaggio
+		  const isOwner = (user && tripItem.user_id === user.id);
+		  
+		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
+		  const camping = getCampingTotalFromTrip(tripItem);
+		  const pedaggi = Number(tripItem.costo_pedaggi || 0);
+		  const rifList = tripItem.rifornimenti || [];
+		  const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+		  
+		  let extraLuoghi = 0;
+		  (tripItem.luoghi || []).forEach(l => {
+			(l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
+		  });
+		  const totale = camping + pedaggi + carburante + extraLuoghi;
 
-  const ratingsText = (tripItem.luoghi || []).length > 0
-    ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
-    : `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
+		  const ratingsText = (tripItem.luoghi || []).length > 0
+			? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+			: `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
 
-  const imageHtml = tripItem.foto_copertina 
-    ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
-    : '';
+		  const imageHtml = tripItem.foto_copertina 
+			? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
+			: '';
 
-  // Sostituisci 'autore_email' con il nome della colonna che usi nel DB per riconoscere l'utente
-  const nomeAutore = tripItem.autore_email || "Utente Anonimo";
+		  // Recupera direttamente il valore di user_id dal record del viaggio
+		  const idCaricatore = tripItem.user_id || "Non specificato";
 
-  // Parte visibile A TUTTI
-  let html = `
-    <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
-      ${imageHtml}
-      <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
-      <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(nomeAutore)}</p>
-  `;
+		  // Parte visibile A TUTTI
+		  let html = `
+			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
+			  ${imageHtml}
+			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(idCaricatore)}</p>
+		  `;
 
-  // Date visibili SOLO al proprietario
-  if (isOwner) {
-    html += `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
-  }
+		  // Date visibili SOLO al proprietario
+		  if (isOwner) {
+			html += `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
+		  }
 
-  // Luoghi e Rating visibili A TUTTI
-  if ((tripItem.luoghi || []).length > 0) {
-    html += `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>`;
-  }
-  html += `<p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>`;
-  
-  if (tripItem.note_viaggio || tripItem.note) {
-    html += `<p>📝 <strong>Note:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
-  }
+		  // Luoghi e Rating visibili A TUTTI
+		  if ((tripItem.luoghi || []).length > 0) {
+			html += `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>`;
+		  }
+		  html += `<p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>`;
+		  
+		  if (tripItem.note_viaggio || tripItem.note) {
+			html += `<p>📝 <strong>Note:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
+		  }
 
-  // Costi e Chilometri visibili SOLO al proprietario
-  if (isOwner) {
-    html += `
-      <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
-      <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
-      <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
-      <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
-      <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
-      <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>
-    `;
-  }
+		  // Costi e Chilometri visibili SOLO al proprietario
+		  if (isOwner) {
+			html += `
+			  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+			  <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
+			  <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+			  <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+			  <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
+			  <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>
+			`;
+		  }
 
-  html += `</div>`;
-  return html;
-}
+		  html += `</div>`;
+		  return html;
+		}
 
     function showTripTooltip(tripItem, parentElement, event) {
       if (event) event.stopPropagation();
