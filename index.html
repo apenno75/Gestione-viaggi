@@ -762,15 +762,15 @@
 			? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
 			: '';
 
-		  // Recupera direttamente il valore di user_id dal record del viaggio
-		  const idCaricatore = tripItem.user_id || "Non specificato";
+		  // Recupera l'email dal record del viaggio
+		  const emailAutore = tripItem.autore_email || "Utente Anonimo";
 
 		  // Parte visibile A TUTTI
 		  let html = `
 			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
 			  ${imageHtml}
 			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
-			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(idCaricatore)}</p>
+			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
 		  `;
 
 		  // Date visibili SOLO al proprietario
@@ -1403,7 +1403,7 @@
         kmDiff = newKm;
       }
 
-      const payloadViaggio = {
+	  const payloadViaggio = {
         destinazione: destinazioneInput.value,
         data_partenza: dataPartenzaInput.value,
         data_arrivo: dataArrivoInput.value,
@@ -1414,7 +1414,9 @@
         note: noteViaggioInput.value,
         foto_copertina: fotoCopertinaBase64.value || null,
         luoghi: tempLuoghi,
-        user_id: currentUser.id
+        user_id: currentUser.id,
+        // AGGIUNGI QUESTA RIGA PER SALVARE L'EMAIL:
+        autore_email: currentUser.email 
       };
 
       let tripId = id;
