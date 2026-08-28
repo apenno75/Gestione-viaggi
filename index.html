@@ -714,7 +714,7 @@
       const totale = camping + pedaggi + carburante + extraLuoghi;
 
       const ratingsText = (tripItem.luoghi || []).length > 0
-        ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+        ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')} (${escapeHtml(l.tipo_sosta || 'camping')}):</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
         : `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
 
       const imageHtml = tripItem.foto_copertina 
@@ -739,7 +739,6 @@
     }
 	
 		function getMapTooltipHTML(tripItem, user) {
-		  // Controlla se l'utente corrente è il creatore del viaggio
 		  const isOwner = (user && tripItem.user_id === user.id);
 		  
 		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
@@ -755,17 +754,15 @@
 		  const totale = camping + pedaggi + carburante + extraLuoghi;
 
 		  const ratingsText = (tripItem.luoghi || []).length > 0
-			? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+			? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')} (${escapeHtml(l.tipo_sosta || 'camping')}):</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
 			: `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
 
 		  const imageHtml = tripItem.foto_copertina 
 			? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
 			: '';
 
-		  // Recupera l'email dal record del viaggio
 		  const emailAutore = tripItem.autore_email || "Utente Anonimo";
 
-		  // Parte visibile A TUTTI
 		  let html = `
 			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
 			  ${imageHtml}
@@ -773,12 +770,10 @@
 			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
 		  `;
 
-		  // Date visibili SOLO al proprietario
 		  if (isOwner) {
 			html += `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
 		  }
 
-		  // Luoghi e Rating visibili A TUTTI
 		  if ((tripItem.luoghi || []).length > 0) {
 			html += `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>`;
 		  }
@@ -788,7 +783,6 @@
 			html += `<p>📝 <strong>Note:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
 		  }
 
-		  // Costi e Chilometri visibili SOLO al proprietario
 		  if (isOwner) {
 			html += `
 			  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
@@ -830,84 +824,82 @@
     });
 
     async function initAndRenderMap() {
-  if (!map) {
-    map = L.map('map-container').setView([41.9028, 12.4964], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-    markersGroup = L.featureGroup().addTo(map);
-  } else {
-    map.invalidateSize();
-    markersGroup.clearLayers();
-  }
+      if (!map) {
+        map = L.map('map-container').setView([41.9028, 12.4964], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+        markersGroup = L.featureGroup().addTo(map);
+      } else {
+        map.invalidateSize();
+        markersGroup.clearLayers();
+      }
 
-  const flagIcon = L.divIcon({
-    className: 'custom-flag-icon',
-    html: '<div style="font-size: 26px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">🚩</div>',
-    iconSize: [30, 30],
-    iconAnchor: [5, 25],
-    popupAnchor: [10, -20]
-  });
+      const flagIcon = L.divIcon({
+        className: 'custom-flag-icon',
+        html: '<div style="font-size: 26px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">🚩</div>',
+        iconSize: [30, 30],
+        iconAnchor: [5, 25],
+        popupAnchor: [10, -20]
+      });
 
-  // RECUPERA TUTTI I VIAGGI DA SUPABASE (di tutti gli utenti)
-  const { data: allTrips, error } = await supabaseClient
-    .from('viaggi')
-    .select('*, rifornimenti(*)');
-    
-  if (error) {
-    console.error('Errore caricamento mappa generale:', error.message);
-    return;
-  }
+      const { data: allTrips, error } = await supabaseClient
+        .from('viaggi')
+        .select('*, rifornimenti(*)');
+        
+      if (error) {
+        console.error('Errore caricamento mappa generale:', error.message);
+        return;
+      }
 
-  const itemsToGeocode = [];
+      const itemsToGeocode = [];
 
-  (allTrips || []).forEach(trip => {
-    if (trip.luoghi && trip.luoghi.length > 0) {
-      trip.luoghi.forEach(luogo => {
-        if (luogo.nome_luogo) {
-          itemsToGeocode.push({ query: luogo.nome_luogo, trip: trip, label: luogo.nome_luogo });
+      (allTrips || []).forEach(trip => {
+        if (trip.luoghi && trip.luoghi.length > 0) {
+          trip.luoghi.forEach(luogo => {
+            if (luogo.nome_luogo) {
+              itemsToGeocode.push({ query: luogo.nome_luogo, trip: trip, label: luogo.nome_luogo });
+            }
+          });
+        } else if (trip.destinazione) {
+          itemsToGeocode.push({ query: trip.destinazione, trip: trip, label: trip.destinazione });
         }
       });
-    } else if (trip.destinazione) {
-      itemsToGeocode.push({ query: trip.destinazione, trip: trip, label: trip.destinazione });
-    }
-  });
 
-  if (itemsToGeocode.length === 0) return;
+      if (itemsToGeocode.length === 0) return;
 
-  for (const item of itemsToGeocode) {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}`);
-      const data = await res.json();
+      for (const item of itemsToGeocode) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}`);
+          const data = await res.json();
 
-      if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
+          if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
 
-        const marker = L.marker([lat, lon], { icon: flagIcon });
-        
-        // USA LA NUOVA FUNZIONE PASSANDO trip E currentUser
-        marker.bindPopup(getMapTooltipHTML(item.trip, currentUser), { maxWidth: 320 });
-        markersGroup.addLayer(marker);
+            const marker = L.marker([lat, lon], { icon: flagIcon });
+            marker.bindPopup(getMapTooltipHTML(item.trip, currentUser), { maxWidth: 320 });
+            markersGroup.addLayer(marker);
+          }
+        } catch (err) {
+          console.error("Errore geocodifica luogo:", item.query, err);
+        }
       }
-    } catch (err) {
-      console.error("Errore geocodifica luogo:", item.query, err);
-    }
-  }
 
-  if (markersGroup.getLayers().length > 0) {
-    map.fitBounds(markersGroup.getBounds().pad(0.2));
-    if (map.getZoom() > 6) {
-      map.setZoom(6);
+      if (markersGroup.getLayers().length > 0) {
+        map.fitBounds(markersGroup.getBounds().pad(0.2));
+        if (map.getZoom() > 6) {
+          map.setZoom(6);
+        }
+      }
     }
-  }
-}
 
     addLuogoBtn.addEventListener('click', () => {
       tempLuoghi.push({
         id: Date.now(),
         nome_luogo: '',
+        tipo_sosta: 'camping',
         nome_campeggio: '',
         costo_giornaliero: 0,
         notti: 0,
@@ -952,6 +944,7 @@
       cards.forEach((card, lIdx) => {
         if (!tempLuoghi[lIdx]) return;
         const nomeInput = card.querySelector('.luogo-nome-input');
+        const tipoSostaSelect = card.querySelector('.luogo-tipo-sosta-select');
         const campingInput = card.querySelector('.luogo-camping-input');
         const costoNotteInput = card.querySelector('.luogo-costo-notte-input');
         const nottiInput = card.querySelector('.luogo-notti-input');
@@ -960,6 +953,7 @@
         const noteInput = card.querySelector('.luogo-note-input');
 
         if (nomeInput) tempLuoghi[lIdx].nome_luogo = nomeInput.value;
+        if (tipoSostaSelect) tempLuoghi[lIdx].tipo_sosta = tipoSostaSelect.value;
         if (campingInput) tempLuoghi[lIdx].nome_campeggio = campingInput.value;
         if (costoNotteInput) tempLuoghi[lIdx].costo_giornaliero = parseFloat(costoNotteInput.value) || 0;
         if (nottiInput) tempLuoghi[lIdx].notti = parseInt(nottiInput.value) || 0;
@@ -1009,6 +1003,15 @@
             <div style="flex: 2;">
               <label style="font-size: 12px; color: #0f172a;">Nome del Luogo / Tappa</label>
               <input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo || '')}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 1.5;">
+              <label style="font-size: 12px; color: #0f172a;">Tipo di Sosta</label>
+              <select class="luogo-tipo-sosta-select">
+                <option value="camping" ${(!l.tipo_sosta || l.tipo_sosta === 'camping') ? 'selected' : ''}>Camping</option>
+                <option value="area sosta" ${l.tipo_sosta === 'area sosta' ? 'selected' : ''}>Area sosta</option>
+                <option value="parcheggio" ${l.tipo_sosta === 'parcheggio' ? 'selected' : ''}>Parcheggio</option>
+                <option value="sosta libera" ${l.tipo_sosta === 'sosta libera' ? 'selected' : ''}>Sosta libera</option>
+              </select>
             </div>
             <div style="flex: 2;">
               <label style="font-size: 12px; color: #0f172a;">Nome Camping / Struttura</label>
@@ -1403,7 +1406,7 @@
         kmDiff = newKm;
       }
 
-	  const payloadViaggio = {
+      const payloadViaggio = {
         destinazione: destinazioneInput.value,
         data_partenza: dataPartenzaInput.value,
         data_arrivo: dataArrivoInput.value,
@@ -1415,7 +1418,6 @@
         foto_copertina: fotoCopertinaBase64.value || null,
         luoghi: tempLuoghi,
         user_id: currentUser.id,
-        // AGGIUNGI QUESTA RIGA PER SALVARE L'EMAIL:
         autore_email: currentUser.email 
       };
 
