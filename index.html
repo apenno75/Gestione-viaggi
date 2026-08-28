@@ -1104,6 +1104,11 @@
             Totale Camping Luogo: € <span>${subtotalCampingLuogo}</span>
           </div>
 
+          <div style="margin-top: 10px;">
+            <label style="font-size: 12px; color: #475569;">Note del Luogo</label>
+            <textarea class="luogo-note-input" rows="2" placeholder="Note specifiche o dettagli su questo luogo...">${escapeHtml(l.note_luogo || '')}</textarea>
+          </div>
+
           <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
           <div class="table-container">
             <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 600px;">
@@ -1152,11 +1157,6 @@
             </table>
           </div>
           <button type="button" class="btn-info btn-sm" onclick="addCostoExtraRow(${lIdx})" style="margin-top: 6px;">+ Aggiungi Costo Extra</button>
-
-          <div style="margin-top: 10px;">
-            <label style="font-size: 12px; color: #475569;">Note del Luogo</label>
-            <textarea class="luogo-note-input" rows="2" placeholder="Note specifiche o dettagli su questo luogo...">${escapeHtml(l.note_luogo || '')}</textarea>
-          </div>
         `;
         luoghiListContainer.appendChild(div);
       });
