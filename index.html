@@ -764,13 +764,19 @@
 
 		  // Recupera l'email dal record del viaggio
 		  const emailAutore = tripItem.autore_email || "Utente Anonimo";
-
+		  
+		  // Recupera il timestamp dal record del viaggio
+		  //const TimeCreazione = tripItem.creato_il || "Creato N.N.";		  
+		  const TimeCreazione = tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '';
+		  
+		  
 		  // Parte visibile A TUTTI
 		  let html = `
 			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
 			  ${imageHtml}
 			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
 			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
+			  <p style="color: #38bdf8; font-size: 11px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>
 		  `;
 
 		  // Date visibili SOLO al proprietario
