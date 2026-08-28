@@ -908,6 +908,7 @@
       tempLuoghi.push({
         id: Date.now(),
         nome_luogo: '',
+        tipologia: 'camping',
         nome_campeggio: '',
         costo_giornaliero: 0,
         notti: 0,
@@ -952,6 +953,7 @@
       cards.forEach((card, lIdx) => {
         if (!tempLuoghi[lIdx]) return;
         const nomeInput = card.querySelector('.luogo-nome-input');
+        const tipologiaInput = card.querySelector('.luogo-tipologia-input');
         const campingInput = card.querySelector('.luogo-camping-input');
         const costoNotteInput = card.querySelector('.luogo-costo-notte-input');
         const nottiInput = card.querySelector('.luogo-notti-input');
@@ -960,6 +962,7 @@
         const noteInput = card.querySelector('.luogo-note-input');
 
         if (nomeInput) tempLuoghi[lIdx].nome_luogo = nomeInput.value;
+        if (tipologiaInput) tempLuoghi[lIdx].tipologia = tipologiaInput.value;
         if (campingInput) tempLuoghi[lIdx].nome_campeggio = campingInput.value;
         if (costoNotteInput) tempLuoghi[lIdx].costo_giornaliero = parseFloat(costoNotteInput.value) || 0;
         if (nottiInput) tempLuoghi[lIdx].notti = parseInt(nottiInput.value) || 0;
@@ -1009,6 +1012,15 @@
             <div style="flex: 2;">
               <label style="font-size: 12px; color: #0f172a;">Nome del Luogo / Tappa</label>
               <input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo || '')}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 1.5;">
+              <label style="font-size: 12px; color: #0f172a;">Tipologia</label>
+              <select class="luogo-tipologia-input">
+                <option value="camping" ${(!l.tipologia || l.tipologia === 'camping') ? 'selected' : ''}>Camping</option>
+                <option value="area sosta" ${l.tipologia === 'area sosta' ? 'selected' : ''}>Area sosta</option>
+                <option value="parcheggio" ${l.tipologia === 'parcheggio' ? 'selected' : ''}>Parcheggio</option>
+                <option value="libera" ${l.tipologia === 'libera' ? 'selected' : ''}>Libera</option>
+              </select>
             </div>
             <div style="flex: 2;">
               <label style="font-size: 12px; color: #0f172a;">Nome Camping / Struttura</label>
