@@ -105,7 +105,8 @@
     }
     .calendar-tooltip h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 14px; }
     .calendar-tooltip p { margin: 3px 0; }
-    
+    .calendar-tooltip ul { margin: 5px 0 0 0; padding-left: 15px; font-size: 11px; color: #cbd5e1; }
+
     .trip-overlay-tooltip {
       position: fixed !important;
       top: 50% !important;
@@ -128,18 +129,26 @@
     
     .clickable-trip {
       cursor: pointer;
-      color: #0070f3;
-      text-decoration: underline;
+      transition: opacity 0.2s ease;
     }
-    .clickable-trip:hover { opacity: 0.8; }
+    .clickable-trip:hover {
+      opacity: 0.8;
+    }
 
+    /* Stile personalizzato per i popup della Mappa */
     .leaflet-popup-content-wrapper {
       background: #0f172a !important;
       color: white !important;
       border-radius: 8px !important;
+      padding: 4px !important;
     }
-    .leaflet-popup-tip { background: #0f172a !important; }
-    .leaflet-popup-content { margin: 8px 10px !important; line-height: 1.4 !important; }
+    .leaflet-popup-tip {
+      background: #0f172a !important;
+    }
+    .leaflet-popup-content {
+      margin: 8px 10px !important;
+      line-height: 1.4 !important;
+    }
 
     @media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
@@ -237,6 +246,7 @@
           <div style="flex: 1;">
             <label for="foto_copertina_input">Foto Copertina Viaggio</label>
             <input type="file" id="foto_copertina_input" accept="image/*" style="padding: 6px; min-height: Auto;">
+            <small style="color: #64748b; font-size: 11px; display: block; margin-top: 2px;">Verrà ridimensionata in automatico (&lt;300KB).</small>
             
             <div id="preview-container" class="hidden" style="margin-top: 8px; text-align: center;">
               <img id="foto_preview" src="" alt="Anteprima Copertina" style="max-width: 100%; max-height: 90px; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: cover;">
@@ -251,7 +261,8 @@
             <button type="button" id="add-luogo-btn" class="btn-purple btn-sm">+ Aggiungi Luogo</button>
           </div>
           
-          <div id="luoghi-list-container"></div>
+          <div id="luoghi-list-container">
+          </div>
         </div>
 
         <div class="refuel-box">
@@ -317,11 +328,11 @@
             <tr>
               <th>Copertina</th>
               <th>Nome Viaggio (Padre) / Luoghi</th>
-              <th>Date & Notti</th>
-              <th>Rating</th>
+              <th>Date & Notti Tot.</th>
+              <th>Rating Luoghi</th>
               <th>Km</th>
-              <th>Camping</th>
-              <th>Extra</th>
+              <th>Camping Tot.</th>
+              <th>Extra Luoghi</th>
               <th>Carburante</th>
               <th>Pedaggi</th>
               <th>Totale</th>
@@ -340,21 +351,41 @@
         <h2 style="margin:0; font-size: 18px;">📊 Riepilogo Costi</h2>
         <button id="close-summary-btn" class="btn-secondary btn-sm">Chiudi</button>
       </div>
+
       <div class="flex" style="margin: 15px 0; gap: 8px; flex-wrap: wrap;">
-        <div class="stat-card"><small>Camping</small><div class="amount" id="summary-total-camping">€ 0.00</div></div>
-        <div class="stat-card"><small>Extra Luoghi</small><div class="amount" id="summary-total-extra" style="color: #8b5cf6;">€ 0.00</div></div>
-        <div class="stat-card"><small>Carburante</small><div class="amount" id="summary-total-fuel">€ 0.00</div></div>
-        <div class="stat-card"><small>Pedaggi</small><div class="amount" id="summary-total-tolls">€ 0.00</div></div>
+        <div class="stat-card">
+          <small>Camping</small>
+          <div class="amount" id="summary-total-camping">€ 0.00</div>
+        </div>
+        <div class="stat-card">
+          <small>Extra Luoghi</small>
+          <div class="amount" id="summary-total-extra" style="color: #8b5cf6;">€ 0.00</div>
+        </div>
+        <div class="stat-card">
+          <small>Carburante</small>
+          <div class="amount" id="summary-total-fuel">€ 0.00</div>
+        </div>
+        <div class="stat-card">
+          <small>Pedaggi</small>
+          <div class="amount" id="summary-total-tolls">€ 0.00</div>
+        </div>
         <div class="stat-card" style="background: #e0f2fe; border-color: #bae6fd;">
           <small style="color: #0369a1; font-weight: bold;">TOTALE SPESO</small>
           <div class="amount" id="summary-grand-total" style="color: #0369a1; font-size: 18px;">€ 0.00</div>
         </div>
       </div>
+
+      <h3 style="font-size: 15px; margin-bottom: 5px;">Dettaglio Spese</h3>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Viaggio</th><th>Camping</th><th>Extra</th><th>Carburante</th><th>Pedaggi</th><th>Totale</th>
+              <th>Viaggio</th>
+              <th>Camping</th>
+              <th>Extra Luoghi</th>
+              <th>Carburante</th>
+              <th>Pedaggi</th>
+              <th>Totale</th>
             </tr>
           </thead>
           <tbody id="summary-table-body"></tbody>
@@ -366,25 +397,53 @@
   <div id="settings-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
       <h2 style="margin-top:0; font-size: 18px;">⚙️ Settaggi Camper</h2>
+      <p style="font-size: 12px; color: #64748b;">Il costo del carburante al litro serve per il calcolo dei litri nei rifornimenti.</p>
+      
       <form id="settings-form">
-        <div class="form-group"><label for="camper-nome">Nome Camper</label><input type="text" id="camper-nome" value="Il mio Camper"></div>
-        <div class="flex">
-          <div class="form-group" style="flex: 1;"><label for="camper-consumo">Consumo (L/100km)</label><input type="number" step="0.1" id="camper-consumo" value="10.0"></div>
-          <div class="form-group" style="flex: 1;"><label for="camper-costo-carburante">Carburante (€ / L)</label><input type="number" step="0.001" id="camper-costo-carburante" value="1.85"></div>
+        <div class="form-group">
+          <label for="camper-nome">Nome / Modello Camper</label>
+          <input type="text" id="camper-nome" value="Il mio Camper">
         </div>
+        
+        <div class="flex">
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-consumo">Consumo (L/100km)</label>
+            <input type="number" step="0.1" id="camper-consumo" value="10.0" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-costo-carburante">Carburante (€ / L)</label>
+            <input type="number" step="0.001" id="camper-costo-carburante" value="1.85" required>
+          </div>
+        </div>
+        
         <div class="form-group" style="background: #f1f5f9; padding: 10px; border-radius: 6px;">
-          <label for="camper-km-totali">🛣️ Km Totali Camper</label>
+          <label for="camper-km-totali" style="color: #0369a1;">🛣️ Km Totali Camper</label>
           <input type="number" step="0.1" id="camper-km-totali" value="0">
+          <small style="color: #64748b; font-size: 11px; margin-top: 4px; display: block;">Questo valore si aggiorna automaticamente aggiungendo/modificando i viaggi.</small>
+        </div>
+
+        <div class="flex">
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-altezza">Altezza (m)</label>
+            <input type="number" step="0.01" id="camper-altezza" value="3.0">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-peso">Peso (Ton.)</label>
+            <input type="number" step="0.1" id="camper-peso" value="3.5">
+          </div>
         </div>
         <div class="flex">
-          <div class="form-group" style="flex: 1;"><label for="camper-altezza">Altezza (m)</label><input type="number" step="0.01" id="camper-altezza" value="3.0"></div>
-          <div class="form-group" style="flex: 1;"><label for="camper-peso">Peso (Ton.)</label><input type="number" step="0.1" id="camper-peso" value="3.5"></div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-livello-carburante">⛽ Rimanente (%)</label>
+            <input type="number" min="0" max="100" id="camper-livello-carburante" value="100">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-livello-acque">💧 Acque Chiare (%)</label>
+            <input type="number" min="0" max="100" id="camper-livello-acque" value="100">
+          </div>
         </div>
-        <div class="flex">
-          <div class="form-group" style="flex: 1;"><label for="camper-livello-carburante">⛽ Carburante (%)</label><input type="number" id="camper-livello-carburante" value="100"></div>
-          <div class="form-group" style="flex: 1;"><label for="camper-livello-acque">💧 Acque Chiare (%)</label><input type="number" id="camper-livello-acque" value="100"></div>
-        </div>
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
           <button type="button" id="close-settings-btn" class="btn-secondary" style="flex:1;">Annulla</button>
           <button type="submit" class="btn-success" style="flex:1;">Salva</button>
         </div>
@@ -398,14 +457,21 @@
         <h2 style="margin:0; font-size: 18px;">📅 Calendario Viaggi</h2>
         <button id="close-calendar-btn" class="btn-secondary btn-sm">Chiudi</button>
       </div>
+
       <div class="flex-center" style="margin: 15px 0;">
         <button id="prev-month-btn" class="btn-secondary btn-sm">&lt; Prec.</button>
         <h3 id="calendar-month-year" style="margin:0; font-size: 15px;"></h3>
         <button id="next-month-btn" class="btn-secondary btn-sm">Succ. &gt;</button>
       </div>
+
       <div class="calendar-grid">
-        <div class="calendar-day-header">Lun</div><div class="calendar-day-header">Mar</div><div class="calendar-day-header">Mer</div>
-        <div class="calendar-day-header">Gio</div><div class="calendar-day-header">Ven</div><div class="calendar-day-header">Sab</div><div class="calendar-day-header">Dom</div>
+        <div class="calendar-day-header">Lun</div>
+        <div class="calendar-day-header">Mar</div>
+        <div class="calendar-day-header">Mer</div>
+        <div class="calendar-day-header">Gio</div>
+        <div class="calendar-day-header">Ven</div>
+        <div class="calendar-day-header">Sab</div>
+        <div class="calendar-day-header">Dom</div>
       </div>
       <div id="calendar-days-container" class="calendar-grid"></div>
     </div>
@@ -423,8 +489,10 @@
 
   <script>
     const { createClient } = window.supabase;
+
     const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
+
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const TRIP_COLORS = [
@@ -432,7 +500,10 @@
       { bg: '#dcfce7', border: '#22c55e', text: '#15803d' },
       { bg: '#fef3c7', border: '#f59e0b', text: '#b45309' },
       { bg: '#f3e8ff', border: '#a855f7', text: '#6b21a8' },
-      { bg: '#ffe4e6', border: '#f43f5e', text: '#be123c' }
+      { bg: '#ffe4e6', border: '#f43f5e', text: '#be123c' },
+      { bg: '#e0e7ff', border: '#6366f1', text: '#3730a3' },
+      { bg: '#ccfbf1', border: '#14b8a6', text: '#0f766e' },
+      { bg: '#ffedd5', border: '#f97316', text: '#c2410c' }
     ];
 
     const authSection = document.getElementById('auth-section');
@@ -479,18 +550,22 @@
     const openViaggiBtn = document.getElementById('open-viaggi-btn');
     const closeViaggiBtn = document.getElementById('close-viaggi-btn');
     const viaggiModal = document.getElementById('viaggi-modal');
+
     const openSummaryBtn = document.getElementById('open-summary-btn');
     const closeSummaryBtn = document.getElementById('close-summary-btn');
     const summaryModal = document.getElementById('summary-modal');
+
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const settingsForm = document.getElementById('settings-form');
     const camperKmTotaliInput = document.getElementById('camper-km-totali');
+
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
     const calendarModal = document.getElementById('calendar-modal');
     const addLuogoBtn = document.getElementById('add-luogo-btn');
+
     const openMapBtn = document.getElementById('open-map-btn');
     const closeMapBtn = document.getElementById('close-map-btn');
     const mapModal = document.getElementById('map-modal');
@@ -502,8 +577,8 @@
     let tempLuoghi = [];
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0 };
     let currentCalendarDate = new Date();
-    let leafletMap = null;
-    let markersLayerGroup = null;
+    let map = null;
+    let markersGroup = null;
 
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
@@ -554,13 +629,15 @@
     fotoCopertinaInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+
       try {
         const compressedBase64 = await resizeImageToMaxKB(file, 300);
         fotoCopertinaBase64.value = compressedBase64;
         fotoPreview.src = compressedBase64;
         previewContainer.classList.remove('hidden');
       } catch (err) {
-        alert('Errore elaborazione immagine');
+        alert('Errore durante l\'elaborazione dell\'immagine.');
+        console.error(err);
       }
     });
 
@@ -580,18 +657,38 @@
           img.src = event.target.result;
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            let width = img.width, height = img.height;
+            let width = img.width;
+            let height = img.height;
+
             const MAX_DIM = 1200;
-            if (width > height && width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; }
-            else if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; }
-            canvas.width = width; canvas.height = height;
+            if (width > height && width > MAX_DIM) {
+              height *= MAX_DIM / width;
+              width = MAX_DIM;
+            } else if (height > MAX_DIM) {
+              width *= MAX_DIM / height;
+              height = MAX_DIM;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
+
             let quality = 0.85;
             let dataUrl = canvas.toDataURL('image/jpeg', quality);
+
             while ((dataUrl.length * 0.75) > maxKB * 1024 && quality > 0.1) {
               quality -= 0.15;
               dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+              if (quality <= 0.25 && (dataUrl.length * 0.75) > maxKB * 1024) {
+                width *= 0.8;
+                height *= 0.8;
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                dataUrl = canvas.toDataURL('image/jpeg', quality);
+              }
             }
             resolve(dataUrl);
           };
@@ -601,243 +698,770 @@
       });
     }
 
-    /* --- GESTIONE MAPPA --- */
-    openMapBtn.addEventListener('click', () => {
-      mapModal.classList.remove('hidden');
-      setTimeout(renderMap, 250);
-    });
-
-    closeMapBtn.addEventListener('click', () => mapModal.classList.add('hidden'));
-
-    async function renderMap() {
-      if (!leafletMap) {
-        leafletMap = L.map('map-container').setView([41.9028, 12.4964], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '© OpenStreetMap'
-        }).addTo(leafletMap);
-        markersLayerGroup = L.featureGroup().addTo(leafletMap);
-      } else {
-        leafletMap.invalidateSize();
-        markersLayerGroup.clearLayers();
-      }
-
-      const { data: allTrips } = await supabaseClient.from('viaggi').select('*, rifornimenti(*)');
+    /* --- FUNZIONE TOOLTIP IN OVERLAY SUPERIORE --- */
+    function getTripTooltipHTML(tripItem) {
+      const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
+      const camping = getCampingTotalFromTrip(tripItem);
+      const pedaggi = Number(tripItem.costo_pedaggi || 0);
+      const rifList = tripItem.rifornimenti || [];
+      const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
       
-      const flagIcon = L.divIcon({
-        className: 'custom-flag-icon',
-        html: '<div style="font-size: 26px;">🚩</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 25]
+      let extraLuoghi = 0;
+      (tripItem.luoghi || []).forEach(l => {
+        (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
       });
 
-      let count = 0;
-      (allTrips || []).forEach(trip => {
-        const luoghi = typeof trip.luoghi === 'string' ? JSON.parse(trip.luoghi) : (trip.luoghi || []);
-        luoghi.forEach(luogo => {
-          if (luogo.latitudine && luogo.longitudine) {
-            const lat = parseFloat(luogo.latitudine);
-            const lng = parseFloat(luogo.longitudine);
-            if (!isNaN(lat) && !isNaN(lng)) {
-              count++;
-              const marker = L.marker([lat, lng], { icon: flagIcon });
-              marker.bindPopup(`
-                <div style="font-size:12px;">
-                  <strong style="color:#38bdf8;">${escapeHtml(trip.destinazione)}</strong><br>
-                  📍 <strong>Tappa:</strong> ${escapeHtml(luogo.nome_luogo || '')}<br>
-                  🏕️ <strong>Struttura (${escapeHtml(luogo.tipo_struttura || 'camping')}):</strong> ${escapeHtml(luogo.nome_struttura || 'N/A')}<br>
-                  ⭐ <strong>Rating:</strong> ${renderStars(luogo.rating_luogo || 3)}
-                </div>
-              `);
-              markersLayerGroup.addLayer(marker);
-            }
-          }
-        });
-      });
+      const totale = camping + pedaggi + carburante + extraLuoghi;
 
-      if (count > 0) {
-        leafletMap.fitBounds(markersLayerGroup.getBounds().pad(0.2));
-      }
+      const ratingsText = (tripItem.luoghi || []).length > 0
+        ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+        : `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
+
+      const imageHtml = tripItem.foto_copertina 
+        ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
+        : '';
+
+      return `
+        <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
+          ${imageHtml}
+          <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+          <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
+          ${(tripItem.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
+          <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
+          <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+          <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
+          <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
+          <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+        </div>
+      `;
+    }
+	
+		function getMapTooltipHTML(tripItem, user) {
+		  // Controlla se l'utente corrente è il creatore del viaggio
+		  const isOwner = (user && tripItem.user_id === user.id);
+		  
+		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
+		  const camping = getCampingTotalFromTrip(tripItem);
+		  const pedaggi = Number(tripItem.costo_pedaggi || 0);
+		  const rifList = tripItem.rifornimenti || [];
+		  const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+		  
+		  let extraLuoghi = 0;
+		  (tripItem.luoghi || []).forEach(l => {
+			(l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
+		  });
+		  const totale = camping + pedaggi + carburante + extraLuoghi;
+
+		  const ratingsText = (tripItem.luoghi || []).length > 0
+			? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
+			: `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
+
+		  const imageHtml = tripItem.foto_copertina 
+			? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
+			: '';
+
+		  // Recupera l'email dal record del viaggio
+		  const emailAutore = tripItem.autore_email || "Utente Anonimo";
+
+		  // Parte visibile A TUTTI
+		  let html = `
+			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
+			  ${imageHtml}
+			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
+		  `;
+
+		  // Date visibili SOLO al proprietario
+		  if (isOwner) {
+			html += `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
+		  }
+
+		  // Luoghi e Rating visibili A TUTTI
+		  if ((tripItem.luoghi || []).length > 0) {
+			html += `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>`;
+		  }
+		  html += `<p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>`;
+		  
+		  if (tripItem.note_viaggio || tripItem.note) {
+			html += `<p>📝 <strong>Note:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
+		  }
+
+		  // Costi e Chilometri visibili SOLO al proprietario
+		  if (isOwner) {
+			html += `
+			  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+			  <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
+			  <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+			  <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+			  <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
+			  <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>
+			`;
+		  }
+
+		  html += `</div>`;
+		  return html;
+		}
+
+    function showTripTooltip(tripItem, parentElement, event) {
+      if (event) event.stopPropagation();
+      document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'calendar-tooltip trip-overlay-tooltip';
+      tooltip.addEventListener('click', (evt) => evt.stopPropagation());
+
+      tooltip.innerHTML = getTripTooltipHTML(tripItem) + `
+        <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi</button>
+      `;
+
+      document.body.appendChild(tooltip);
     }
 
-    /* --- SETTAGGI & DATI --- */
+    /* --- LOGICA DELLA MAPPA CON MAPBOX/LEAFLET --- */
+    openMapBtn.addEventListener('click', () => {
+      mapModal.classList.remove('hidden');
+      setTimeout(initAndRenderMap, 200);
+    });
+
+    closeMapBtn.addEventListener('click', () => {
+      mapModal.classList.add('hidden');
+    });
+
+    async function initAndRenderMap() {
+  if (!map) {
+    map = L.map('map-container').setView([41.9028, 12.4964], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+    markersGroup = L.featureGroup().addTo(map);
+  } else {
+    map.invalidateSize();
+    markersGroup.clearLayers();
+  }
+
+  const flagIcon = L.divIcon({
+    className: 'custom-flag-icon',
+    html: '<div style="font-size: 26px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">🚩</div>',
+    iconSize: [30, 30],
+    iconAnchor: [5, 25],
+    popupAnchor: [10, -20]
+  });
+
+  // RECUPERA TUTTI I VIAGGI DA SUPABASE (di tutti gli utenti)
+  const { data: allTrips, error } = await supabaseClient
+    .from('viaggi')
+    .select('*, rifornimenti(*)');
+    
+  if (error) {
+    console.error('Errore caricamento mappa generale:', error.message);
+    return;
+  }
+
+  const itemsToGeocode = [];
+
+  (allTrips || []).forEach(trip => {
+    if (trip.luoghi && trip.luoghi.length > 0) {
+      trip.luoghi.forEach(luogo => {
+        if (luogo.nome_luogo) {
+          itemsToGeocode.push({ query: luogo.nome_luogo, trip: trip, label: luogo.nome_luogo });
+        }
+      });
+    } else if (trip.destinazione) {
+      itemsToGeocode.push({ query: trip.destinazione, trip: trip, label: trip.destinazione });
+    }
+  });
+
+  if (itemsToGeocode.length === 0) return;
+
+  for (const item of itemsToGeocode) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}`);
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+
+        const marker = L.marker([lat, lon], { icon: flagIcon });
+        
+        // USA LA NUOVA FUNZIONE PASSANDO trip E currentUser
+        marker.bindPopup(getMapTooltipHTML(item.trip, currentUser), { maxWidth: 320 });
+        markersGroup.addLayer(marker);
+      }
+    } catch (err) {
+      console.error("Errore geocodifica luogo:", item.query, err);
+    }
+  }
+
+  if (markersGroup.getLayers().length > 0) {
+    map.fitBounds(markersGroup.getBounds().pad(0.2));
+    if (map.getZoom() > 6) {
+      map.setZoom(6);
+    }
+  }
+}
+
+    addLuogoBtn.addEventListener('click', () => {
+      tempLuoghi.push({
+        id: Date.now(),
+        nome_luogo: '',
+        nome_campeggio: '',
+        costo_giornaliero: 0,
+        notti: 0,
+        rating_luogo: 3,
+        rating_campeggio: 3,
+        costi_extra: [],
+        note_luogo: ''
+      });
+      renderLuoghi();
+      updateFormCalculations();
+    });
+
+    window.removeLuogo = function(lIdx) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi.splice(lIdx, 1);
+      renderLuoghi();
+      updateFormCalculations();
+    };
+
+    window.addCostoExtraRow = function(lIdx) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi[lIdx].costi_extra.push({
+        valore: 0,
+        categoria: 'ristorante',
+        nome: '',
+        luogo: '',
+        note: ''
+      });
+      renderLuoghi();
+      updateFormCalculations();
+    };
+
+    window.removeCostoExtraRow = function(lIdx, cIdx) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi[lIdx].costi_extra.splice(cIdx, 1);
+      renderLuoghi();
+      updateFormCalculations();
+    };
+
+    function syncLuoghiDataFromDOM() {
+      const cards = luoghiListContainer.querySelectorAll('.luogo-card');
+      cards.forEach((card, lIdx) => {
+        if (!tempLuoghi[lIdx]) return;
+        const nomeInput = card.querySelector('.luogo-nome-input');
+        const campingInput = card.querySelector('.luogo-camping-input');
+        const costoNotteInput = card.querySelector('.luogo-costo-notte-input');
+        const nottiInput = card.querySelector('.luogo-notti-input');
+        const ratingLuogoInput = card.querySelector('.luogo-rating-luogo-input');
+        const ratingCampingInput = card.querySelector('.luogo-rating-campeggio-input');
+        const noteInput = card.querySelector('.luogo-note-input');
+
+        if (nomeInput) tempLuoghi[lIdx].nome_luogo = nomeInput.value;
+        if (campingInput) tempLuoghi[lIdx].nome_campeggio = campingInput.value;
+        if (costoNotteInput) tempLuoghi[lIdx].costo_giornaliero = parseFloat(costoNotteInput.value) || 0;
+        if (nottiInput) tempLuoghi[lIdx].notti = parseInt(nottiInput.value) || 0;
+        if (ratingLuogoInput) tempLuoghi[lIdx].rating_luogo = parseInt(ratingLuogoInput.value) || 3;
+        if (ratingCampingInput) tempLuoghi[lIdx].rating_campeggio = parseInt(ratingCampingInput.value) || 3;
+        if (noteInput) tempLuoghi[lIdx].note_luogo = noteInput.value;
+
+        const extraRows = card.querySelectorAll('.extra-cost-row');
+        tempLuoghi[lIdx].costi_extra = [];
+        extraRows.forEach(row => {
+          const val = parseFloat(row.querySelector('.extra-valore').value) || 0;
+          const cat = row.querySelector('.extra-categoria').value;
+          const nom = row.querySelector('.extra-nome').value;
+          const luo = row.querySelector('.extra-luogo').value;
+          const not = row.querySelector('.extra-note').value;
+
+          tempLuoghi[lIdx].costi_extra.push({
+            valore: val,
+            categoria: cat,
+            nome: nom,
+            luogo: luo,
+            note: not
+          });
+        });
+      });
+    }
+
+    function renderLuoghi() {
+      luoghiListContainer.innerHTML = '';
+      if (tempLuoghi.length === 0) {
+        luoghiListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;">Nessun luogo aggiunto a questo viaggio. Clicca "+ Aggiungi Luogo".</div>`;
+        return;
+      }
+
+      tempLuoghi.forEach((l, lIdx) => {
+        const div = document.createElement('div');
+        div.className = 'luogo-card';
+        const subtotalCampingLuogo = ((parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0)).toFixed(2);
+
+        div.innerHTML = `
+          <div class="flex-center" style="margin-bottom: 8px;">
+            <strong style="color: #0070f3; font-size: 13px;">📍 Luogo #${lIdx + 1}</strong>
+            <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${lIdx})">&times; Rimuovi Luogo</button>
+          </div>
+
+          <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 2;">
+              <label style="font-size: 12px; color: #0f172a;">Nome del Luogo / Tappa</label>
+              <input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo || '')}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 2;">
+              <label style="font-size: 12px; color: #0f172a;">Nome Camping / Struttura</label>
+              <input type="text" class="luogo-camping-input" value="${escapeHtml(l.nome_campeggio || '')}" placeholder="Es. Camping Toblacher See" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Costo (€/notte)</label>
+              <input type="number" step="0.01" class="luogo-costo-notte-input" value="${l.costo_giornaliero || 0}" placeholder="0.00" oninput="updateFormCalculations()">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Notti</label>
+              <input type="number" min="0" class="luogo-notti-input" value="${l.notti || 0}" placeholder="0" oninput="updateFormCalculations()">
+            </div>
+          </div>
+
+          <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Rating Luogo</label>
+              <select class="luogo-rating-luogo-input">
+                <option value="5" ${l.rating_luogo == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5/5)</option>
+                <option value="4" ${l.rating_luogo == 4 ? 'selected' : ''}>⭐⭐⭐⭐ (4/5)</option>
+                <option value="3" ${(!l.rating_luogo || l.rating_luogo == 3) ? 'selected' : ''}>⭐⭐⭐ (3/5)</option>
+                <option value="2" ${l.rating_luogo == 2 ? 'selected' : ''}>⭐⭐ (2/5)</option>
+                <option value="1" ${l.rating_luogo == 1 ? 'selected' : ''}>⭐ (1/5)</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #0f172a;">Rating Campeggio</label>
+              <select class="luogo-rating-campeggio-input">
+                <option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5/5)</option>
+                <option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐ (4/5)</option>
+                <option value="3" ${(!l.rating_campeggio || l.rating_campeggio == 3) ? 'selected' : ''}>⭐⭐⭐ (3/5)</option>
+                <option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐ (2/5)</option>
+                <option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐ (1/5)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">
+            Totale Camping Luogo: € <span>${subtotalCampingLuogo}</span>
+          </div>
+
+          <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
+          <div class="table-container">
+            <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 600px;">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">Valore (€)</th>
+                  <th style="width: 20%;">Categoria Extra</th>
+                  <th style="width: 20%;">Nome</th>
+                  <th style="width: 20%;">Luogo</th>
+                  <th style="width: 20%;">Note Extra</th>
+                  <th style="width: 5%; text-align: right;">Azione</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(l.costi_extra || []).map((c, cIdx) => `
+                  <tr class="extra-cost-row">
+                    <td>
+                      <input type="number" step="0.01" class="extra-valore" value="${c.valore || 0}" placeholder="0.00" oninput="updateFormCalculations()" style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td>
+                      <select class="extra-categoria" style="padding: 6px; min-height: 34px;">
+                        <option value="ristorante" ${c.categoria === 'ristorante' ? 'selected' : ''}>Ristorante</option>
+                        <option value="souvenir" ${c.categoria === 'souvenir' ? 'selected' : ''}>Souvenir</option>
+                        <option value="bar" ${c.categoria === 'bar' ? 'selected' : ''}>Bar / Caffè</option>
+                        <option value="attività" ${c.categoria === 'attività' ? 'selected' : ''}>Attività / Musei</option>
+                        <option value="spesa" ${c.categoria === 'spesa' ? 'selected' : ''}>Spesa Alimentare</option>
+                        <option value="altro" ${c.categoria === 'altro' ? 'selected' : ''}>Altro</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="text" class="extra-nome" value="${escapeHtml(c.nome || '')}" placeholder="Es. Pranzo Malga" style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td>
+                      <input type="text" class="extra-luogo" value="${escapeHtml(c.luogo || '')}" placeholder="Es. Braies" style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td>
+                      <input type="text" class="extra-note" value="${escapeHtml(c.note || '')}" placeholder="Note..." style="padding: 6px; min-height: 34px;">
+                    </td>
+                    <td style="text-align: right;">
+                      <button type="button" class="btn-danger btn-sm" onclick="removeCostoExtraRow(${lIdx}, ${cIdx})" style="padding: 2px 6px;">&times;</button>
+                    </td>
+                  </tr>
+                `).join('')}
+                ${(!l.costi_extra || l.costi_extra.length === 0) ? `<tr><td colspan="6" style="text-align: center; color: #94a3b8; font-size: 11px;">Nessun costo extra inserito per questo luogo.</td></tr>` : ''}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-info btn-sm" onclick="addCostoExtraRow(${lIdx})" style="margin-top: 6px;">+ Aggiungi Costo Extra</button>
+
+          <div style="margin-top: 10px;">
+            <label style="font-size: 12px; color: #475569;">Note del Luogo</label>
+            <textarea class="luogo-note-input" rows="2" placeholder="Note specifiche o dettagli su questo luogo...">${escapeHtml(l.note_luogo || '')}</textarea>
+          </div>
+        `;
+        luoghiListContainer.appendChild(div);
+      });
+    }
+
+    function calculateTotalExtraCostsLuoghi() {
+      syncLuoghiDataFromDOM();
+      let total = 0;
+      tempLuoghi.forEach(l => {
+        (l.costi_extra || []).forEach(c => {
+          total += parseFloat(c.valore) || 0;
+        });
+      });
+      return total;
+    }
+
+    function calculateTotalCampingLuoghi() {
+      syncLuoghiDataFromDOM();
+      let total = 0;
+      tempLuoghi.forEach(l => {
+        const costo = parseFloat(l.costo_giornaliero) || 0;
+        const notti = parseInt(l.notti) || 0;
+        total += (costo * notti);
+      });
+      return total;
+    }
+
+    function getCampingTotalFromTrip(item) {
+      const luoghiList = item.luoghi || [];
+      let total = 0;
+      luoghiList.forEach(l => {
+        const costo = parseFloat(l.costo_giornaliero) || 0;
+        const notti = parseInt(l.notti) || 0;
+        total += (costo * notti);
+      });
+      return total;
+    }
+
+    function calculateNights(startStr, endStr) {
+      if (!startStr || !endStr) return 0;
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
+    }
+
+    function calculateTotalCarburanteTemp() {
+      return tempRefuelings.reduce((sum, r) => sum + parseFloat(r.costo_sostenuto || 0), 0);
+    }
+
+    function updateFormCalculations() {
+      const nottiTotali = calculateNights(dataPartenzaInput.value, dataArrivoInput.value);
+      totaleNottiViaggioInput.value = nottiTotali;
+
+      const totCamping = calculateTotalCampingLuoghi();
+      totaleCampeggioInput.value = totCamping.toFixed(2);
+
+      const pedaggi = parseFloat(costoPedaggiInput.value) || 0;
+      const carburante = calculateTotalCarburanteTemp();
+      const extraLuoghi = calculateTotalExtraCostsLuoghi();
+      
+      totaleCarburanteViaggioDisplay.textContent = `€ ${carburante.toFixed(2)}`;
+
+      const totaleViaggio = totCamping + pedaggi + carburante + extraLuoghi;
+      costoTotalePreview.textContent = `€ ${totaleViaggio.toFixed(2)}`;
+    }
+
+    async function updateKmTotaliAutomatic(kmDiff) {
+      if (kmDiff === 0) return;
+      camperSettings.kmTotali = (camperSettings.kmTotali || 0) + kmDiff;
+      camperKmTotaliInput.value = camperSettings.kmTotali;
+      
+      await supabaseClient
+        .from('camper_settings')
+        .update({ km_totali: camperSettings.kmTotali })
+        .eq('user_id', currentUser.id);
+    }
+
+    dataPartenzaInput.addEventListener('change', () => {
+      if (!rifDataInput.value) rifDataInput.value = dataPartenzaInput.value;
+      updateFormCalculations();
+    });
+    dataArrivoInput.addEventListener('change', updateFormCalculations);
+    costoPedaggiInput.addEventListener('input', updateFormCalculations);
+
+    rifCostoInput.addEventListener('input', () => {
+      const costo = parseFloat(rifCostoInput.value) || 0;
+      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
+      rifLitriPreview.textContent = `${litri.toFixed(2)} L`;
+    });
+
+    addRefuelBtn.addEventListener('click', () => {
+      const dataRif = rifDataInput.value || dataPartenzaInput.value;
+      const costo = parseFloat(rifCostoInput.value) || 0;
+
+      if (!dataRif) { alert('Seleziona una data per il rifornimento.'); return; }
+      if (costo <= 0) { alert('Inserisci un costo valido per il rifornimento.'); return; }
+
+      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
+
+      tempRefuelings.push({
+        data_rifornimento: dataRif,
+        costo_sostenuto: costo,
+        litri: parseFloat(litri.toFixed(2))
+      });
+
+      rifCostoInput.value = '';
+      rifLitriPreview.textContent = '0.00 L';
+      renderRefuelTable();
+      updateFormCalculations();
+    });
+
+    function renderRefuelTable() {
+      refuelTableBody.innerHTML = '';
+      if (tempRefuelings.length === 0) {
+        refuelTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun rifornimento aggiunto.</td></tr>`;
+        return;
+      }
+
+      tempRefuelings.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.fontSize = '12px';
+        tr.innerHTML = `
+          <td>${formatDate(r.data_rifornimento)}</td>
+          <td>€ ${parseFloat(r.costo_sostenuto).toFixed(2)}</td>
+          <td>${parseFloat(r.litri).toFixed(2)} L</td>
+          <td style="text-align: right;">
+            <button type="button" class="btn-danger btn-sm" onclick="removeRefuel(${idx})">&times;</button>
+          </td>
+        `;
+        refuelTableBody.appendChild(tr);
+      });
+    }
+
+    window.removeRefuel = function(index) {
+      tempRefuelings.splice(index, 1);
+      renderRefuelTable();
+      updateFormCalculations();
+    };
+
     async function fetchSettings() {
-      if (!currentUser) return;
-      const { data } = await supabaseClient.from('camper_settings').select('*').eq('user_id', currentUser.id).single();
+      const { data } = await supabaseClient
+        .from('camper_settings')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
       if (data) {
-        camperSettings.consumo = parseFloat(data.consumo_100km) || 10.0;
-        camperSettings.costoCarburante = parseFloat(data.costo_carburante_litro) || 1.85;
-        camperSettings.kmTotali = parseFloat(data.km_totali) || 0;
-        document.getElementById('camper-nome').value = data.nome_camper || 'Il mio Camper';
+        camperSettings = {
+          consumo: parseFloat(data.consumo_medio) || 10.0,
+          costoCarburante: parseFloat(data.costo_carburante) || 1.85,
+          kmTotali: parseFloat(data.km_totali) || 0
+        };
+        document.getElementById('camper-nome').value = data.nome_camper || '';
         document.getElementById('camper-consumo').value = camperSettings.consumo;
         document.getElementById('camper-costo-carburante').value = camperSettings.costoCarburante;
+        document.getElementById('camper-altezza').value = data.altezza || 3.0;
+        document.getElementById('camper-peso').value = data.peso || 3.5;
+        document.getElementById('camper-livello-carburante').value = data.livello_carburante_pct !== undefined ? data.livello_carburante_pct : 100;
+        document.getElementById('camper-livello-acque').value = data.livello_acque_chiare_pct !== undefined ? data.livello_acque_chiare_pct : 100;
         camperKmTotaliInput.value = camperSettings.kmTotali;
       }
     }
 
     settingsForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!currentUser) return;
-      const updatedSettings = {
+      const payload = {
         user_id: currentUser.id,
         nome_camper: document.getElementById('camper-nome').value,
-        consumo_100km: parseFloat(document.getElementById('camper-consumo').value),
-        costo_carburante_litro: parseFloat(document.getElementById('camper-costo-carburante').value),
-        km_totali: parseFloat(camperKmTotaliInput.value),
-        updated_at: new Date()
+        consumo_medio: parseFloat(document.getElementById('camper-consumo').value),
+        costo_carburante: parseFloat(document.getElementById('camper-costo-carburante').value),
+        altezza: parseFloat(document.getElementById('camper-altezza').value),
+        peso: parseFloat(document.getElementById('camper-peso').value),
+        livello_carburante_pct: parseInt(document.getElementById('camper-livello-carburante').value) || 0,
+        livello_acque_chiare_pct: parseInt(document.getElementById('camper-livello-acque').value) || 0,
+        km_totali: parseFloat(camperKmTotaliInput.value) || 0
       };
-      await supabaseClient.from('camper_settings').upsert(updatedSettings, { onConflict: 'user_id' });
-      alert('Settaggi salvati!');
-      settingsModal.classList.add('hidden');
+
+      const { error } = await supabaseClient.from('camper_settings').upsert(payload, { onConflict: 'user_id' });
+
+      if (error) {
+        alert('Errore salvataggio settaggi: ' + error.message);
+      } else {
+        camperSettings.consumo = payload.consumo_medio;
+        camperSettings.costoCarburante = payload.costo_carburante;
+        camperSettings.kmTotali = payload.km_totali;
+        settingsModal.classList.add('hidden');
+        alert('Impostazioni salvate!');
+      }
     });
 
     openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-    /* --- DINAMICA LUOGHI CON CASSELLA SELEZIONE --- */
-    addLuogoBtn.addEventListener('click', () => {
-      tempLuoghi.push({
-        id: Date.now().toString(),
-        nome_luogo: '',
-        tipo_struttura: 'camping',
-        nome_struttura: '',
-        latitudine: '',
-        longitudine: '',
-        notti: 1,
-        costo_notte: 0,
-        rating_luogo: 3,
-        rating_campeggio: 3,
-        costi_extra: []
-      });
-      renderLuoghiForm();
-    });
+    openViaggiBtn.addEventListener('click', () => viaggiModal.classList.remove('hidden'));
+    closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
 
-    function renderLuoghiForm() {
-      luoghiListContainer.innerHTML = '';
-      if (tempLuoghi.length === 0) {
-        luoghiListContainer.innerHTML = `<p style="color: #94a3b8; font-size: 13px; text-align: center;">Nessun luogo aggiunto.</p>`;
-        recalculateTotals();
-        return;
-      }
+    async function fetchViaggi() {
+      const { data, error } = await supabaseClient
+        .from('viaggi')
+        .select('*, rifornimenti(*)')
+        .eq('user_id', currentUser.id)
+        .order('data_partenza', { ascending: false });
 
-      tempLuoghi.forEach((luogo, index) => {
-        const div = document.createElement('div');
-        div.className = 'luogo-card';
-        div.innerHTML = `
-          <div class="flex-center" style="margin-bottom: 8px;">
-            <strong style="font-size: 13px; color: #8b5cf6;">Luogo #${index + 1}</strong>
-            <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${index})">Rimuovi</button>
-          </div>
-          <div class="flex flex-mobile-col" style="gap: 8px;">
-            <div style="flex: 1.2;">
-              <label>Nome del luogo</label>
-              <input type="text" value="${escapeHtml(luogo.nome_luogo)}" onchange="updateLuogo(${index}, 'nome_luogo', this.value)" placeholder="Es. Cortina" required>
-            </div>
-            <div style="flex: 1;">
-              <label>Tipo Struttura</label>
-              <select onchange="updateLuogo(${index}, 'tipo_struttura', this.value)">
-                <option value="camping" ${luogo.tipo_struttura === 'camping' ? 'selected' : ''}>camping</option>
-                <option value="area sosta" ${luogo.tipo_struttura === 'area sosta' ? 'selected' : ''}>area sosta</option>
-                <option value="parcheggio" ${luogo.tipo_struttura === 'parcheggio' ? 'selected' : ''}>parcheggio</option>
-                <option value="libera" ${luogo.tipo_struttura === 'libera' ? 'selected' : ''}>libera</option>
-              </select>
-            </div>
-            <div style="flex: 1.2;">
-              <label>Nome Struttura Pernottamento</label>
-              <input type="text" value="${escapeHtml(luogo.nome_struttura)}" onchange="updateLuogo(${index}, 'nome_struttura', this.value)" placeholder="Es. Camping Olympia">
-            </div>
-            <div style="flex: 0.6;">
-              <label>Notti</label>
-              <input type="number" min="0" value="${luogo.notti}" onchange="updateLuogo(${index}, 'notti', this.value)">
-            </div>
-            <div style="flex: 0.8;">
-              <label>Costo/Notte (€)</label>
-              <input type="number" step="0.01" value="${luogo.costo_notte}" onchange="updateLuogo(${index}, 'costo_notte', this.value)">
-            </div>
-          </div>
-          <div class="flex flex-mobile-col" style="margin-top: 8px; gap: 8px;">
-            <div style="flex: 1;">
-              <label>Latitudine</label>
-              <input type="number" step="any" value="${luogo.latitudine || ''}" onchange="updateLuogo(${index}, 'latitudine', this.value)" placeholder="46.537">
-            </div>
-            <div style="flex: 1;">
-              <label>Longitudine</label>
-              <input type="number" step="any" value="${luogo.longitudine || ''}" onchange="updateLuogo(${index}, 'longitudine', this.value)" placeholder="12.135">
-            </div>
-          </div>
-        `;
-        luoghiListContainer.appendChild(div);
-      });
-      recalculateTotals();
+      if (error) { console.error('Errore caricamento viaggi:', error.message); return; }
+
+      viaggiList = data || [];
+      renderViaggiTable(viaggiList);
     }
 
-    window.updateLuogo = (i, f, v) => { tempLuoghi[i][f] = v; recalculateTotals(); };
-    window.removeLuogo = (i) => { tempLuoghi.splice(i, 1); renderLuoghiForm(); };
+    function renderStars(rating) {
+      const num = parseInt(rating) || 0;
+      return '⭐'.repeat(num);
+    }
 
-    /* --- RIFORNIMENTI --- */
-    addRefuelBtn.addEventListener('click', () => {
-      const dataVal = rifDataInput.value;
-      const costoVal = parseFloat(rifCostoInput.value);
-      if (!dataVal || isNaN(costoVal) || costoVal <= 0) return alert('Dati rifornimento errati.');
-      
-      const litriCalc = camperSettings.costoCarburante > 0 ? (costoVal / camperSettings.costoCarburante) : 0;
-      tempRefuelings.push({ data_rifornimento: dataVal, costo_sostenuto: costoVal, litri_stimati: parseFloat(litriCalc.toFixed(2)) });
-      rifDataInput.value = ''; rifCostoInput.value = '';
-      renderRefuelTable();
-      recalculateTotals();
-    });
-
-    function renderRefuelTable() {
-      refuelTableBody.innerHTML = '';
-      if (tempRefuelings.length === 0) {
-        refuelTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8;">Nessun rifornimento.</td></tr>`;
+    function renderViaggiTable(viaggi) {
+      viaggiTableBody.innerHTML = '';
+      if (viaggi.length === 0) {
+        viaggiTableBody.innerHTML = `<tr><td colSpan="11" style="text-align:center; color:#94a3b8;">Nessun viaggio inserito.</td></tr>`;
         return;
       }
-      tempRefuelings.forEach((ref, idx) => {
+
+      viaggi.forEach(item => {
+        const nottiTotaliViaggio = calculateNights(item.data_partenza, item.data_arrivo);
+        const totCamping = getCampingTotalFromTrip(item);
+        const pedaggi = Number(item.costo_pedaggi || 0);
+        const rifList = item.rifornimenti || [];
+        const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+        
+        const luoghiList = item.luoghi || [];
+        let extraLuoghiTot = 0;
+        luoghiList.forEach(l => {
+          (l.costi_extra || []).forEach(c => extraLuoghiTot += parseFloat(c.valore) || 0);
+        });
+
+        const totaleViaggio = totCamping + pedaggi + carburante + extraLuoghiTot;
+
+        const ratingDisplay = luoghiList.length > 0 
+          ? luoghiList.map(l => `📍 ${renderStars(l.rating_luogo || 3)}<br>🏕️ ${renderStars(l.rating_campeggio || 3)}`).join('<br><div style="height:4px;"></div>')
+          : `📍 ${renderStars(item.rating_luogo || 3)}<br>🏕️ ${renderStars(item.rating_campeggio || 3)}`;
+
+        const thumbHtml = item.foto_copertina 
+          ? `<img src="${item.foto_copertina}" class="trip-thumb clickable-trip" alt="Copertina" title="Clicca per i dettagli">` 
+          : `<div class="clickable-trip" title="Clicca per i dettagli" style="width:50px; height:50px; background:#e2e8f0; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px;">📷</div>`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${formatDate(ref.data_rifornimento)}</td>
-          <td>€ ${Number(ref.costo_sostenuto).toFixed(2)}</td>
-          <td>${Number(ref.litri_stimati).toFixed(2)} L</td>
-          <td style="text-align: right;"><button type="button" class="btn-danger btn-sm" onclick="removeRefuel(${idx})">X</button></td>
+          <td style="position: relative;">${thumbHtml}</td>
+          <td style="position: relative;">
+            <strong class="clickable-trip" style="color: #0070f3;" title="Clicca per i dettagli">${escapeHtml(item.destinazione)}</strong>
+            ${luoghiList.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: ${luoghiList.map(l => escapeHtml(l.nome_luogo)).join(', ')}</small>` : ''}
+            ${item.note ? `<br><small style="color:#64748b;">📝 ${escapeHtml(item.note)}</small>` : ''}
+          </td>
+          <td style="font-size: 12px; white-space: nowrap;">
+            ${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)}
+            <br><strong style="color:#0284c7; font-size: 11px;">🌙 ${nottiTotaliViaggio} notti tot.</strong>
+          </td>
+          <td style="font-size: 11px;">
+            ${ratingDisplay}
+          </td>
+          <td>${item.chilometri} km</td>
+          <td>€ ${totCamping.toFixed(2)}</td>
+          <td>€ ${extraLuoghiTot.toFixed(2)}</td>
+          <td>€ ${carburante.toFixed(2)} <small style="color:#64748b;">(${rifList.length})</small></td>
+          <td>€ ${pedaggi.toFixed(2)}</td>
+          <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
+          <td style="text-align: right;">
+            <button class="btn-secondary btn-sm" onclick="prepareEdit(${item.id})" style="margin-bottom: 4px;">Modifica</button>
+            <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">Elimina</button>
+          </td>
         `;
-        refuelTableBody.appendChild(tr);
+
+        const clickables = tr.querySelectorAll('.clickable-trip');
+        clickables.forEach(el => {
+          el.addEventListener('click', (e) => {
+            showTripTooltip(item, el.parentElement, e);
+          });
+        });
+
+        viaggiTableBody.appendChild(tr);
       });
     }
 
-    window.removeRefuel = (i) => { tempRefuelings.splice(i, 1); renderRefuelTable(); recalculateTotals(); };
+    viaggioForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      syncLuoghiDataFromDOM();
 
-    function recalculateTotals() {
-      let totNotti = 0, totCamping = 0;
-      tempLuoghi.forEach(l => {
-        const n = parseInt(l.notti) || 0;
-        totNotti += n;
-        totCamping += n * (parseFloat(l.costo_notte) || 0);
-      });
-      totaleNottiViaggioInput.value = totNotti;
-      totaleCampeggioInput.value = totCamping.toFixed(2);
-      const pedaggi = parseFloat(costoPedaggiInput.value) || 0;
-      const carburante = tempRefuelings.reduce((s, r) => s + parseFloat(r.costo_sostenuto || 0), 0);
-      totaleCarburanteViaggioDisplay.textContent = `€ ${carburante.toFixed(2)}`;
-      costoTotalePreview.textContent = `€ ${(totCamping + pedaggi + carburante).toFixed(2)}`;
-    }
+      const id = viaggioIdInput.value;
+      const newKm = parseFloat(chilometriInput.value) || 0;
+      let kmDiff = 0;
 
-    [dataPartenzaInput, dataArrivoInput, costoPedaggiInput].forEach(e => e.addEventListener('input', recalculateTotals));
+      if (id) {
+        const oldTrip = viaggiList.find(x => x.id == id);
+        const oldKm = oldTrip ? parseFloat(oldTrip.chilometri) || 0 : 0;
+        kmDiff = newKm - oldKm;
+      } else {
+        kmDiff = newKm;
+      }
 
-    /* --- EDIT & SALVATAGGIO --- */
-    window.editViaggio = function(id) {
-      const v = viaggiList.find(item => item.id === id);
+	  const payloadViaggio = {
+        destinazione: destinazioneInput.value,
+        data_partenza: dataPartenzaInput.value,
+        data_arrivo: dataArrivoInput.value,
+        costo_campeggio_notte: 0,
+        chilometri: newKm,
+        costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
+        costo_carburante: calculateTotalCarburanteTemp(),
+        note: noteViaggioInput.value,
+        foto_copertina: fotoCopertinaBase64.value || null,
+        luoghi: tempLuoghi,
+        user_id: currentUser.id,
+        // AGGIUNGI QUESTA RIGA PER SALVARE L'EMAIL:
+        autore_email: currentUser.email 
+      };
+
+      let tripId = id;
+
+      if (id) {
+        const { error } = await supabaseClient.from('viaggi').update(payloadViaggio).eq('id', id);
+        if (error) { alert('Errore aggiornamento: ' + error.message); return; }
+        await supabaseClient.from('rifornimenti').delete().eq('viaggio_id', id);
+      } else {
+        const { data, error } = await supabaseClient.from('viaggi').insert([payloadViaggio]).select();
+        if (error || !data || data.length === 0) { alert('Errore inserimento: ' + (error ? error.message : '')); return; }
+        tripId = data[0].id;
+      }
+
+      if (tempRefuelings.length > 0) {
+        const rifPayloads = tempRefuelings.map(r => ({
+          viaggio_id: tripId,
+          data_rifornimento: r.data_rifornimento,
+          costo_sostenuto: r.costo_sostenuto,
+          litri: r.litri,
+          user_id: currentUser.id
+        }));
+
+        const { error: rifError } = await supabaseClient.from('rifornimenti').insert(rifPayloads);
+        if (rifError) alert('Errore rifornimenti: ' + rifError.message);
+      }
+      
+      await updateKmTotaliAutomatic(kmDiff);
+
+      resetViaggioForm();
+      fetchViaggi();
+      alert('Viaggio salvato con successo!');
+    });
+
+    window.prepareEdit = function(id) {
+      const v = viaggiList.find(x => x.id === id);
       if (!v) return;
 
-      viaggiModal.classList.add('hidden');
-
       viaggioIdInput.value = v.id;
-      destinazioneInput.value = v.destinazione || '';
-      dataPartenzaInput.value = v.data_partenza || '';
-      dataArrivoInput.value = v.data_arrivo || '';
-      chilometriInput.value = v.chilometri || 0;
-      costoPedaggiInput.value = v.costo_pedaggi || 0;
-      noteViaggioInput.value = v.note_viaggio || '';
+      destinazioneInput.value = v.destinazione;
+      dataPartenzaInput.value = v.data_partenza;
+      dataArrivoInput.value = v.data_arrivo;
+      chilometriInput.value = v.chilometri;
+      costoPedaggiInput.value = v.costo_pedaggi;
+      noteViaggioInput.value = v.note || '';
 
       if (v.foto_copertina) {
         fotoCopertinaBase64.value = v.foto_copertina;
@@ -845,210 +1469,214 @@
         previewContainer.classList.remove('hidden');
       } else {
         fotoCopertinaBase64.value = '';
+        fotoPreview.src = '';
         previewContainer.classList.add('hidden');
       }
 
-      tempLuoghi = typeof v.luoghi === 'string' ? JSON.parse(v.luoghi) : (v.luoghi || []);
+      tempLuoghi = JSON.parse(JSON.stringify(v.luoghi || []));
+      renderLuoghi();
+
       tempRefuelings = (v.rifornimenti || []).map(r => ({
         data_rifornimento: r.data_rifornimento,
         costo_sostenuto: r.costo_sostenuto,
-        litri_stimati: r.litri_stimati
+        litri: r.litri
       }));
 
-      renderLuoghiForm();
+      rifDataInput.value = v.data_partenza;
       renderRefuelTable();
+      updateFormCalculations();
 
       formTitle.textContent = 'Modifica Viaggio';
       saveBtn.textContent = 'Aggiorna Viaggio';
+      saveBtn.className = 'btn-success';
       cancelEditBtn.classList.remove('hidden');
-
+      
+      viaggiModal.classList.add('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    viaggioForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!currentUser) return;
+    cancelEditBtn.addEventListener('click', resetViaggioForm);
 
-      const id = viaggioIdInput.value;
-      const payloadViaggio = {
-        user_id: currentUser.id,
-        autore_email: currentUser.email,
-        destinazione: destinazioneInput.value,
-        data_partenza: dataPartenzaInput.value,
-        data_arrivo: dataArrivoInput.value,
-        chilometri: parseFloat(chilometriInput.value) || 0,
-        costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
-        note_viaggio: noteViaggioInput.value,
-        foto_copertina: fotoCopertinaBase64.value || null,
-        luoghi: tempLuoghi,
-        updated_at: new Date()
-      };
-
-      let tripId = id;
-      if (id) {
-        await supabaseClient.from('viaggi').update(payloadViaggio).eq('id', id);
-        await supabaseClient.from('rifornimenti').delete().eq('viaggio_id', id);
-      } else {
-        const { data } = await supabaseClient.from('viaggi').insert([payloadViaggio]).select();
-        tripId = data[0].id;
-      }
-
-      if (tempRefuelings.length > 0) {
-        const refuelPayload = tempRefuelings.map(r => ({
-          viaggio_id: tripId,
-          data_rifornimento: r.data_rifornimento,
-          costo_sostenuto: r.costo_sostenuto,
-          litri_stimati: r.litri_stimati
-        }));
-        await supabaseClient.from('rifornimenti').insert(refuelPayload);
-      }
-
-      resetForm();
-      await fetchViaggi();
-      alert('Viaggio salvato con successo!');
-    });
-
-    function resetForm() {
+    function resetViaggioForm() {
       viaggioIdInput.value = '';
       viaggioForm.reset();
       fotoCopertinaBase64.value = '';
+      fotoPreview.src = '';
       previewContainer.classList.add('hidden');
+
+      costoPedaggiInput.value = 0;
+      totaleCampeggioInput.value = '0.00';
+      totaleNottiViaggioInput.value = '0';
+      noteViaggioInput.value = '';
       tempRefuelings = [];
       tempLuoghi = [];
+      renderLuoghi();
       renderRefuelTable();
-      renderLuoghiForm();
+      updateFormCalculations();
+
       formTitle.textContent = 'Aggiungi Nuovo Viaggio (Chiave Padre)';
       saveBtn.textContent = 'Salva Viaggio';
+      saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
-      recalculateTotals();
     }
 
-    cancelEditBtn.addEventListener('click', resetForm);
+    window.deleteViaggio = async function(id) {
+      if (!confirm('Sicuro di voler eliminare questo viaggio? I chilometri verranno scalati dal totale.')) return;
+      
+      const tripToDelete = viaggiList.find(x => x.id === id);
+      const kmToDelete = tripToDelete ? parseFloat(tripToDelete.chilometri) || 0 : 0;
 
-    async function fetchViaggi() {
-      if (!currentUser) return;
-      const { data } = await supabaseClient
-        .from('viaggi')
-        .select('*, rifornimenti(*)')
-        .eq('user_id', currentUser.id)
-        .order('data_partenza', { ascending: false });
-
-      viaggiList = data || [];
-      renderViaggiTable();
-      renderSummary();
-      renderCalendar();
-    }
-
-    function renderViaggiTable() {
-      viaggiTableBody.innerHTML = '';
-      if (viaggiList.length === 0) {
-        viaggiTableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #94a3b8;">Nessun viaggio.</td></tr>`;
-        return;
+      const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
+      
+      if (!error) {
+        await updateKmTotaliAutomatic(-kmToDelete);
+        fetchViaggi();
+      } else {
+        alert("Errore nell'eliminazione: " + error.message);
       }
-
-      viaggiList.forEach(v => {
-        const luoghi = typeof v.luoghi === 'string' ? JSON.parse(v.luoghi) : (v.luoghi || []);
-        let camping = 0;
-        luoghi.forEach(l => camping += (parseInt(l.notti||0) * parseFloat(l.costo_notte||0)));
-
-        const pedaggi = Number(v.costo_pedaggi || 0);
-        const carburante = (v.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-        const totale = camping + pedaggi + carburante;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${v.foto_copertina ? `<img src="${v.foto_copertina}" class="trip-thumb">` : '🚐'}</td>
-          <td><strong class="clickable-trip" onclick="editViaggio('${v.id}')">${escapeHtml(v.destinazione)}</strong></td>
-          <td>${formatDate(v.data_partenza)} - ${formatDate(v.data_arrivo)}</td>
-          <td>⭐ ${v.rating_luogo || 3}</td>
-          <td>${v.chilometri} km</td>
-          <td>€ ${camping.toFixed(2)}</td>
-          <td>€ 0.00</td>
-          <td>€ ${carburante.toFixed(2)}</td>
-          <td>€ ${pedaggi.toFixed(2)}</td>
-          <td><strong>€ ${totale.toFixed(2)}</strong></td>
-          <td style="text-align: right;">
-            <button class="btn-warning btn-sm" onclick="editViaggio('${v.id}')">✏️ Edit</button>
-            <button class="btn-danger btn-sm" onclick="deleteViaggio('${v.id}')">🗑️</button>
-          </td>
-        `;
-        viaggiTableBody.appendChild(tr);
-      });
-    }
-
-    window.deleteViaggio = async (id) => {
-      if (!confirm('Eliminare questo viaggio?')) return;
-      await supabaseClient.from('viaggi').delete().eq('id', id);
-      await fetchViaggi();
     };
 
-    openViaggiBtn.addEventListener('click', () => viaggiModal.classList.remove('hidden'));
-    closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
+    openSummaryBtn.addEventListener('click', () => {
+      renderSummaryModal();
+      summaryModal.classList.remove('hidden');
+    });
 
-    function renderSummary() {
-      let totC = 0, totF = 0, totP = 0;
-      const tbody = document.getElementById('summary-table-body');
-      tbody.innerHTML = '';
-      viaggiList.forEach(v => {
-        const luoghi = typeof v.luoghi === 'string' ? JSON.parse(v.luoghi) : (v.luoghi || []);
-        let camping = 0;
-        luoghi.forEach(l => camping += (parseInt(l.notti||0) * parseFloat(l.costo_notte||0)));
-        const pedaggi = Number(v.costo_pedaggi || 0);
-        const carburante = (v.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-        const tot = camping + pedaggi + carburante;
-        totC += camping; totF += carburante; totP += pedaggi;
-
-        tbody.innerHTML += `<tr><td>${escapeHtml(v.destinazione)}</td><td>€ ${camping.toFixed(2)}</td><td>€ 0.00</td><td>€ ${carburante.toFixed(2)}</td><td>€ ${pedaggi.toFixed(2)}</td><td>€ ${tot.toFixed(2)}</td></tr>`;
-      });
-      document.getElementById('summary-total-camping').textContent = `€ ${totC.toFixed(2)}`;
-      document.getElementById('summary-total-fuel').textContent = `€ ${totF.toFixed(2)}`;
-      document.getElementById('summary-total-tolls').textContent = `€ ${totP.toFixed(2)}`;
-      document.getElementById('summary-grand-total').textContent = `€ ${(totC + totF + totP).toFixed(2)}`;
-    }
-
-    openSummaryBtn.addEventListener('click', () => summaryModal.classList.remove('hidden'));
     closeSummaryBtn.addEventListener('click', () => summaryModal.classList.add('hidden'));
 
+    function renderSummaryModal() {
+      const summaryTableBody = document.getElementById('summary-table-body');
+      summaryTableBody.innerHTML = '';
+
+      let globalCamping = 0;
+      let globalFuel = 0;
+      let globalTolls = 0;
+      let globalExtra = 0;
+
+      if (viaggiList.length === 0) {
+        summaryTableBody.innerHTML = `<tr><td colSpan="6" style="text-align:center; color:#94a3b8;">Nessun dato.</td></tr>`;
+      } else {
+        viaggiList.forEach(item => {
+          const camping = getCampingTotalFromTrip(item);
+          const fuel = (item.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+          const tolls = Number(item.costo_pedaggi || 0);
+          
+          let extraLuoghi = 0;
+          (item.luoghi || []).forEach(l => {
+            (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
+          });
+
+          const total = camping + fuel + tolls + extraLuoghi;
+
+          globalCamping += camping;
+          globalFuel += fuel;
+          globalTolls += tolls;
+          globalExtra += extraLuoghi;
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${escapeHtml(item.destinazione)}</strong></td>
+            <td>€ ${camping.toFixed(2)}</td>
+            <td>€ ${extraLuoghi.toFixed(2)}</td>
+            <td>€ ${fuel.toFixed(2)}</td>
+            <td>€ ${tolls.toFixed(2)}</td>
+            <td><strong>€ ${total.toFixed(2)}</strong></td>
+          `;
+          summaryTableBody.appendChild(tr);
+        });
+      }
+
+      const grandTotal = globalCamping + globalFuel + globalTolls + globalExtra;
+
+      document.getElementById('summary-total-camping').textContent = `€ ${globalCamping.toFixed(2)}`;
+      document.getElementById('summary-total-extra').textContent = `€ ${globalExtra.toFixed(2)}`;
+      document.getElementById('summary-total-fuel').textContent = `€ ${globalFuel.toFixed(2)}`;
+      document.getElementById('summary-total-tolls').textContent = `€ ${globalTolls.toFixed(2)}`;
+      document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
+    }
+
+    openCalendarBtn.addEventListener('click', () => {
+      calendarModal.classList.remove('hidden');
+      renderCalendar();
+    });
+
+    closeCalendarBtn.addEventListener('click', () => calendarModal.classList.add('hidden'));
+
+    document.getElementById('prev-month-btn').addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    document.getElementById('next-month-btn').addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    });
+
     function renderCalendar() {
-      const year = currentCalendarDate.getFullYear(), month = currentCalendarDate.getMonth();
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+
       const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
       document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
-      const daysContainer = document.getElementById('calendar-days-container');
-      daysContainer.innerHTML = '';
 
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-      let startingDay = firstDay.getDay() - 1;
-      if (startingDay === -1) startingDay = 6;
+      const startingDay = (firstDay.getDay() + 6) % 7;
 
-      for (let i = 0; i < startingDay; i++) daysContainer.appendChild(document.createElement('div'));
+      const daysContainer = document.getElementById('calendar-days-container');
+      daysContainer.innerHTML = '';
+
+      for (let i = 0; i < startingDay; i++) {
+        daysContainer.appendChild(document.createElement('div'));
+      }
 
       for (let day = 1; day <= lastDay.getDate(); day++) {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'calendar-day';
-        const dayFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const trip = viaggiList.find(v => dayFormatted >= v.data_partenza && dayFormatted <= v.data_arrivo);
 
-        if (trip) {
+        const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
+        
+        if (tripInDay) {
           dayDiv.classList.add('has-trip');
-          dayDiv.style.backgroundColor = '#dbeafe';
-          dayDiv.innerHTML = `<span class="day-num">${day}</span><span class="trip-initial">${trip.destinazione.charAt(0)}</span>`;
-          dayDiv.onclick = () => editViaggio(trip.id);
+          
+          const tripIndex = viaggiList.findIndex(v => v.id === tripInDay.id);
+          const color = TRIP_COLORS[tripIndex % TRIP_COLORS.length];
+          
+          dayDiv.style.backgroundColor = color.bg;
+          dayDiv.style.borderColor = color.border;
+          dayDiv.style.color = color.text;
+
+          const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
+
+          dayDiv.innerHTML = `
+            <span class="day-num">${day}</span>
+            <span class="trip-initial" title="${escapeHtml(tripInDay.destinazione)}">${iniziale}</span>
+          `;
+          
+          dayDiv.addEventListener('click', (e) => {
+            showTripTooltip(tripInDay, dayDiv, e);
+          });
         } else {
           dayDiv.innerHTML = `<span class="day-num">${day}</span>`;
         }
+
         daysContainer.appendChild(dayDiv);
       }
     }
 
-    openCalendarBtn.addEventListener('click', () => { calendarModal.classList.remove('hidden'); renderCalendar(); });
-    closeCalendarBtn.addEventListener('click', () => calendarModal.classList.add('hidden'));
-    document.getElementById('prev-month-btn').onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); renderCalendar(); };
-    document.getElementById('next-month-btn').onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); renderCalendar(); };
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
+    });
 
-    function formatDate(str) { if (!str) return '-'; const p = str.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str; }
-    function renderStars(r) { return '⭐'.repeat(parseInt(r)||3); }
-    function escapeHtml(s) { return String(s||'').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function formatDate(str) {
+      if (!str) return '-';
+      const p = str.split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
   </script>
 </body>
 </html>
