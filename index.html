@@ -187,9 +187,10 @@
         <h1 style="margin: 0; font-size: 22px;">🚐 Viaggi Camper</h1>
         <small id="user-email-display" style="color: #64748b;"></small>
       </div>
-      
+	  
       <div class="header-actions flex">
         <button id="open-viaggi-btn" class="btn-purple">📋 Elenco Viaggi</button>
+		<button id="open-all-luoghi-btn" class="btn-primary" style="background: #ec4899; color: white;">🌍 Elenco Luoghi</button>
         <button id="open-summary-btn" class="btn-info">📊 Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
         <button id="open-map-btn" class="btn-success">🗺️ Mappa Viaggi</button>
@@ -486,6 +487,35 @@
       <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
     </div>
   </div>
+  
+  <div id="all-luoghi-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 1050px; width: 95%;">
+      <div class="flex-center">
+        <h2 style="margin:0; font-size: 18px;">🌍 Elenco di tutti i Luoghi (Condivisi)</h2>
+        <button id="close-all-luoghi-btn" class="btn-secondary btn-sm">Chiudi</button>
+      </div>
+      
+      <div class="table-container" style="margin-top: 15px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome Luogo</th>
+              <th>Viaggio (Rif.)</th>
+              <th>Tipologia</th>
+              <th>Struttura</th>
+              <th style="min-width: 150px;">Note</th>
+              <th>Rating Luogo</th>
+              <th>Rating Camp.</th>
+              <th>Caricato da</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="all-luoghi-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <script>
     const { createClient } = window.supabase;
@@ -569,6 +599,11 @@
     const openMapBtn = document.getElementById('open-map-btn');
     const closeMapBtn = document.getElementById('close-map-btn');
     const mapModal = document.getElementById('map-modal');
+	
+	const openAllLuoghiBtn = document.getElementById('open-all-luoghi-btn');
+    const closeAllLuoghiBtn = document.getElementById('close-all-luoghi-btn');
+    const allLuoghiModal = document.getElementById('all-luoghi-modal');
+    const allLuoghiTableBody = document.getElementById('all-luoghi-table-body');
 
     let isRegisterMode = false;
     let currentUser = null;
@@ -1695,6 +1730,81 @@
     function escapeHtml(str) {
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+	
+	/* --- LOGICA ELENCO GLOBALE LUOGHI --- */
+    openAllLuoghiBtn.addEventListener('click', async () => {
+      allLuoghiModal.classList.remove('hidden');
+      await fetchAndRenderAllLuoghi();
+    });
+
+    closeAllLuoghiBtn.addEventListener('click', () => {
+      allLuoghiModal.classList.add('hidden');
+    });
+
+    async function fetchAndRenderAllLuoghi() {
+      allLuoghiTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #94a3b8; font-size: 12px;">Caricamento in corso...</td></tr>`;
+      
+      // Recuperiamo tutti i viaggi di tutti gli utenti
+      const { data: allTrips, error } = await supabaseClient
+        .from('viaggi')
+        .select('*');
+        
+      if (error) {
+        console.error('Errore caricamento luoghi globali:', error.message);
+        allLuoghiTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #dc2626; font-size: 12px;">Errore durante il caricamento dei dati.</td></tr>`;
+        return;
+      }
+
+      let allPlaces = [];
+
+      // Estraiamo tutti i luoghi da tutti i viaggi
+      (allTrips || []).forEach(trip => {
+        if (trip.luoghi && trip.luoghi.length > 0) {
+          trip.luoghi.forEach(luogo => {
+            allPlaces.push({
+              nome_luogo: luogo.nome_luogo || 'Sconosciuto',
+              viaggio_destinazione: trip.destinazione || 'Sconosciuto',
+              tipologia: luogo.tipologia || '-',
+              nome_campeggio: luogo.nome_campeggio || '-',
+              note_luogo: luogo.note_luogo || '-',
+              rating_luogo: luogo.rating_luogo || 3,
+              rating_campeggio: luogo.rating_campeggio || 3,
+              autore: trip.autore_email || 'Utente Anonimo',
+              data_creazione: trip.creato_il ? formatDate(trip.creato_il.slice(0, 10)) : '-'
+            });
+          });
+        }
+      });
+
+      // Ordiniamo l'array alfabeticamente per nome luogo
+      allPlaces.sort((a, b) => a.nome_luogo.localeCompare(b.nome_luogo));
+
+      allLuoghiTableBody.innerHTML = '';
+
+      if (allPlaces.length === 0) {
+        allLuoghiTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun luogo è stato ancora condiviso.</td></tr>`;
+        return;
+      }
+
+      // Renderizziamo i risultati
+      allPlaces.forEach(place => {
+        const tr = document.createElement('tr');
+        tr.style.fontSize = "12px";
+        tr.innerHTML = `
+          <td><strong style="color: #0284c7;">${escapeHtml(place.nome_luogo)}</strong></td>
+          <td>${escapeHtml(place.viaggio_destinazione)}</td>
+          <td style="text-transform: capitalize;">${escapeHtml(place.tipologia)}</td>
+          <td>${escapeHtml(place.nome_campeggio)}</td>
+          <td style="white-space: normal; line-height: 1.3;">${escapeHtml(place.note_luogo)}</td>
+          <td style="white-space: nowrap;">${renderStars(place.rating_luogo)}</td>
+          <td style="white-space: nowrap;">${renderStars(place.rating_campeggio)}</td>
+          <td style="color: #64748b;">${escapeHtml(place.autore)}</td>
+          <td style="color: #64748b; white-space: nowrap;">${place.data_creazione}</td>
+        `;
+        allLuoghiTableBody.appendChild(tr);
+      });
+    }
+	
   </script>
 </body>
 </html>
