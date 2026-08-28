@@ -135,7 +135,6 @@
       opacity: 0.8;
     }
 
-    /* Stile personalizzato per i popup della Mappa */
     .leaflet-popup-content-wrapper {
       background: #0f172a !important;
       color: white !important;
@@ -698,7 +697,6 @@
       });
     }
 
-    /* --- FUNZIONE TOOLTIP IN OVERLAY SUPERIORE --- */
     function getTripTooltipHTML(tripItem) {
       const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
       const camping = getCampingTotalFromTrip(tripItem);
@@ -738,7 +736,7 @@
       `;
     }
 
-    /* --- FUNZIONE TOOLTIP MAPPA COMUNE (AGGIORNATA CON LE NOTE DEI LUOGHI) --- */
+    /* --- FUNZIONE TOOLTIP MAPPA COMUNE (DETTAGLIATA SOLO PER IL PROPRIETARIO) --- */
     function getMapTooltipHTML(tripItem, user) {
       const isOwner = (user && tripItem.user_id === user.id);
       
@@ -763,7 +761,20 @@
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">` 
         : '';
 
-      // Generazione HTML delle note dei singoli luoghi
+      // Se NON è il proprietario, mostra una versione sintetica
+      if (!isOwner) {
+        return `
+          <div style="font-size: 12px; line-height: 1.3;">
+            ${imageHtml}
+            <h4 style="margin: 0 0 4px 0; color: #38bdf8; font-size: 13px;">📍 ${escapeHtml(tripItem.destinazione)}</h4>
+            <p style="margin: 2px 0;">📅 ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} (${notti} notti)</p>
+            <p style="margin: 2px 0;">⭐ ${ratingsText}</p>
+            ${tripItem.note ? `<p style="margin: 4px 0 2px 0; color: #cbd5e1;"><small>📝 <strong>Note:</strong> ${escapeHtml(tripItem.note)}</small></p>` : ''}
+          </div>
+        `;
+      }
+
+      // Se È IL PROPRIETARIO, mostra tutti i dettagli estesi inclusi costi e note dei luoghi
       let luoghiNoteHtml = '';
       if (tripItem.luoghi && tripItem.luoghi.length > 0) {
         const luoghiConNote = tripItem.luoghi.filter(l => l.note_luogo && l.note_luogo.trim() !== '');
@@ -777,14 +788,15 @@
       return `
         <div style="font-size: 12px; line-height: 1.3;">
           ${imageHtml}
-          <h4 style="margin: 0 0 4px 0; color: #38bdf8; font-size: 13px;">📍 ${escapeHtml(tripItem.destinazione)}</h4>
+          <h4 style="margin: 0 0 4px 0; color: #38bdf8; font-size: 13px;">📍 ${escapeHtml(tripItem.destinazione)} (Tuo Viaggio)</h4>
           <p style="margin: 2px 0;">📅 ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} (${notti} notti)</p>
           <p style="margin: 2px 0;">⭐ ${ratingsText}</p>
           <p style="margin: 2px 0;">🛣️ Km: ${tripItem.chilometri} | 🏕️ Camp: € ${camping.toFixed(2)}</p>
+          <p style="margin: 2px 0;">💰 Extra: € ${extraLuoghi.toFixed(2)} | 💶 Pedaggi: € ${pedaggi.toFixed(2)}</p>
+          <p style="margin: 2px 0;">⛽ Carburante: € ${carburante.toFixed(2)}</p>
           ${tripItem.note ? `<p style="margin: 4px 0 2px 0; color: #cbd5e1;"><small>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note)}</small></p>` : ''}
           ${luoghiNoteHtml}
-          <p style="margin-top: 4px; border-top: 1px solid #334155; padding-top: 3px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
-          ${isOwner ? `<p style="margin-top:4px; text-align:right;"><small style="color:#38bdf8; font-style:italic;">(Il tuo viaggio)</small></p>` : ''}
+          <p style="margin-top: 6px; border-top: 1px solid #334155; padding-top: 4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
         </div>
       `;
     }
@@ -813,7 +825,6 @@
       return total;
     }
 
-    /* --- GESTIONE LUOGHI NEL FORM --- */
     addLuogoBtn.addEventListener('click', () => {
       tempLuoghi.push({
         nome_luogo: '',
@@ -1060,7 +1071,6 @@
       costoTotalePreview.textContent = `€ ${totaleViaggio.toFixed(2)}`;
     }
 
-    /* --- GESTIONE RIFORNIMENTI --- */
     addRefuelBtn.addEventListener('click', () => {
       const costo = parseFloat(rifCostoInput.value) || 0;
       const dataRif = rifDataInput.value || dataPartenzaInput.value;
@@ -1114,7 +1124,6 @@
       updateFormCalculations();
     };
 
-    /* --- SETTAGGI --- */
     async function fetchSettings() {
       const { data } = await supabaseClient
         .from('camper_settings')
@@ -1168,7 +1177,6 @@
     openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-    /* --- CRUD VIAGGI --- */
     async function fetchViaggi() {
       const { data, error } = await supabaseClient
         .from('viaggi')
@@ -1340,7 +1348,6 @@
         .eq('user_id', currentUser.id);
     }
 
-    /* --- TABELLA ELENCO VIAGGI --- */
     function renderViaggiTable() {
       viaggiTableBody.innerHTML = '';
       if (viaggiList.length === 0) {
@@ -1421,7 +1428,6 @@
     });
     closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
 
-    /* --- RIEPILOGO COSTI --- */
     openSummaryBtn.addEventListener('click', () => {
       renderSummaryModal();
       summaryModal.classList.remove('hidden');
@@ -1474,7 +1480,6 @@
       document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
     }
 
-    /* --- CALENDARIO --- */
     openCalendarBtn.addEventListener('click', () => {
       calendarModal.classList.remove('hidden');
       renderCalendar();
@@ -1565,7 +1570,6 @@
       document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
     });
 
-    /* --- MAPPA GENERALE --- */
     openMapBtn.addEventListener('click', () => {
       mapModal.classList.remove('hidden');
       setTimeout(initAndRenderMap, 200);
