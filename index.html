@@ -818,7 +818,6 @@
 		  const emailAutore = tripItem.autore_email || "Utente Anonimo";
 		  
 		  // Recupera il timestamp dal record del viaggio
-		  //const TimeCreazione = tripItem.creato_il || "Creato N.N.";		  
 		  const TimeCreazione = tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '';
 		  
 		  
@@ -835,6 +834,16 @@
 
 		  if (tripItem.note_viaggio || tripItem.note) {
 			html += `<p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
+		  }
+
+		  // Aggiunta delle Note del Luogo
+		  if ((tripItem.luoghi || []).length > 0) {
+			const noteLuoghi = tripItem.luoghi
+			  .filter(l => l.note_luogo && l.note_luogo.trim() !== '')
+			  .map(l => `<strong>${escapeHtml(l.nome_luogo || 'Luogo')}:</strong> ${escapeHtml(l.note_luogo)}`);
+			if (noteLuoghi.length > 0) {
+			  html += `<p>📌 <strong>Note Luoghi:</strong><br><small>${noteLuoghi.join('<br>')}</small></p>`;
+			}
 		  }
 		  
 		  // Date visibili SOLO al proprietario
