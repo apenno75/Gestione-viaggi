@@ -827,10 +827,16 @@
 			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
 			  ${imageHtml}
 			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+			  
+			  
 			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
 			  <p style="color: #38bdf8; font-size: 11px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>
 		  `;
 
+		  if (tripItem.note_viaggio || tripItem.note) {
+			html += `<p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
+		  }
+		  
 		  // Date visibili SOLO al proprietario
 		  if (isOwner) {
 			html += `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
@@ -840,11 +846,8 @@
 		  if ((tripItem.luoghi || []).length > 0) {
 			html += `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>`;
 		  }
-		  html += `<p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>`;
+		  html += `<p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>`;
 		  
-		  if (tripItem.note_viaggio || tripItem.note) {
-			html += `<p>📝 <strong>Note:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
-		  }
 
 		  // Costi e Chilometri visibili SOLO al proprietario
 		  if (isOwner) {
