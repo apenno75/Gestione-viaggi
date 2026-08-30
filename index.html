@@ -196,6 +196,7 @@
         <button id="open-map-btn" class="btn-success">🗺️ Mappa Viaggi</button>
         <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
         <button id="logout-btn" class="btn-danger">Logout</button>
+		<button id="open-help-btn" class="btn-warning" style="background: #eab308; color: white;">❓ Help</button>
       </div>
     </div>
 
@@ -333,7 +334,7 @@
               <th>Rating Luoghi</th>
               <th>Km Tot</th>
               <th>Camping Tot.</th>
-              <th>Extra Luoghi</th>
+              <th>Costi Extra</th>
               <th>Carburante</th>
               <th>Pedaggi</th>
               <th>Totale</th>
@@ -359,7 +360,7 @@
           <div class="amount" id="summary-total-camping">€ 0.00</div>
         </div>
         <div class="stat-card">
-          <small>Extra Luoghi</small>
+          <small>Costi Extra</small>
           <div class="amount" id="summary-total-extra" style="color: #8b5cf6;">€ 0.00</div>
         </div>
         <div class="stat-card">
@@ -383,7 +384,7 @@
             <tr>
               <th>Viaggio</th>
               <th>Camping</th>
-              <th>Extra Luoghi</th>
+              <th>Costi Extra</th>
               <th>Carburante</th>
               <th>Pedaggi</th>
               <th>Totale</th>
@@ -487,6 +488,18 @@
       <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
     </div>
   </div>
+  
+  <div id="help-modal" class="modal-overlay hidden">
+  <div class="modal-content" style="max-width: 900px; width: 95%; height: 85vh; display: flex; flex-direction: column;">
+    <div class="flex-center" style="margin-bottom: 12px;">
+      <h2 style="margin:0; font-size: 18px;">❓ Manuale Viaggi Camper</h2>
+      <button id="close-help-btn" class="btn-secondary btn-sm">Chiudi</button>
+    </div>
+    <div style="flex: 1; width: 100%;">
+      <iframe src="https://apenno75.github.io/Gestione-viaggi/Manuale_Viaggi_Camper.pdf" style="width: 100%; height: 100%; border: 1px solid #cbd5e1; border-radius: 8px;" frameborder="0"></iframe>
+    </div>
+  </div>
+</div>
   
   <div id="all-luoghi-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 1050px; width: 95%;">
@@ -604,6 +617,10 @@
     const closeAllLuoghiBtn = document.getElementById('close-all-luoghi-btn');
     const allLuoghiModal = document.getElementById('all-luoghi-modal');
     const allLuoghiTableBody = document.getElementById('all-luoghi-table-body');
+	
+	const openHelpBtn = document.getElementById('open-help-btn');
+	const closeHelpBtn = document.getElementById('close-help-btn');
+	const helpModal = document.getElementById('help-modal');
 
     let isRegisterMode = false;
     let currentUser = null;
@@ -765,7 +782,7 @@
           <p>⭐ <strong>Ratings:</strong><br>${ratingsText}</p>
           <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
-          <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+          <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
           <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
           <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
           <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
@@ -834,7 +851,7 @@
 			html += `
 			  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
 			  <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
-			  <p>💰 <strong>Extra Luoghi:</strong> € ${extraLuoghi.toFixed(2)}</p>
+			  <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
 			  <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
 			  <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
 			  <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>
@@ -1114,7 +1131,7 @@
             <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 600px;">
               <thead>
                 <tr>
-                  <th style="width: 15%;">Valore (€)</th>
+                  <th style="width: 15%;">Costo (€)</th>
                   <th style="width: 20%;">Categoria Extra</th>
                   <th style="width: 20%;">Nome</th>
                   <th style="width: 20%;">Luogo</th>
@@ -1572,7 +1589,15 @@
       saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
     }
+	
+	openHelpBtn.addEventListener('click', () => {
+	  helpModal.classList.remove('hidden');
+	});
 
+	closeHelpBtn.addEventListener('click', () => {
+	  helpModal.classList.add('hidden');
+	});
+	
     window.deleteViaggio = async function(id) {
       if (!confirm('Sicuro di voler eliminare questo viaggio? I chilometri verranno scalati dal totale.')) return;
       
