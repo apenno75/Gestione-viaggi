@@ -187,13 +187,18 @@
       color: #ffffff;
     }
 
-    @media (max-width: 768px) {
+	
+	@media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
       .header-actions button { width: 100%; font-size: 12px; padding: 8px; }
       .flex-mobile-col { flex-direction: column !important; }
       .flex-mobile-col > div { width: 100% !important; }
       .app-header { flex-direction: column; align-items: flex-start; }
-    }
+      #viaggi-modal th:nth-child(2),
+      #viaggi-modal td:nth-child(2) {
+        min-width: 160px;
+      }
+    }	
   </style>
 </head>
 <body>
