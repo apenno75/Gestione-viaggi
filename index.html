@@ -107,17 +107,6 @@
     .calendar-tooltip p { margin: 3px 0; }
     .calendar-tooltip ul { margin: 5px 0 0 0; padding-left: 15px; font-size: 11px; color: #cbd5e1; }
 
-    .trip-overlay-tooltip {
-      position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      z-index: 10005 !important;
-      width: 90%;
-      max-width: 340px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
     .refuel-box { background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px solid #e2e8f0; }
 
     .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 110px; }
@@ -150,7 +139,7 @@
       line-height: 1.4 !important;
     }
 
-    /* Modale a schermo intero per il clic sui marker della Mappa */
+    /* Modale a schermo intero per il clic sui marker della Mappa e Tooltip Calendario */
     .map-full-overlay {
       position: fixed;
       top: 0;
@@ -831,11 +820,11 @@
           <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
           <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
 		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
-		  <p>----------------------------------------------</p>
+		  <p>---------------------------------------------------------------------------</p>
           ${(tripItem.luoghi || []).length > 0 ? `	  
 		  <p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
           <p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
-		  <p>----------------------------------------------</p>
+		  <p>---------------------------------------------------------------------------</p>
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
@@ -898,7 +887,7 @@ function getMapTooltipHTML(tripItem, user) {
 			html += `<p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
 		  }
 
-		   html += `<p>-----------------------------------------------<br></p>`;
+		   html += `<p>---------------------------------------------------------------------------<br></p>`;
 		   
 		  // Luoghi e Rating visibili A TUTTI
 		  if ((tripItem.luoghi || []).length > 0) {
@@ -917,7 +906,7 @@ function getMapTooltipHTML(tripItem, user) {
 		  
 		  html += `<p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>`;
 		  
-		  html += `<p>-----------------------------------------------<br></p>`;
+		  html += `<p>---------------------------------------------------------------------------<br></p>`;
 		  // Costi e Chilometri visibili SOLO al proprietario
 		  if (isOwner) {
 			html += `
@@ -936,17 +925,30 @@ function getMapTooltipHTML(tripItem, user) {
 
     function showTripTooltip(tripItem, parentElement, event) {
       if (event) event.stopPropagation();
-      document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
+      document.querySelectorAll('.map-full-overlay').forEach(el => el.remove());
 
-      const tooltip = document.createElement('div');
-      tooltip.className = 'calendar-tooltip trip-overlay-tooltip';
-      tooltip.addEventListener('click', (evt) => evt.stopPropagation());
-
-      tooltip.innerHTML = getTripTooltipHTML(tripItem) + `
-        <button onclick="this.closest('.calendar-tooltip').remove();" class="btn-secondary btn-sm" style="width:100%; margin-top:8px;">Chiudi</button>
+      const fullOverlay = document.createElement('div');
+      fullOverlay.className = 'map-full-overlay';
+      fullOverlay.innerHTML = `
+        <div class="map-full-overlay-content">
+          <button class="map-full-overlay-close" title="Chiudi">&times;</button>
+          ${getTripTooltipHTML(tripItem)}
+        </div>
       `;
 
-      document.body.appendChild(tooltip);
+      const closeBtn = fullOverlay.querySelector('.map-full-overlay-close');
+      const removeOverlay = () => {
+        if (fullOverlay.parentNode) {
+          fullOverlay.parentNode.removeChild(fullOverlay);
+        }
+      };
+
+      closeBtn.addEventListener('click', removeOverlay);
+      fullOverlay.addEventListener('click', (e) => {
+        if (e.target === fullOverlay) removeOverlay();
+      });
+
+      document.body.appendChild(fullOverlay);
     }
 
     /* --- LOGICA DELLA MAPPA CON MAPBOX/LEAFLET --- */
@@ -1837,10 +1839,6 @@ function getMapTooltipHTML(tripItem, user) {
         daysContainer.appendChild(dayDiv);
       }
     }
-
-    document.addEventListener('click', () => {
-      document.querySelectorAll('.calendar-tooltip.trip-overlay-tooltip').forEach(el => el.remove());
-    });
 
     function formatDate(str) {
       if (!str) return '-';
