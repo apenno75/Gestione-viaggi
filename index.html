@@ -353,7 +353,7 @@
           </div>
           <div class="flex" style="width: 100%; justify-content: flex-end;">
             <button type="button" id="cancel-edit-btn" class="btn-secondary hidden" style="flex:1;">Annulla</button>
-            <button type="submit" id="save-btn" class="btn-primary" style="flex:1;">Salva Viaggio</button>
+            <button type="submit" id="save-btn" class="btn-primary" style="flex:1;">💾 Salva Viaggio</button>
           </div>
         </div>
       </form>
@@ -1557,8 +1557,8 @@ function getMapTooltipHTML(tripItem, user) {
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
           <td style="text-align: right;">
-            <button class="btn-secondary btn-sm" onclick="prepareEdit(${item.id})" style="margin-bottom: 4px;">Modifica</button>
-            <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">Elimina</button>
+			<button class="btn-warning btn-sm" onclick="prepareEdit(${item.id})" style="margin-bottom: 4px; background: #eab308; color: white;">✏️ Modifica</button>
+            <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">🗑️ Elimina</button>
           </td>
         `;
 
@@ -1701,7 +1701,7 @@ function getMapTooltipHTML(tripItem, user) {
       updateFormCalculations();
 
       formTitle.textContent = 'Aggiungi Nuovo Viaggio (Chiave Padre)';
-      saveBtn.textContent = 'Salva Viaggio';
+      saveBtn.textContent = '💾 Salva Viaggio';
       saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
       viaggioFormContainer.classList.add('hidden'); // Nascondiamo il form se annulliamo o salviamo
