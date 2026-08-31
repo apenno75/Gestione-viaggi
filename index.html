@@ -150,6 +150,54 @@
       line-height: 1.4 !important;
     }
 
+    /* Modale a schermo intero per il clic sui marker della Mappa */
+    .map-full-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.95);
+      z-index: 20000;
+      overflow-y: auto;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .map-full-overlay-content {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .map-full-overlay-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+      z-index: 2;
+    }
+
+    .map-full-overlay-close:hover {
+      color: #ffffff;
+    }
+
     @media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
       .header-actions button { width: 100%; font-size: 12px; padding: 8px; }
@@ -766,7 +814,6 @@
 
       const totale = camping + pedaggi + carburante + extraLuoghi;
 
-
 	  const ratingsText = (tripItem.luoghi || []).length > 0
 		? tripItem.luoghi.map(l => {
 			const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
@@ -774,17 +821,9 @@
 		  }).join('<br>')
 		: `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
 
-
-  //    const ratingsText = (tripItem.luoghi || []).length > 0
-  //      ? tripItem.luoghi.map(l => `<small><strong>${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> 📍 ${renderStars(l.rating_luogo || 3)} | 🏕️ ${renderStars(l.rating_campeggio || 3)}</small>`).join('<br>')
-  //      : `Rating ${renderStars(tripItem.rating_luogo || 3)} | Camping ${renderStars(tripItem.rating_campeggio || 3)}`;
-
-
       const imageHtml = tripItem.foto_copertina 
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
         : '';
-		
-		
 		
       return `
         <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
@@ -840,13 +879,11 @@ function getMapTooltipHTML(tripItem, user) {
 		  // Recupera il timestamp dal record del viaggio
 		  const TimeCreazione = tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '';
 		  
-		  
 		  // Parte visibile A TUTTI
 		  let html = `
 			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
 			  ${imageHtml}
 			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
-			  
 			  
 			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
 			  <p style="color: #38bdf8; font-size: 11px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>
@@ -923,79 +960,104 @@ function getMapTooltipHTML(tripItem, user) {
     });
 
     async function initAndRenderMap() {
-  if (!map) {
-    map = L.map('map-container').setView([41.9028, 12.4964], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-    markersGroup = L.featureGroup().addTo(map);
-  } else {
-    map.invalidateSize();
-    markersGroup.clearLayers();
-  }
+      if (!map) {
+        map = L.map('map-container').setView([41.9028, 12.4964], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+        markersGroup = L.featureGroup().addTo(map);
+      } else {
+        map.invalidateSize();
+        markersGroup.clearLayers();
+      }
 
-  const flagIcon = L.divIcon({
-    className: 'custom-flag-icon',
-    html: '<div style="font-size: 26px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">🚩</div>',
-    iconSize: [30, 30],
-    iconAnchor: [5, 25],
-    popupAnchor: [10, -20]
-  });
+      const flagIcon = L.divIcon({
+        className: 'custom-flag-icon',
+        html: '<div style="font-size: 26px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">🚩</div>',
+        iconSize: [30, 30],
+        iconAnchor: [5, 25],
+        popupAnchor: [10, -20]
+      });
 
-  // RECUPERA TUTTI I VIAGGI DA SUPABASE (di tutti gli utenti)
-  const { data: allTrips, error } = await supabaseClient
-    .from('viaggi')
-    .select('*, rifornimenti(*)');
-    
-  if (error) {
-    console.error('Errore caricamento mappa generale:', error.message);
-    return;
-  }
+      // RECUPERA TUTTI I VIAGGI DA SUPABASE (di tutti gli utenti)
+      const { data: allTrips, error } = await supabaseClient
+        .from('viaggi')
+        .select('*, rifornimenti(*)');
+        
+      if (error) {
+        console.error('Errore caricamento mappa generale:', error.message);
+        return;
+      }
 
-  const itemsToGeocode = [];
+      const itemsToGeocode = [];
 
-  (allTrips || []).forEach(trip => {
-    if (trip.luoghi && trip.luoghi.length > 0) {
-      trip.luoghi.forEach(luogo => {
-        if (luogo.nome_luogo) {
-          itemsToGeocode.push({ query: luogo.nome_luogo, trip: trip, label: luogo.nome_luogo });
+      (allTrips || []).forEach(trip => {
+        if (trip.luoghi && trip.luoghi.length > 0) {
+          trip.luoghi.forEach(luogo => {
+            if (luogo.nome_luogo) {
+              itemsToGeocode.push({ query: luogo.nome_luogo, trip: trip, label: luogo.nome_luogo });
+            }
+          });
+        } else if (trip.destinazione) {
+          itemsToGeocode.push({ query: trip.destinazione, trip: trip, label: trip.destinazione });
         }
       });
-    } else if (trip.destinazione) {
-      itemsToGeocode.push({ query: trip.destinazione, trip: trip, label: trip.destinazione });
-    }
-  });
 
-  if (itemsToGeocode.length === 0) return;
+      if (itemsToGeocode.length === 0) return;
 
-  for (const item of itemsToGeocode) {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}`);
-      const data = await res.json();
+      for (const item of itemsToGeocode) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}`);
+          const data = await res.json();
 
-      if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
+          if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
 
-        const marker = L.marker([lat, lon], { icon: flagIcon });
-        
-        // USA LA NUOVA FUNZIONE PASSANDO trip E currentUser
-        marker.bindPopup(getMapTooltipHTML(item.trip, currentUser), { maxWidth: 320 });
-        markersGroup.addLayer(marker);
+            const marker = L.marker([lat, lon], { icon: flagIcon });
+            
+            // Evento Click sul marker per aprire la modale A TUTTO SCHERMO con la 'X' in alto a destra
+            marker.on('click', () => {
+              const fullOverlay = document.createElement('div');
+              fullOverlay.className = 'map-full-overlay';
+              fullOverlay.innerHTML = `
+                <div class="map-full-overlay-content">
+                  <button class="map-full-overlay-close" title="Chiudi">&times;</button>
+                  ${getMapTooltipHTML(item.trip, currentUser)}
+                </div>
+              `;
+
+              // Evento per chiudere la modale cliccando la X o sullo sfondo
+              const closeBtn = fullOverlay.querySelector('.map-full-overlay-close');
+              const removeOverlay = () => {
+                if (fullOverlay.parentNode) {
+                  fullOverlay.parentNode.removeChild(fullOverlay);
+                }
+              };
+
+              closeBtn.addEventListener('click', removeOverlay);
+              fullOverlay.addEventListener('click', (e) => {
+                if (e.target === fullOverlay) removeOverlay();
+              });
+
+              document.body.appendChild(fullOverlay);
+            });
+
+            markersGroup.addLayer(marker);
+          }
+        } catch (err) {
+          console.error("Errore geocodifica luogo:", item.query, err);
+        }
       }
-    } catch (err) {
-      console.error("Errore geocodifica luogo:", item.query, err);
-    }
-  }
 
-  if (markersGroup.getLayers().length > 0) {
-    map.fitBounds(markersGroup.getBounds().pad(0.2));
-    if (map.getZoom() > 6) {
-      map.setZoom(6);
+      if (markersGroup.getLayers().length > 0) {
+        map.fitBounds(markersGroup.getBounds().pad(0.2));
+        if (map.getZoom() > 6) {
+          map.setZoom(6);
+        }
+      }
     }
-  }
-}
 
     addLuogoBtn.addEventListener('click', () => {
       tempLuoghi.push({
@@ -1520,7 +1582,6 @@ function getMapTooltipHTML(tripItem, user) {
         foto_copertina: fotoCopertinaBase64.value || null,
         luoghi: tempLuoghi,
         user_id: currentUser.id,
-        // AGGIUNGI QUESTA RIGA PER SALVARE L'EMAIL:
         autore_email: currentUser.email 
       };
 
@@ -1759,12 +1820,7 @@ function getMapTooltipHTML(tripItem, user) {
           dayDiv.style.borderColor = color.border;
           dayDiv.style.color = color.text;
 		  
-		  // Recupero l' iniziale del nome della destinazione
-          // iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
-		  
-		  // Recupero i primi 2 byte del nome della destinazione
 		  const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().slice(0, 2).toUpperCase() : '';
-		  
 		  
           dayDiv.innerHTML = `
             <span class="day-num">${day}</span>
@@ -1809,7 +1865,6 @@ function getMapTooltipHTML(tripItem, user) {
     async function fetchAndRenderAllLuoghi() {
       allLuoghiTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #94a3b8; font-size: 12px;">Caricamento in corso...</td></tr>`;
       
-      // Recuperiamo tutti i viaggi di tutti gli utenti
       const { data: allTrips, error } = await supabaseClient
         .from('viaggi')
         .select('*');
@@ -1822,7 +1877,6 @@ function getMapTooltipHTML(tripItem, user) {
 
       let allPlaces = [];
 
-      // Estraiamo tutti i luoghi da tutti i viaggi
       (allTrips || []).forEach(trip => {
         if (trip.luoghi && trip.luoghi.length > 0) {
           trip.luoghi.forEach(luogo => {
@@ -1842,7 +1896,6 @@ function getMapTooltipHTML(tripItem, user) {
         }
       });
 
-      // Ordiniamo l'array alfabeticamente per nome luogo
       allPlaces.sort((a, b) => a.nome_luogo.localeCompare(b.nome_luogo));
 
       allLuoghiTableBody.innerHTML = '';
@@ -1852,7 +1905,6 @@ function getMapTooltipHTML(tripItem, user) {
         return;
       }
 
-      // Renderizziamo i risultati
       allPlaces.forEach(place => {
         const tr = document.createElement('tr');
         tr.style.fontSize = "12px";
@@ -1871,7 +1923,6 @@ function getMapTooltipHTML(tripItem, user) {
         allLuoghiTableBody.appendChild(tr);
       });
     }
-	
   </script>
 </body>
 </html>
