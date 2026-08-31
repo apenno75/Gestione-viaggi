@@ -241,6 +241,7 @@
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
         <button id="open-map-btn" class="btn-success">🗺️ Mappa Viaggi</button>
         <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
+		<button id="open-all-campers-btn" class="btn-primary" style="background: #059669; color: white;">🚐 I Camper</button>
         <button id="logout-btn" class="btn-danger">Logout</button>
         <button id="open-help-btn" class="btn-warning" style="background: #eab308; color: white;">❓ Help</button>
       </div>
@@ -586,6 +587,31 @@
       </div>
     </div>
   </div>
+  
+<div id="all-campers-modal" class="modal-overlay hidden">
+  <div class="modal-content" style="max-width: 900px; width: 95%;">
+    <div class="flex-center">
+      <h2 style="margin:0; font-size: 18px;">🚐 Elenco Camper degli Utenti</h2>
+      <button id="close-all-campers-btn" class="btn-secondary btn-sm">Chiudi</button>
+    </div>
+    
+    <div class="table-container" style="margin-top: 15px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome Camper</th>
+            <th>Nome Utente</th>
+            <th>Lunghezza (m)</th>
+            <th>Altezza (m)</th>
+            <th>Km Totali</th>
+          </tr>
+        </thead>
+        <tbody id="all-campers-table-body">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
   <script>
     const { createClient } = window.supabase;
@@ -605,6 +631,11 @@
       { bg: '#ccfbf1', border: '#14b8a6', text: '#0f766e' },
       { bg: '#ffedd5', border: '#f97316', text: '#c2410c' }
     ];
+
+	const openAllCampersBtn = document.getElementById('open-all-campers-btn');
+	const closeAllCampersBtn = document.getElementById('close-all-campers-btn');
+	const allCampersModal = document.getElementById('all-campers-modal');
+	const allCampersTableBody = document.getElementById('all-campers-table-body');
 
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
@@ -991,6 +1022,53 @@ function getMapTooltipHTML(tripItem, user) {
 
       document.body.appendChild(fullOverlay);
     }
+
+// Eventi Apertura e Chiusura Modale Camper
+openAllCampersBtn.addEventListener('click', () => {
+  allCampersModal.classList.remove('hidden');
+  fetchAllCampers();
+});
+
+closeAllCampersBtn.addEventListener('click', () => {
+  allCampersModal.classList.add('hidden');
+});
+
+// Funzione per recuperare tutti i camper condivisi/registrati da Supabase
+async function fetchAllCampers() {
+  allCampersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Caricamento in corso...</td></tr>';
+  
+  try {
+    // Recupera le impostazioni dei camper da Supabase
+    const { data: campers, error } = await supabaseClient
+      .from('camper_settings')
+      .select('*');
+
+    if (error) throw error;
+
+    allCampersTableBody.innerHTML = '';
+
+    if (!campers || campers.length === 0) {
+      allCampersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">Nessun camper trovato.</td></tr>';
+      return;
+    }
+
+    campers.forEach(camper => {
+      const tr = document.createElement('tr');
+      tr.style.fontSize = "13px";
+      tr.innerHTML = `
+        <td><strong style="color: #0284c7;">${escapeHtml(camper.nome_camper || nome_camper || 'N/D')}</strong></td>
+        <td style="color: #475569;">${escapeHtml(camper.nome_utente || camper.user_email || 'N/D')}</td>
+        <td>${camper.lunghezza ? camper.lunghezza + ' m' : '-'}</td>
+        <td>${camper.altezza ? camper.altezza + ' m' : '-'}</td>
+        <td><strong>${camper.km_totali != null ? camper.km_totali + ' km' : '-'}</strong></td>
+      `;
+      allCampersTableBody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Errore nel recupero dei camper:", err);
+    allCampersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Errore durante il caricamento dei dati.</td></tr>';
+  }
+}
 
     /* --- LOGICA DELLA MAPPA CON MAPBOX/LEAFLET --- */
     openMapBtn.addEventListener('click', () => {
