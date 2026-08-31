@@ -782,14 +782,20 @@
       const imageHtml = tripItem.foto_copertina 
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:120px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
         : '';
-
+		
+		
+		
       return `
         <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
           ${imageHtml}
           <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
           <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
-          ${(tripItem.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
+		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
+		  <p>----------------------------------------------</p>
+          ${(tripItem.luoghi || []).length > 0 ? `	  
+		  <p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
           <p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
+		  <p>----------------------------------------------</p>
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
