@@ -213,7 +213,10 @@
       </div>
       <div class="form-group">
         <label for="auth-password">Password</label>
-        <input type="password" id="auth-password" required minlength="6" placeholder="Almeno 6 caratteri">
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="password" id="auth-password" required minlength="6" placeholder="Almeno 6 caratteri" style="padding-right: 40px;">
+          <button type="button" id="toggle-password-btn" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; min-height: auto; color: #64748b;" title="Mostra/Nascondi password">👁️</button>
+        </div>
       </div>
       <button type="submit" id="auth-submit-btn" class="btn-primary" style="width: 100%;">Accedi</button>
     </form>
@@ -449,6 +452,11 @@
           <label for="camper-nome">Nome / Modello Camper</label>
           <input type="text" id="camper-nome" value="Il mio Camper">
         </div>
+
+        <div class="form-group">
+          <label for="camper-nome-utente">Nome Utente</label>
+          <input type="text" id="camper-nome-utente" placeholder="Es. Mario Rossi">
+        </div>
         
         <div class="flex">
           <div class="form-group" style="flex: 1;">
@@ -471,6 +479,10 @@
           <div class="form-group" style="flex: 1;">
             <label for="camper-altezza">Altezza (m)</label>
             <input type="number" step="0.01" id="camper-altezza" value="3.0">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="camper-lunghezza">Lunghezza (m)</label>
+            <input type="number" step="0.01" id="camper-lunghezza" value="6.0">
           </div>
           <div class="form-group" style="flex: 1;">
             <label for="camper-peso">Peso (Ton.)</label>
@@ -669,6 +681,17 @@
 	const openHelpBtn = document.getElementById('open-help-btn');
 	const closeHelpBtn = document.getElementById('close-help-btn');
 	const helpModal = document.getElementById('help-modal');
+
+	const togglePasswordBtn = document.getElementById('toggle-password-btn');
+    const authPasswordInput = document.getElementById('auth-password');
+
+    if (togglePasswordBtn && authPasswordInput) {
+      togglePasswordBtn.addEventListener('click', () => {
+        const isPassword = authPasswordInput.getAttribute('type') === 'password';
+        authPasswordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        togglePasswordBtn.textContent = isPassword ? '🙈' : '👁️';
+      });
+    }
 
     let isRegisterMode = false;
     let currentUser = null;
@@ -1444,9 +1467,11 @@ function getMapTooltipHTML(tripItem, user) {
           kmTotali: parseFloat(data.km_totali) || 0
         };
         document.getElementById('camper-nome').value = data.nome_camper || '';
+        document.getElementById('camper-nome-utente').value = data.nome_utente || '';
         document.getElementById('camper-consumo').value = camperSettings.consumo;
         document.getElementById('camper-costo-carburante').value = camperSettings.costoCarburante;
         document.getElementById('camper-altezza').value = data.altezza || 3.0;
+        document.getElementById('camper-lunghezza').value = data.lunghezza || 6.0;
         document.getElementById('camper-peso').value = data.peso || 3.5;
         document.getElementById('camper-livello-carburante').value = data.livello_carburante_pct !== undefined ? data.livello_carburante_pct : 100;
         document.getElementById('camper-livello-acque').value = data.livello_acque_chiare_pct !== undefined ? data.livello_acque_chiare_pct : 100;
@@ -1459,9 +1484,11 @@ function getMapTooltipHTML(tripItem, user) {
       const payload = {
         user_id: currentUser.id,
         nome_camper: document.getElementById('camper-nome').value,
+        nome_utente: document.getElementById('camper-nome-utente').value,
         consumo_medio: parseFloat(document.getElementById('camper-consumo').value),
         costo_carburante: parseFloat(document.getElementById('camper-costo-carburante').value),
         altezza: parseFloat(document.getElementById('camper-altezza').value),
+        lunghezza: parseFloat(document.getElementById('camper-lunghezza').value),
         peso: parseFloat(document.getElementById('camper-peso').value),
         livello_carburante_pct: parseInt(document.getElementById('camper-livello-carburante').value) || 0,
         livello_acque_chiare_pct: parseInt(document.getElementById('camper-livello-acque').value) || 0,
