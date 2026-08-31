@@ -226,18 +226,19 @@
       </div>
 	  
       <div class="header-actions flex">
+        <button id="open-new-viaggio-btn" class="btn-primary">➕ Nuovo Viaggio</button>
         <button id="open-viaggi-btn" class="btn-purple">📋 Elenco Viaggi</button>
-		<button id="open-all-luoghi-btn" class="btn-primary" style="background: #ec4899; color: white;">🌍 Elenco Luoghi</button>
+        <button id="open-all-luoghi-btn" class="btn-primary" style="background: #ec4899; color: white;">🌍 Elenco Luoghi</button>
         <button id="open-summary-btn" class="btn-info">📊 Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
         <button id="open-map-btn" class="btn-success">🗺️ Mappa Viaggi</button>
         <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
         <button id="logout-btn" class="btn-danger">Logout</button>
-		<button id="open-help-btn" class="btn-warning" style="background: #eab308; color: white;">❓ Help</button>
+        <button id="open-help-btn" class="btn-warning" style="background: #eab308; color: white;">❓ Help</button>
       </div>
     </div>
 
-    <div class="card">
+    <div id="viaggio-form-container" class="card hidden">
       <h3 id="form-title" style="margin-top:0; font-size: 16px;">Aggiungi Nuovo Viaggio (Chiave Padre)</h3>
       <form id="viaggio-form">
         <input type="hidden" id="viaggio-id">
@@ -598,6 +599,10 @@
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
 
+    // Nuovi elementi selezionati
+    const openNewViaggioBtn = document.getElementById('open-new-viaggio-btn');
+    const viaggioFormContainer = document.getElementById('viaggio-form-container');
+
     const viaggioForm = document.getElementById('viaggio-form');
     const viaggioIdInput = document.getElementById('viaggio-id');
     const destinazioneInput = document.getElementById('destinazione');
@@ -715,6 +720,13 @@
     });
 
     logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
+
+    // Evento per mostrare/nascondere il form di inserimento cliccando "Nuovo Viaggio"
+    openNewViaggioBtn.addEventListener('click', () => {
+      resetViaggioForm(); 
+      viaggioFormContainer.classList.remove('hidden'); 
+      cancelEditBtn.classList.remove('hidden'); // Mostra sempre il tasto 'Annulla' per poter chiudere il form
+    });
 
     fotoCopertinaInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -1658,6 +1670,7 @@ function getMapTooltipHTML(tripItem, user) {
       saveBtn.textContent = 'Aggiorna Viaggio';
       saveBtn.className = 'btn-success';
       cancelEditBtn.classList.remove('hidden');
+      viaggioFormContainer.classList.remove('hidden'); // Assicura che il form sia visibile durante la modifica
       
       viaggiModal.classList.add('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1686,6 +1699,7 @@ function getMapTooltipHTML(tripItem, user) {
       saveBtn.textContent = 'Salva Viaggio';
       saveBtn.className = 'btn-primary';
       cancelEditBtn.classList.add('hidden');
+      viaggioFormContainer.classList.add('hidden'); // Nascondiamo il form se annulliamo o salviamo
     }
 	
 	openHelpBtn.addEventListener('click', () => {
@@ -1923,4 +1937,8 @@ function getMapTooltipHTML(tripItem, user) {
     }
   </script>
 </body>
+<div style="flex: 1; width: 100%; overflow-y: auto; text-align: center; padding: 10px;">
+      <img src="https://apenno75.github.io/Gestione-viaggi/4ASSI-V2.jpg" alt="Schema 4 Assi" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; display: inline-block;">
+    </div>
+Scritto e realizzato da: Andrea Penno
 </html>
