@@ -1758,9 +1758,14 @@ function getMapTooltipHTML(tripItem, user) {
           dayDiv.style.backgroundColor = color.bg;
           dayDiv.style.borderColor = color.border;
           dayDiv.style.color = color.text;
-
-          const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
-
+		  
+		  // Recupero l' iniziale del nome della destinazione
+          // iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().charAt(0).toUpperCase() : '';
+		  
+		  // Recupero i primi 2 byte del nome della destinazione
+		  const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().slice(0, 2).toUpperCase() : '';
+		  
+		  
           dayDiv.innerHTML = `
             <span class="day-num">${day}</span>
             <span class="trip-initial" title="${escapeHtml(tripInDay.destinazione)}">${iniziale}</span>
