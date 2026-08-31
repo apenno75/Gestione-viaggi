@@ -790,8 +790,7 @@
           <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
           ${(tripItem.luoghi || []).length > 0 ? `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
           <p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
-		   html += `<p>-----------------------------------------------<br></p>`;		  		  
-          <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
           <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
