@@ -876,13 +876,15 @@
 	  const ratingsText = (tripItem.luoghi || []).length > 0
 		? tripItem.luoghi.map(l => {
 			const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
-			return `<small><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</small>`;
+			return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`;
 		  }).join('<br>')
 		: `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
 
       const imageHtml = tripItem.foto_copertina 
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
         : '';
+		
+	// questa è la sezione tooltip del calendario personale	
 		
       return `
         <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
@@ -892,9 +894,9 @@
 		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
 		  <p>---------------------------------------------------------------------------</p>
           ${(tripItem.luoghi || []).length > 0 ? `	  
-		  <p>📌 <strong>Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
-          <p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
-		  <p>📝 <strong>Note Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
+		  <p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
+          <p font-size: 12px;>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
+		  <p font-size: 12px;>📝 <strong>Note Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
 		  <p>---------------------------------------------------------------------------</p>
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
@@ -925,7 +927,7 @@ function getMapTooltipHTML(tripItem, user) {
 		  const ratingsText = (tripItem.luoghi || []).length > 0
 			? tripItem.luoghi.map(l => {
 				const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
-				return `<small><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</small>`;
+				return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`;
 			  }).join('<br>')
 			: `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
 
@@ -939,39 +941,42 @@ function getMapTooltipHTML(tripItem, user) {
 		  // Recupera il timestamp dal record del viaggio
 		  const TimeCreazione = tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '';
 		  
+		  
+		  // questa è la sezione tooltip della mappa condivisa	
+	
 		  // Parte visibile A TUTTI
 		  let html = `
 			<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
 			  ${imageHtml}
 			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
 			  
-			  <p style="color: #38bdf8; font-size: 11px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
-			  <p style="color: #38bdf8; font-size: 11px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>
+			  <p style="color: #38bdf8; font-size: 12px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
+			  <p style="color: #38bdf8; font-size: 12px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>
 		  `;
 		  
 		  // Date del viaggio visibili SOLO al proprietario
 		  if (isOwner) {
-			html += `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
+			html += `<p font-size: 12px;>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
 		  }
 		  
 		  if (tripItem.note_viaggio || tripItem.note) {
-			html += `<p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
+			html += `<p font-size: 12px;>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
 		  }
 
 		   html += `<p>---------------------------------------------------------------------------<br></p>`;
 		   
 		  // Luoghi e Rating visibili A TUTTI
 		  if ((tripItem.luoghi || []).length > 0) {
-			html += `<p>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`;
+			html += `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`;
 		  }
 		  
 		  // Aggiunta delle Note del Luogo
 		  if ((tripItem.luoghi || []).length > 0) {
 			const noteLuoghi = tripItem.luoghi
 			  .filter(l => l.note_luogo && l.note_luogo.trim() !== '')
-			  .map(l => `<strong>- ${escapeHtml(l.nome_luogo || 'Luogo')}:</strong> ${escapeHtml(l.note_luogo)}`);
+			  .map(l => `<span>- ${escapeHtml(l.nome_luogo || 'Luogo')}:</span> ${escapeHtml(l.note_luogo)}`);
 			if (noteLuoghi.length > 0) {
-			  html += `<p>📝 <strong>Note Luoghi:</strong><br><small>${noteLuoghi.join('<br>')}</small></p>`;
+			  html += `<p font-size: 12px;>📝 <strong>Note Luoghi:</strong><br><span>${noteLuoghi.join('<br>')}</span></p>`;
 			}
 		  }
 		  
@@ -1638,14 +1643,14 @@ async function fetchAllCampers() {
 
         const thumbHtml = item.foto_copertina 
           ? `<img src="${item.foto_copertina}" class="trip-thumb clickable-trip" alt="Copertina" title="Clicca per i dettagli">` 
-          : `<div class="clickable-trip" title="Clicca per i dettagli" style="width:50px; height:50px; background:#e2e8f0; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px;">📷</div>`;
+          : `<div class="clickable-trip" title="Clicca per i dettagli" style="width:70px; height:70px; background:#e2e8f0; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px;">📷</div>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="position: relative;">${thumbHtml}</td>
           <td style="position: relative;">
             <strong class="clickable-trip" style="color: #0070f3;" title="Clicca per i dettagli">${escapeHtml(item.destinazione)}</strong>
-            ${luoghiList.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: ${luoghiList.map(l => escapeHtml(l.nome_luogo)).join(', ')}</small>` : ''}
+            ${luoghiList.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: <BR>- ${luoghiList.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</small>` : ''}
             ${item.note ? `<br><small style="color:#64748b;">📝 ${escapeHtml(item.note)}</small>` : ''}
           </td>
           <td style="font-size: 12px; white-space: nowrap;">
