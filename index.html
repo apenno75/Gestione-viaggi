@@ -904,7 +904,7 @@
     }
 	// tooltip del viaggio dentro la mappa
 	
-		function getMapTooltipHTML(tripItem, user) {
+		function getMapTooltipHTML(tripItem, user, ownerName) {
 		  const isOwner = (user && tripItem.user_id === user.id);
 		  
 		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
@@ -934,7 +934,7 @@
 			? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
 			: '';
 
-		  const emailAutore = tripItem.autore_email || "Utente Anonimo";
+		  const utenteAutore = ownerName || tripItem.autore_email || "Utente Anonimo";
 		  const TimeCreazione = tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '';
 		  
 		  let html = `
@@ -942,7 +942,7 @@
 			  ${imageHtml}
 			  <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
 			  
-			  <p style="color: #38bdf8; font-size: 12px;">👤 <strong>Caricato da:</strong> ${escapeHtml(emailAutore)}</p>
+			  <p style="color: #38bdf8; font-size: 12px;">👤 <strong>Caricato da:</strong> ${escapeHtml(utenteAutore)}</p>
 			  <p style="color: #38bdf8; font-size: 12px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>
 		  `;
 		  
@@ -1084,6 +1084,17 @@
       }
 
       try {
+        const { data: settingsData } = await supabaseClient
+          .from('camper_settings')
+          .select('user_id, nome_utente');
+
+        const usersMap = {};
+        (settingsData || []).forEach(s => {
+          if (s.user_id && s.nome_utente) {
+            usersMap[s.user_id] = s.nome_utente;
+          }
+        });
+
         const { data: trips, error } = await supabaseClient
           .from('viaggi')
           .select('*');
@@ -1092,6 +1103,7 @@
         if (!trips || trips.length === 0) return;
 
         for (const trip of trips) {
+          const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
           const luoghi = trip.luoghi || [];
           const latLngsForTrip = [];
 
@@ -1147,7 +1159,7 @@
                   fullOverlay.innerHTML = `
                     <div class="map-full-overlay-content">
                       <button class="map-full-overlay-close" title="Chiudi">&times;</button>
-                      ${getMapTooltipHTML(trip, currentUser)}
+                      ${getMapTooltipHTML(trip, currentUser, ownerName)}
                     </div>
                   `;
                   const closeBtn = fullOverlay.querySelector('.map-full-overlay-close');
@@ -2026,6 +2038,17 @@
     async function fetchAndRenderAllLuoghi() {
       allLuoghiTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #94a3b8; font-size: 12px;">Caricamento in corso...</td></tr>`;
       
+      const { data: settingsData } = await supabaseClient
+        .from('camper_settings')
+        .select('user_id, nome_utente');
+
+      const usersMap = {};
+      (settingsData || []).forEach(s => {
+        if (s.user_id && s.nome_utente) {
+          usersMap[s.user_id] = s.nome_utente;
+        }
+      });
+
       const { data: allTrips, error } = await supabaseClient
         .from('viaggi')
         .select('*');
@@ -2039,6 +2062,7 @@
       let allPlaces = [];
 
       (allTrips || []).forEach(trip => {
+        const ownerName = usersMap[trip.user_id] || trip.autore_email || 'Utente Anonimo';
         if (trip.luoghi && trip.luoghi.length > 0) {
           trip.luoghi.forEach(luogo => {
             allPlaces.push({
@@ -2050,7 +2074,7 @@
               note_luogo: luogo.note_luogo || '-',
               rating_luogo: luogo.rating_luogo || 3,
               rating_campeggio: luogo.rating_campeggio || 3,
-              autore: trip.autore_email || 'Utente Anonimo',
+              autore: ownerName,
               data_creazione: trip.creato_il ? formatDate(trip.creato_il.slice(0, 10)) : '-'
             });
           });
