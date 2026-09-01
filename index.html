@@ -1743,17 +1743,27 @@
       await updateKmTotaliAutomatic(kmDiff);
 
       // Invia la mail a tutti gli utenti registrati se è un nuovo viaggio creato
-      if (isNewTrip) {
+	  if (isNewTrip) {
         try {
-          await supabaseClient.functions.invoke('send-trip-notification', {
-            body: {
-              destinazione: destinazioneInput.value,
-              creato_da: currentUser.email,
-              luoghi: luoghiNomi || 'Nessun luogo specificato'
-            }
+          console.log("1. Tentativo di invio notifica email avviato...");
+          const emailPayload = {
+            destinazione: destinazioneInput.value,
+            creato_da: currentUser.email,
+            luoghi: luoghiNomi || 'Nessun luogo specificato'
+          };
+          console.log("2. Payload inviato alla Edge Function:", emailPayload);
+
+          const { data: emailData, error: emailError } = await supabaseClient.functions.invoke('send-trip-notification', {
+            body: emailPayload
           });
+
+          if (emailError) {
+            console.error("3. Errore restituito dalla Edge Function:", emailError);
+          } else {
+            console.log("3. Risposta positiva dalla Edge Function:", emailData);
+          }
         } catch (emailErr) {
-          console.error("Errore nell'invio della notifica email:", emailErr);
+          console.error("4. Eccezione catturata durante l'invio della notifica email:", emailErr);
         }
       }
 
