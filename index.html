@@ -879,6 +879,8 @@
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
         : '';
 		
+	// 	tooltip del Calendario
+	
       return `
         <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
           ${imageHtml}
@@ -900,16 +902,21 @@
         </div>
       `;
     }
+	// tooltip del viaggio dentro la mappa
 	
-    function getMapTooltipHTML(tripItem, user) {
+		function getMapTooltipHTML(tripItem, user) {
 		  const isOwner = (user && tripItem.user_id === user.id);
 		  
 		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
 		  const camping = getCampingTotalFromTrip(tripItem);
 		  const pedaggi = Number(tripItem.costo_pedaggi || 0);
-		  const rifList = tripItem.rifornimenti || [];
-		  const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
 		  
+		  // Se rifornimenti è caricato usa la somma dell'array, altrimenti usa la colonna salvata nel viaggio
+		  const rifList = tripItem.rifornimenti || [];
+		  const carburante = rifList.length > 0 
+		    ? rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0)
+		    : Number(tripItem.costo_carburante || 0);
+		  		  
 		  let extraLuoghi = 0;
 		  (tripItem.luoghi || []).forEach(l => {
 			(l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
@@ -971,7 +978,7 @@
 			  <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
 			  <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
 			  <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
-			  <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
+			  <p>⛽ <strong>Carburante222:</strong> € ${carburante.toFixed(2)}</p>
 			  <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>
 			`;
 		  }
