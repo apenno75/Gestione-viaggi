@@ -9,6 +9,7 @@
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>	
   
   <style>
     * { box-sizing: border-box; }
@@ -1742,28 +1743,28 @@
       
       await updateKmTotaliAutomatic(kmDiff);
 
-      // Invia la mail a tutti gli utenti registrati se è un nuovo viaggio creato
-	  if (isNewTrip) {
+      if (isNewTrip) {
         try {
-          console.log("1. Tentativo di invio notifica email avviato...");
-          const emailPayload = {
+          console.log("Tentativo di invio email con EmailJS...");
+
+          emailjs.init("V8kcX2zTDljSVfrW8");
+
+          const templateParams = {
+		    to_email: "apenno75@gmail.com", // La tua email dove vuoi ricevere le notifiche
+           
             destinazione: destinazioneInput.value,
+			note: noteViaggioInput.value,
+			data_partenza: dataPartenzaInput.value,
+            data_arrivo:  dataArrivoInput.value,			
             creato_da: currentUser.email,
             luoghi: luoghiNomi || 'Nessun luogo specificato'
           };
-          console.log("2. Payload inviato alla Edge Function:", emailPayload);
 
-          const { data: emailData, error: emailError } = await supabaseClient.functions.invoke('send-trip-notification', {
-            body: emailPayload
-          });
-
-          if (emailError) {
-            console.error("3. Errore restituito dalla Edge Function:", emailError);
-          } else {
-            console.log("3. Risposta positiva dalla Edge Function:", emailData);
-          }
+          const response = await emailjs.send('service_t75oqm4', 'template_yerajch', templateParams);
+          console.log('Email inviata con successo!', response.status, response.text);
+          
         } catch (emailErr) {
-          console.error("4. Eccezione catturata durante l'invio della notifica email:", emailErr);
+          console.error("Errore durante l'invio dell'email con EmailJS:", emailErr);
         }
       }
 
@@ -2006,7 +2007,7 @@
     }
 	
     openAllLuoghiBtn.addEventListener('click', async () => {
-      allLuoghiModal.classList.add('hidden'); // Corretto per mantenere il comportamento originale della modale
+      allLuoghiModal.classList.add('hidden');
       allLuoghiModal.classList.remove('hidden');
       await fetchAndRenderAllLuoghi();
     });
@@ -2073,9 +2074,8 @@
       });
     }
   </script>
+  <div style="flex: 1; width: 100%; overflow-y: auto; text-align: center; padding: 10px;">
+    <img src="https://apenno75.github.io/Gestione-viaggi/4ASSI-V2.jpg" alt="Schema 4 Assi" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; display: inline;">
+  </div>
 </body>
-<div style="flex: 1; width: 100%; overflow-y: auto; text-align: center; padding: 10px;">
-      <img src="https://apenno75.github.io/Gestione-viaggi/4ASSI-V2.jpg" alt="Schema 4 Assi" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; display: inline-block;">
-    </div>
-Scritto e realizzato da: Andrea Penno
 </html>
