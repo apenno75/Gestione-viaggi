@@ -892,8 +892,9 @@
 		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
 		  <p>---------------------------------------------------------------------------</p>
           ${(tripItem.luoghi || []).length > 0 ? `	  
-		  <p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>` : ''}
+		  <p>📌 <strong>Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
           <p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
+		  <p>📝 <strong>Note Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
 		  <p>---------------------------------------------------------------------------</p>
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
@@ -961,7 +962,7 @@ function getMapTooltipHTML(tripItem, user) {
 		   
 		  // Luoghi e Rating visibili A TUTTI
 		  if ((tripItem.luoghi || []).length > 0) {
-			html += `<p>📌 <strong>Luoghi:</strong> ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join(', ')}</p>`;
+			html += `<p>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`;
 		  }
 		  
 		  // Aggiunta delle Note del Luogo
