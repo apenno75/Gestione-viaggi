@@ -301,17 +301,8 @@
             </div>
           </div>
         </div>
-
-        <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
-          <div class="flex-center" style="margin-bottom: 10px;">
-            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Viaggio (Collegati)</label>
-            <button type="button" id="add-luogo-btn" class="btn-purple btn-sm">+ Aggiungi Luogo</button>
-          </div>
-          
-          <div id="luoghi-list-container">
-          </div>
-        </div>
-
+		
+		<!-- sezione dei rifornimenti -->
         <div class="refuel-box">
           <label style="color: #0369a1; font-size: 13px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
           <div class="flex flex-mobile-col" style="align-items: flex-end;">
@@ -321,14 +312,15 @@
             </div>
             <div style="flex: 1;">
               <label for="rif-costo">Costo (€)</label>
-              <input type="number" step="0.01" id="rif-costo" placeholder="Es. 50.00" style="width: 70px;">
+              <input type="number" step="0.01" id="rif-costo" placeholder="Es. 50.00" style="width: 90px;">
             </div>
             <div style="flex: 1; padding-bottom: 8px; font-size: 13px;">
               Litri stimati: <strong id="rif-litri-preview" style="color: #2563eb;">0.00 L</strong>
             </div>
-            <button type="button" id="add-refuel-btn" class="btn-info btn-sm" style="width: 100%;">+ Aggiungi Rifornimento</button>
-          </div>
-
+            <button type="button" id="add-refuel-btn" class="btn-info btn-sm" style="width: 100%;">+ Salva Rifornimento</button>
+          </div>	  
+		
+		<!-- dettaglio rifornimenti dentro sezione dei rifornimenti -->
           <div class="table-container">
             <table style="margin-top: 10px; background: white; border-radius: 6px; min-width: 100%;">
               <thead>
@@ -347,8 +339,19 @@
           <div style="text-align: right; margin-top: 8px; font-size: 13px;">
             Totale Carburante Viaggio: <strong id="totale-carburante-viaggio" style="color: #2563eb;">€ 0.00</strong>
           </div>
-        </div>
-
+        </div>		
+		
+		<!-- sezione luoghi viaggio -->
+        <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
+          <div class="flex-center" style="margin-bottom: 10px;">
+            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Viaggio (Collegati)</label>
+            <button type="button" id="add-luogo-btn" class="btn-purple btn-sm">+ Aggiungi Luogo</button>
+          </div>
+          
+          <div id="luoghi-list-container">
+          </div>
+        </div>		
+		
         <div class="flex flex-mobile-col" style="margin-top: 15px; justify-content: space-between; align-items: center;">
           <div style="font-size: 16px; margin-bottom: 8px;">
             Totale Viaggio:<BR> <strong id="costo-totale-preview" style="color: #0284c7;">€ 0.00</strong>
