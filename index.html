@@ -514,10 +514,16 @@
         <button id="close-calendar-btn" class="btn-secondary btn-sm">Chiudi</button>
       </div>
 
-      <div class="flex-center" style="margin: 15px 0;">
-        <button id="prev-month-btn" class="btn-secondary btn-sm">&lt; Prec.</button>
-        <h3 id="calendar-month-year" style="margin:0; font-size: 15px;"></h3>
-        <button id="next-month-btn" class="btn-secondary btn-sm">Succ. &gt;</button>
+	  <div class="flex-center" style="margin: 15px 0;">
+        <div class="flex" style="gap: 4px;">
+          <button id="prev-year-btn" class="btn-secondary btn-sm" title="Anno Precedente">&lt;&lt;</button>
+          <button id="prev-month-btn" class="btn-secondary btn-sm">&lt; Prec.</button>
+        </div>
+        <h3 id="calendar-month-year" style="margin:0; font-size: 15px; text-align: center;"></h3>
+        <div class="flex" style="gap: 4px;">
+          <button id="next-month-btn" class="btn-secondary btn-sm">Succ. &gt;</button>
+          <button id="next-year-btn" class="btn-secondary btn-sm" title="Anno Successivo">&gt;&gt;</button>
+        </div>
       </div>
 
       <div class="calendar-grid">
@@ -1094,7 +1100,6 @@
             usersMap[s.user_id] = s.nome_utente;
           }
         });
-
         const { data: trips, error } = await supabaseClient
           .from('viaggi')
           .select('*');
@@ -1961,7 +1966,16 @@
       currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
       renderCalendar();
     });
+	
+	document.getElementById('prev-year-btn').addEventListener('click', () => {
+      currentCalendarDate.setFullYear(currentCalendarDate.getFullYear() - 1);
+      renderCalendar();
+    });
 
+    document.getElementById('next-year-btn').addEventListener('click', () => {
+      currentCalendarDate.setFullYear(currentCalendarDate.getFullYear() + 1);
+      renderCalendar();
+    });
     function renderCalendar() {
       const year = currentCalendarDate.getFullYear();
       const month = currentCalendarDate.getMonth();
@@ -2047,8 +2061,7 @@
         if (s.user_id && s.nome_utente) {
           usersMap[s.user_id] = s.nome_utente;
         }
-      });
-
+      });													 
       const { data: allTrips, error } = await supabaseClient
         .from('viaggi')
         .select('*');
