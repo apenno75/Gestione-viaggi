@@ -441,6 +441,50 @@
     </div>
   </div>
 
+  <div id="extra-detail-modal" class="modal-overlay hidden" style="z-index: 1100;">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="flex-center">
+        <h2 style="margin:0; font-size: 18px;" id="extra-detail-title">🔎 Dettaglio Costi Extra</h2>
+        <button id="close-extra-detail-btn" class="btn-secondary btn-sm">Chiudi</button>
+      </div>
+      <div class="table-container" style="margin-top: 15px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Costo (€)</th>
+              <th>Categoria</th>
+              <th>Nome</th>
+              <th>Luogo</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody id="extra-detail-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="fuel-detail-modal" class="modal-overlay hidden" style="z-index: 1100;">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="flex-center">
+        <h2 style="margin:0; font-size: 18px;" id="fuel-detail-title">⛽ Dettaglio Carburante</h2>
+        <button id="close-fuel-detail-btn" class="btn-secondary btn-sm">Chiudi</button>
+      </div>
+      <div class="table-container" style="margin-top: 15px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Costo (€)</th>
+              <th>Litri (L)</th>
+            </tr>
+          </thead>
+          <tbody id="fuel-detail-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div id="settings-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
       <h2 style="margin-top:0; font-size: 18px;">⚙️ Settaggi Camper</h2>
@@ -700,6 +744,23 @@
     const closeSummaryBtn = document.getElementById('close-summary-btn');
     const summaryModal = document.getElementById('summary-modal');
 
+    const summaryTableBody = document.getElementById('summary-table-body');
+    const summaryTotalCamping = document.getElementById('summary-total-camping');
+    const summaryTotalExtra = document.getElementById('summary-total-extra');
+    const summaryTotalFuel = document.getElementById('summary-total-fuel');
+    const summaryTotalTolls = document.getElementById('summary-total-tolls');
+    const summaryGrandTotal = document.getElementById('summary-grand-total');
+
+    const extraDetailModal = document.getElementById('extra-detail-modal');
+    const extraDetailTitle = document.getElementById('extra-detail-title');
+    const extraDetailTableBody = document.getElementById('extra-detail-table-body');
+    const closeExtraDetailBtn = document.getElementById('close-extra-detail-btn');
+
+    const fuelDetailModal = document.getElementById('fuel-detail-modal');
+    const fuelDetailTitle = document.getElementById('fuel-detail-title');
+    const fuelDetailTableBody = document.getElementById('fuel-detail-table-body');
+    const closeFuelDetailBtn = document.getElementById('close-fuel-detail-btn');
+
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
@@ -710,6 +771,13 @@
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
     const calendarModal = document.getElementById('calendar-modal');
+    const calendarMonthYear = document.getElementById('calendar-month-year');
+    const calendarDaysContainer = document.getElementById('calendar-days-container');
+    const prevYearBtn = document.getElementById('prev-year-btn');
+    const prevMonthBtn = document.getElementById('prev-month-btn');
+    const nextMonthBtn = document.getElementById('next-month-btn');
+    const nextYearBtn = document.getElementById('next-year-btn');
+
     const addLuogoBtn = document.getElementById('add-luogo-btn');
 
     const openMapBtn = document.getElementById('open-map-btn');
@@ -895,8 +963,6 @@
         ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` 
         : '';
 		
-	// 	tooltip del Calendario
-	
       return `
         <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
           ${imageHtml}
@@ -918,8 +984,7 @@
         </div>
       `;
     }
-	// tooltip del viaggio dentro la mappa
-	
+
 		function getMapTooltipHTML(tripItem, user, ownerName) {
 		  const isOwner = (user && tripItem.user_id === user.id);
 		  
@@ -927,7 +992,6 @@
 		  const camping = getCampingTotalFromTrip(tripItem);
 		  const pedaggi = Number(tripItem.costo_pedaggi || 0);
 		  
-		  // Se rifornimenti è caricato usa la somma dell'array, altrimenti usa la colonna salvata nel viaggio
 		  const rifList = tripItem.rifornimenti || [];
 		  const carburante = rifList.length > 0 
 		    ? rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0)
@@ -1499,9 +1563,8 @@
     async function updateKmTotaliAutomatic(kmDiff, tripDate) {
       if (kmDiff === 0) return;
       
-      // Controllo data validità
       if (tripDate && camperSettings.kmDataValidita && tripDate < camperSettings.kmDataValidita) {
-        return; // Ignora se la data del viaggio è precedente alla data di validità
+        return;
       }
 
       camperSettings.kmTotali = (camperSettings.kmTotali || 0) + kmDiff;
@@ -1640,6 +1703,15 @@
     openViaggiBtn.addEventListener('click', () => viaggiModal.classList.remove('hidden'));
     closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
 
+    openSummaryBtn.addEventListener('click', () => {
+      renderSummary();
+      summaryModal.classList.remove('hidden');
+    });
+    closeSummaryBtn.addEventListener('click', () => summaryModal.classList.add('hidden'));
+
+    closeExtraDetailBtn.addEventListener('click', () => extraDetailModal.classList.add('hidden'));
+    closeFuelDetailBtn.addEventListener('click', () => fuelDetailModal.classList.add('hidden'));
+
     async function fetchViaggi() {
       const { data, error } = await supabaseClient
         .from('viaggi')
@@ -1656,6 +1728,129 @@
     function renderStars(rating) {
       const num = parseInt(rating) || 0;
       return '⭐'.repeat(num);
+    }
+
+    function openExtraDetailModal(tripItem) {
+      extraDetailTitle.textContent = `🔎 Dettaglio Costi Extra - ${tripItem.destinazione}`;
+      extraDetailTableBody.innerHTML = '';
+      
+      const allExtra = [];
+      (tripItem.luoghi || []).forEach(l => {
+        (l.costi_extra || []).forEach(c => {
+          allExtra.push({
+            valore: parseFloat(c.valore) || 0,
+            categoria: c.categoria || '-',
+            nome: c.nome || '-',
+            luogo: c.luogo || l.nome_luogo || '-',
+            note: c.note || '-'
+          });
+        });
+      });
+
+      if (allExtra.length === 0) {
+        extraDetailTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito per questo viaggio.</td></tr>`;
+      } else {
+        allExtra.forEach(c => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>€ ${c.valore.toFixed(2)}</strong></td>
+            <td>${escapeHtml(c.categoria)}</td>
+            <td>${escapeHtml(c.nome)}</td>
+            <td>${escapeHtml(c.luogo)}</td>
+            <td>${escapeHtml(c.note)}</td>
+          `;
+          extraDetailTableBody.appendChild(tr);
+        });
+      }
+
+      extraDetailModal.classList.remove('hidden');
+    }
+
+    function openFuelDetailModal(tripItem) {
+      fuelDetailTitle.textContent = `⛽ Dettaglio Carburante - ${tripItem.destinazione}`;
+      fuelDetailTableBody.innerHTML = '';
+
+      const rifList = tripItem.rifornimenti || [];
+
+      if (rifList.length === 0) {
+        fuelDetailTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Nessun rifornimento inserito per questo viaggio.</td></tr>`;
+      } else {
+        rifList.forEach(r => {
+          const tr = document.createElement('tr');
+          const costo = parseFloat(r.costo_sostenuto || 0);
+          const litri = parseFloat(r.litri || 0);
+          tr.innerHTML = `
+            <td>${formatDate(r.data_rifornimento)}</td>
+            <td><strong>€ ${costo.toFixed(2)}</strong></td>
+            <td>${litri.toFixed(2)} L</td>
+          `;
+          fuelDetailTableBody.appendChild(tr);
+        });
+      }
+
+      fuelDetailModal.classList.remove('hidden');
+    }
+
+    function renderSummary() {
+      summaryTableBody.innerHTML = '';
+
+      let grandCamping = 0;
+      let grandExtra = 0;
+      let grandFuel = 0;
+      let grandTolls = 0;
+
+      if (viaggiList.length === 0) {
+        summaryTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Nessun viaggio presente.</td></tr>`;
+      } else {
+        viaggiList.forEach(item => {
+          const camping = getCampingTotalFromTrip(item);
+          const pedaggi = Number(item.costo_pedaggi || 0);
+          const rifList = item.rifornimenti || [];
+          const carburante = rifList.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
+
+          let extra = 0;
+          (item.luoghi || []).forEach(l => {
+            (l.costi_extra || []).forEach(c => extra += parseFloat(c.valore) || 0);
+          });
+
+          const totale = camping + pedaggi + carburante + extra;
+
+          grandCamping += camping;
+          grandExtra += extra;
+          grandFuel += carburante;
+          grandTolls += pedaggi;
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${escapeHtml(item.destinazione)}</strong></td>
+            <td>€ ${camping.toFixed(2)}</td>
+            <td style="color: #8b5cf6; font-weight: bold; ${extra > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${extra > 0 ? 'summary-extra-click' : ''}">€ ${extra.toFixed(2)}</td>
+            <td style="color: #0284c7; font-weight: bold; ${carburante > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${carburante > 0 ? 'summary-fuel-click' : ''}">€ ${carburante.toFixed(2)}</td>
+            <td>€ ${pedaggi.toFixed(2)}</td>
+            <td><strong style="color: #0369a1;">€ ${totale.toFixed(2)}</strong></td>
+          `;
+
+          if (extra > 0) {
+            const extraTd = tr.querySelector('.summary-extra-click');
+            if (extraTd) extraTd.addEventListener('click', () => openExtraDetailModal(item));
+          }
+
+          if (carburante > 0) {
+            const fuelTd = tr.querySelector('.summary-fuel-click');
+            if (fuelTd) fuelTd.addEventListener('click', () => openFuelDetailModal(item));
+          }
+
+          summaryTableBody.appendChild(tr);
+        });
+      }
+
+      const grandTotal = grandCamping + grandExtra + grandFuel + grandTolls;
+
+      summaryTotalCamping.textContent = `€ ${grandCamping.toFixed(2)}`;
+      summaryTotalExtra.textContent = `€ ${grandExtra.toFixed(2)}`;
+      summaryTotalFuel.textContent = `€ ${grandFuel.toFixed(2)}`;
+      summaryTotalTolls.textContent = `€ ${grandTolls.toFixed(2)}`;
+      summaryGrandTotal.textContent = `€ ${grandTotal.toFixed(2)}`;
     }
 
     function renderViaggiTable(viaggi) {
@@ -1705,8 +1900,8 @@
           </td>
           <td>${item.chilometri} km</td>
           <td>€ ${totCamping.toFixed(2)}</td>
-          <td>€ ${extraLuoghiTot.toFixed(2)}</td>
-          <td>€ ${carburante.toFixed(2)} <small style="color:#64748b;">(${rifList.length})</small></td>
+          <td style="color: #8b5cf6; font-weight: bold; ${extraLuoghiTot > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${extraLuoghiTot > 0 ? 'extra-detail-click' : ''}">€ ${extraLuoghiTot.toFixed(2)}</td>
+          <td style="color: #0284c7; font-weight: bold; ${carburante > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${carburante > 0 ? 'fuel-detail-click' : ''}">€ ${carburante.toFixed(2)} <small style="color:#64748b; font-weight: normal;">(${rifList.length})</small></td>
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
           <td style="text-align: right;">
@@ -1714,6 +1909,20 @@
             <button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">🗑️ Elimina</button>
           </td>
         `;
+
+        if (extraLuoghiTot > 0) {
+          const extraTd = tr.querySelector('.extra-detail-click');
+          if (extraTd) {
+            extraTd.addEventListener('click', () => openExtraDetailModal(item));
+          }
+        }
+
+        if (carburante > 0) {
+          const fuelTd = tr.querySelector('.fuel-detail-click');
+          if (fuelTd) {
+            fuelTd.addEventListener('click', () => openFuelDetailModal(item));
+          }
+        }
 
         const clickables = tr.querySelectorAll('.clickable-trip');
         clickables.forEach(el => {
@@ -1794,11 +2003,10 @@
           emailjs.init("V8kcX2zTDljSVfrW8");
 
           const templateParams = {
-		    to_email: "apenno75@gmail.com", 
-           
+            to_email: "apenno75@gmail.com", 
             destinazione: destinazioneInput.value,
-			note: noteViaggioInput.value,
-			data_partenza: dataPartenzaInput.value,
+            note: noteViaggioInput.value,
+            data_partenza: dataPartenzaInput.value,
             data_arrivo:  dataArrivoInput.value,			
             creato_da: currentUser.email,
             luoghi: luoghiNomi || 'Nessun luogo specificato'
@@ -1808,61 +2016,15 @@
           console.log('Email inviata con successo!', response.status, response.text);
           
         } catch (emailErr) {
-          console.error("Errore durante l'invio dell'email con EmailJS:", emailErr);
+          console.error("Errore EmailJS:", emailErr);
         }
       }
 
+      alert('Viaggio salvato con successo!');
+      viaggioFormContainer.classList.add('hidden');
       resetViaggioForm();
       fetchViaggi();
-      alert('Viaggio salvato con successo!');
     });
-
-    window.prepareEdit = function(id) {
-      const v = viaggiList.find(x => x.id === id);
-      if (!v) return;
-
-      viaggioIdInput.value = v.id;
-      destinazioneInput.value = v.destinazione;
-      dataPartenzaInput.value = v.data_partenza;
-      dataArrivoInput.value = v.data_arrivo;
-      chilometriInput.value = v.chilometri;
-      costoPedaggiInput.value = v.costo_pedaggi;
-      noteViaggioInput.value = v.note || '';
-
-      if (v.foto_copertina) {
-        fotoCopertinaBase64.value = v.foto_copertina;
-        fotoPreview.src = v.foto_copertina;
-        previewContainer.classList.remove('hidden');
-      } else {
-        fotoCopertinaBase64.value = '';
-        fotoPreview.src = '';
-        previewContainer.classList.add('hidden');
-      }
-
-      tempLuoghi = JSON.parse(JSON.stringify(v.luoghi || []));
-      renderLuoghi();
-
-      tempRefuelings = (v.rifornimenti || []).map(r => ({
-        data_rifornimento: r.data_rifornimento,
-        costo_sostenuto: r.costo_sostenuto,
-        litri: r.litri
-      }));
-
-      rifDataInput.value = v.data_partenza;
-      renderRefuelTable();
-      updateFormCalculations();
-
-      formTitle.textContent = 'Modifica Viaggio';
-      saveBtn.textContent = 'Aggiorna Viaggio';
-      saveBtn.className = 'btn-success';
-      cancelEditBtn.classList.remove('hidden');
-      viaggioFormContainer.classList.remove('hidden');
-      
-      viaggiModal.classList.add('hidden');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    cancelEditBtn.addEventListener('click', resetViaggioForm);
 
     function resetViaggioForm() {
       viaggioIdInput.value = '';
@@ -1870,277 +2032,262 @@
       fotoCopertinaBase64.value = '';
       fotoPreview.src = '';
       previewContainer.classList.add('hidden');
-
-      costoPedaggiInput.value = 0;
-      totaleCampeggioInput.value = '0.00';
-      totaleNottiViaggioInput.value = '0';
-      noteViaggioInput.value = '';
-      tempRefuelings = [];
       tempLuoghi = [];
+      tempRefuelings = [];
+      renderLuoghi();
+      renderRefuelTable();
+      updateFormCalculations();
+      formTitle.textContent = 'Aggiungi Nuovo Viaggio (Chiave Padre)';
+    }
+
+    window.prepareEdit = function(id) {
+      const item = viaggiList.find(v => v.id === id);
+      if (!item) return;
+
+      viaggioIdInput.value = item.id;
+      destinazioneInput.value = item.destinazione || '';
+      dataPartenzaInput.value = item.data_partenza || '';
+      dataArrivoInput.value = item.data_arrivo || '';
+      chilometriInput.value = item.chilometri || 0;
+      costoPedaggiInput.value = item.costo_pedaggi || 0;
+      noteViaggioInput.value = item.note || item.note_viaggio || '';
+
+      if (item.foto_copertina) {
+        fotoCopertinaBase64.value = item.foto_copertina;
+        fotoPreview.src = item.foto_copertina;
+        previewContainer.classList.remove('hidden');
+      } else {
+        fotoCopertinaBase64.value = '';
+        fotoPreview.src = '';
+        previewContainer.classList.add('hidden');
+      }
+
+      tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : [];
+      tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : [];
+
       renderLuoghi();
       renderRefuelTable();
       updateFormCalculations();
 
-      formTitle.textContent = 'Aggiungi Nuovo Viaggio (Chiave Padre)';
-      saveBtn.textContent = '💾 Salva Viaggio';
-      saveBtn.className = 'btn-primary';
-      cancelEditBtn.classList.add('hidden');
-      viaggioFormContainer.classList.add('hidden');
-    }
-	
-	openHelpBtn.addEventListener('click', () => {
-	  helpModal.classList.remove('hidden');
-	});
-
-	closeHelpBtn.addEventListener('click', () => {
-	  helpModal.classList.add('hidden');
-	});
-	
-    window.deleteViaggio = async function(id) {
-      if (!confirm('Sicuro di voler eliminare questo viaggio? ')) return;
-      
-      const tripToDelete = viaggiList.find(x => x.id === id);
-      const kmToDelete = tripToDelete ? parseFloat(tripToDelete.chilometri) || 0 : 0;
-      const tripDate = tripToDelete ? tripToDelete.data_partenza : null;
-
-      const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
-      
-      if (!error) {
-        await updateKmTotaliAutomatic(-kmToDelete, tripDate);
-        fetchViaggi();
-      } else {
-        alert("Errore nell'eliminazione: " + error.message);
-      }
+      formTitle.textContent = 'Modifica Viaggio';
+      viaggioFormContainer.classList.remove('hidden');
+      viaggiModal.classList.add('hidden');
+      cancelEditBtn.classList.remove('hidden');
+      window.scrollTo(0, 0);
     };
 
-    openSummaryBtn.addEventListener('click', () => {
-      renderSummaryModal();
-      summaryModal.classList.remove('hidden');
-    });
+    window.deleteViaggio = async function(id) {
+      if (!confirm('Sei sicuro di voler eliminare questo viaggio?')) return;
 
-    closeSummaryBtn.addEventListener('click', () => summaryModal.classList.add('hidden'));
-
-    function renderSummaryModal() {
-      const summaryTableBody = document.getElementById('summary-table-body');
-      summaryTableBody.innerHTML = '';
-
-      let globalCamping = 0;
-      let globalFuel = 0;
-      let globalTolls = 0;
-      let globalExtra = 0;
-
-      if (viaggiList.length === 0) {
-        summaryTableBody.innerHTML = `<tr><td colSpan="6" style="text-align:center; color:#94a3b8;">Nessun dato.</td></tr>`;
-      } else {
-        viaggiList.forEach(item => {
-          const camping = getCampingTotalFromTrip(item);
-          const fuel = (item.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-          const tolls = Number(item.costo_pedaggi || 0);
-          
-          let extraLuoghi = 0;
-          (item.luoghi || []).forEach(l => {
-            (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0);
-          });
-
-          const total = camping + fuel + tolls + extraLuoghi;
-
-          globalCamping += camping;
-          globalFuel += fuel;
-          globalTolls += tolls;
-          globalExtra += extraLuoghi;
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${escapeHtml(item.destinazione)}</strong></td>
-            <td>€ ${camping.toFixed(2)}</td>
-            <td>€ ${extraLuoghi.toFixed(2)}</td>
-            <td>€ ${fuel.toFixed(2)}</td>
-            <td>€ ${tolls.toFixed(2)}</td>
-            <td><strong>€ ${total.toFixed(2)}</strong></td>
-          `;
-          summaryTableBody.appendChild(tr);
-        });
+      const trip = viaggiList.find(v => v.id === id);
+      if (trip && trip.chilometri) {
+          await updateKmTotaliAutomatic(-trip.chilometri, trip.data_partenza);
       }
 
-      const grandTotal = globalCamping + globalFuel + globalTolls + globalExtra;
+      const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
+      if (error) { alert('Errore eliminazione: ' + error.message); return; }
 
-      document.getElementById('summary-total-camping').textContent = `€ ${globalCamping.toFixed(2)}`;
-      document.getElementById('summary-total-extra').textContent = `€ ${globalExtra.toFixed(2)}`;
-      document.getElementById('summary-total-fuel').textContent = `€ ${globalFuel.toFixed(2)}`;
-      document.getElementById('summary-total-tolls').textContent = `€ ${globalTolls.toFixed(2)}`;
-      document.getElementById('summary-grand-total').textContent = `€ ${grandTotal.toFixed(2)}`;
-    }
+      alert('Viaggio eliminato.');
+      fetchViaggi();
+    };
 
-    openCalendarBtn.addEventListener('click', () => {
-      calendarModal.classList.remove('hidden');
-      renderCalendar();
+    cancelEditBtn.addEventListener('click', () => {
+      viaggioFormContainer.classList.add('hidden');
+      resetViaggioForm();
     });
 
-    closeCalendarBtn.addEventListener('click', () => calendarModal.classList.add('hidden'));
+    openCalendarBtn.addEventListener('click', () => {
+      currentCalendarDate = new Date();
+      renderCalendar();
+      calendarModal.classList.remove('hidden');
+    });
 
-    document.getElementById('prev-month-btn').addEventListener('click', () => {
+    closeCalendarBtn.addEventListener('click', () => {
+      calendarModal.classList.add('hidden');
+    });
+
+    prevMonthBtn.addEventListener('click', () => {
       currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
       renderCalendar();
     });
 
-    document.getElementById('next-month-btn').addEventListener('click', () => {
+    nextMonthBtn.addEventListener('click', () => {
       currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
       renderCalendar();
     });
-	
-	document.getElementById('prev-year-btn').addEventListener('click', () => {
+
+    prevYearBtn.addEventListener('click', () => {
       currentCalendarDate.setFullYear(currentCalendarDate.getFullYear() - 1);
       renderCalendar();
     });
 
-    document.getElementById('next-year-btn').addEventListener('click', () => {
+    nextYearBtn.addEventListener('click', () => {
       currentCalendarDate.setFullYear(currentCalendarDate.getFullYear() + 1);
       renderCalendar();
     });
+
     function renderCalendar() {
       const year = currentCalendarDate.getFullYear();
       const month = currentCalendarDate.getMonth();
 
       const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-      document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+      calendarMonthYear.textContent = `${monthNames[month]} ${year}`;
 
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const startingDay = (firstDay.getDay() + 6) % 7;
+      calendarDaysContainer.innerHTML = '';
 
-      const daysContainer = document.getElementById('calendar-days-container');
-      daysContainer.innerHTML = '';
+      const firstDayOfMonth = new Date(year, month, 1);
+      const lastDayOfMonth = new Date(year, month + 1, 0);
 
-      for (let i = 0; i < startingDay; i++) {
-        daysContainer.appendChild(document.createElement('div'));
+      let startDayOfWeek = firstDayOfMonth.getDay() - 1;
+      if (startDayOfWeek === -1) startDayOfWeek = 6; 
+
+      const totalDays = lastDayOfMonth.getDate();
+
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-day';
+        emptyCell.style.background = '#f8fafc';
+        emptyCell.style.borderColor = '#f1f5f9';
+        calendarDaysContainer.appendChild(emptyCell);
       }
 
-      for (let day = 1; day <= lastDay.getDate(); day++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
+      for (let day = 1; day <= totalDays; day++) {
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
 
-        const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const tripInDay = viaggiList.find(v => v.data_partenza <= currentFormatted && v.data_arrivo >= currentFormatted);
-        
-        if (tripInDay) {
-          dayDiv.classList.add('has-trip');
+        const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        const matchingTrips = viaggiList.filter(item => {
+          if (!item.data_partenza || !item.data_arrivo) return false;
+          return currentDateStr >= item.data_partenza && currentDateStr <= item.data_arrivo;
+        });
+
+        const dayNumSpan = document.createElement('span');
+        dayNumSpan.className = 'day-num';
+        dayNumSpan.textContent = day;
+        dayCell.appendChild(dayNumSpan);
+
+        if (matchingTrips.length > 0) {
+          dayCell.classList.add('has-trip');
           
-          const tripIndex = viaggiList.findIndex(v => v.id === tripInDay.id);
-          const color = TRIP_COLORS[tripIndex % TRIP_COLORS.length];
-          
-          dayDiv.style.backgroundColor = color.bg;
-          dayDiv.style.borderColor = color.border;
-          dayDiv.style.color = color.text;
-		  
-		  const iniziale = tripInDay.destinazione ? tripInDay.destinazione.trim().slice(0, 2).toUpperCase() : '';
-		  
-          dayDiv.innerHTML = `
-            <span class="day-num">${day}</span>
-            <span class="trip-initial" title="${escapeHtml(tripInDay.destinazione)}">${iniziale}</span>
-          `;
-          
-          dayDiv.addEventListener('click', (e) => {
-            showTripTooltip(tripInDay, dayDiv, e);
+          const primaryTrip = matchingTrips[0];
+          const tripIndex = viaggiList.findIndex(v => v.id === primaryTrip.id);
+          const colorConfig = TRIP_COLORS[(tripIndex >= 0 ? tripIndex : 0) % TRIP_COLORS.length];
+
+          dayCell.style.backgroundColor = colorConfig.bg;
+          dayCell.style.borderColor = colorConfig.border;
+          dayCell.style.color = colorConfig.text;
+
+          matchingTrips.forEach(trip => {
+            const initialSpan = document.createElement('span');
+            initialSpan.className = 'trip-initial';
+            initialSpan.style.backgroundColor = colorConfig.border;
+            initialSpan.style.color = '#ffffff';
+            initialSpan.textContent = trip.destinazione ? trip.destinazione.slice(0, 2) : 'VI';
+            dayCell.appendChild(initialSpan);
           });
-        } else {
-          dayDiv.innerHTML = `<span class="day-num">${day}</span>`;
+
+          dayCell.addEventListener('click', (e) => {
+            showTripTooltip(primaryTrip, dayCell, e);
+          });
         }
 
-        daysContainer.appendChild(dayDiv);
+        calendarDaysContainer.appendChild(dayCell);
       }
     }
 
-    function formatDate(str) {
-      if (!str) return '-';
-      const p = str.split('-');
-      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
-    }
-
-    function escapeHtml(str) {
-      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-	
-    openAllLuoghiBtn.addEventListener('click', async () => {
-      allLuoghiModal.classList.add('hidden');
+    openAllLuoghiBtn.addEventListener('click', () => {
       allLuoghiModal.classList.remove('hidden');
-      await fetchAndRenderAllLuoghi();
+      fetchAllLuoghi();
     });
 
     closeAllLuoghiBtn.addEventListener('click', () => {
       allLuoghiModal.classList.add('hidden');
     });
 
-    async function fetchAndRenderAllLuoghi() {
-      allLuoghiTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #94a3b8; font-size: 12px;">Caricamento in corso...</td></tr>`;
+    async function fetchAllLuoghi() {
+      allLuoghiTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Caricamento in corso...</td></tr>';
       
-      const { data: settingsData } = await supabaseClient
-        .from('camper_settings')
-        .select('user_id, nome_utente');
+      try {
+        const { data: settingsData } = await supabaseClient
+          .from('camper_settings')
+          .select('user_id, nome_utente');
 
-      const usersMap = {};
-      (settingsData || []).forEach(s => {
-        if (s.user_id && s.nome_utente) {
-          usersMap[s.user_id] = s.nome_utente;
-        }
-      });													 
-      const { data: allTrips, error } = await supabaseClient
-        .from('viaggi')
-        .select('*');
-        
-      if (error) {
-        console.error('Errore caricamento luoghi globali:', error.message);
-        allLuoghiTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #dc2626; font-size: 12px;">Errore durante il caricamento dei dati.</td></tr>`;
-        return;
-      }
+        const usersMap = {};
+        (settingsData || []).forEach(s => {
+          if (s.user_id && s.nome_utente) {
+            usersMap[s.user_id] = s.nome_utente;
+          }
+        });
 
-      let allPlaces = [];
+        const { data: trips, error } = await supabaseClient
+          .from('viaggi')
+          .select('*')
+          .order('data_partenza', { ascending: false });
 
-      (allTrips || []).forEach(trip => {
-        const ownerName = usersMap[trip.user_id] || trip.autore_email || 'Utente Anonimo';
-        if (trip.luoghi && trip.luoghi.length > 0) {
-          trip.luoghi.forEach(luogo => {
-            allPlaces.push({
-              nome_luogo: luogo.nome_luogo || 'Sconosciuto',
-              viaggio_destinazione: trip.destinazione || 'Sconosciuto',
-              note_viaggio: trip.note_viaggio || trip.note || '-',
-              tipologia: luogo.tipologia || '-',
-              nome_campeggio: luogo.nome_campeggio || '-',
-              note_luogo: luogo.note_luogo || '-',
-              rating_luogo: luogo.rating_luogo || 3,
-              rating_campeggio: luogo.rating_campeggio || 3,
-              autore: ownerName,
-              data_creazione: trip.creato_il ? formatDate(trip.creato_il.slice(0, 10)) : '-'
-            });
+        if (error) throw error;
+
+        allLuoghiTableBody.innerHTML = '';
+        let totalCount = 0;
+
+        (trips || []).forEach(trip => {
+          const luoghi = trip.luoghi || [];
+          const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
+
+          luoghi.forEach(l => {
+            totalCount++;
+            const tr = document.createElement('tr');
+            tr.style.fontSize = "13px";
+            tr.innerHTML = `
+              <td><strong style="color: #0284c7;">${escapeHtml(l.nome_luogo || 'N/D')}</strong></td>
+              <td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td>
+              <td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td>
+              <td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td>
+              <td>${escapeHtml(l.tipologia || 'camping')}</td>
+              <td>${escapeHtml(l.nome_campeggio || '-')}</td>
+              <td>${escapeHtml(l.note_luogo || '-')}</td>
+              <td>${renderStars(l.rating_luogo || 3)}</td>
+              <td>${renderStars(l.rating_campeggio || 3)}</td>
+              <td style="white-space: nowrap;">${formatDate(trip.data_partenza)}</td>
+            `;
+            allLuoghiTableBody.appendChild(tr);
           });
+        });
+
+        if (totalCount === 0) {
+          allLuoghiTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#64748b;">Nessun luogo trovato.</td></tr>';
         }
-      });
-
-      allLuoghiTableBody.innerHTML = '';
-      if (allPlaces.length === 0) {
-        allLuoghiTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun luogo trovato.</td></tr>`;
-        return;
+      } catch (err) {
+        console.error("Errore nel recupero dei luoghi:", err);
+        allLuoghiTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#dc2626;">Errore durante il caricamento dei dati.</td></tr>';
       }
+    }
 
-      allPlaces.forEach(p => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${escapeHtml(p.nome_luogo)}</strong></td>
-          <td><span style="color: #0284c7;">${escapeHtml(p.viaggio_destinazione)}</span></td>
-          <td style="color: #64748b;">${escapeHtml(p.note_viaggio)}</td>
-          <td style="color: #475569;">${escapeHtml(p.autore)}</td>
-          <td>${escapeHtml(p.tipologia)}</td>
-          <td>${escapeHtml(p.nome_campeggio)}</td>
-          <td style="color: #64748b;">${escapeHtml(p.note_luogo)}</td>
-          <td>${renderStars(p.rating_luogo)}</td>
-          <td>${renderStars(p.rating_campeggio)}</td>
-          <td style="white-space: nowrap;">${p.data_creazione}</td>
-        `;
-        allLuoghiTableBody.appendChild(tr);
-      });
+	openHelpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+	closeHelpBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
   </script>
-  <div style="flex: 1; width: 100%; overflow-y: auto; text-align: center; padding: 10px;">
-    <img src="https://apenno75.github.io/Gestione-viaggi/4ASSI-V2.jpg" alt="Schema 4 Assi" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; display: inline;">
-  </div> Ideato e realizzato da: Andrea
 </body>
+<div style="width: 100%; text-align: center; padding: 10px; box-sizing: border-box;">
+  <img src="https://apenno75.github.io/Gestione-viaggi/4ASSI-V2.jpg" alt="Schema 4 Assi" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; display: inline-block;">
+  <p style="margin-top: 8px; font-size: 0.9rem; color: #64748b;">Ideato e realizzato da: Andrea</p>
+</div>
 </html>
