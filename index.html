@@ -469,9 +469,18 @@
         </div>
         
         <div class="form-group" style="background: #f1f5f9; padding: 10px; border-radius: 6px;">
-          <label for="camper-km-totali" style="color: #0369a1;">🛣️ Km Totali Camper</label>
-          <input type="number" step="0.1" id="camper-km-totali" value="0">
-          <small style="color: #64748b; font-size: 11px; margin-top: 4px; display: block;">Questo valore si aggiorna automaticamente aggiungendo/modificando i viaggi.</small>
+          <label style="color: #0369a1;">🛣️ Km Totali Camper e Validità</label>
+          <div class="flex flex-mobile-col" style="gap: 10px; margin-top: 6px;">
+            <div style="flex: 1;">
+              <label for="camper-km-totali" style="font-size: 11px; color: #475569;">Km Attuali</label>
+              <input type="number" step="0.1" id="camper-km-totali" value="0">
+            </div>
+            <div style="flex: 1;">
+              <label for="camper-km-data-validita" style="font-size: 11px; color: #475569;">Inizio Validità (dal)</label>
+              <input type="date" id="camper-km-data-validita">
+            </div>
+          </div>
+          <small style="color: #64748b; font-size: 11px; margin-top: 6px; display: block;">I km dei viaggi con data uguale o successiva verranno sommati/sottratti automaticamente.</small>
         </div>
 
         <div class="flex">
@@ -696,6 +705,7 @@
     const settingsModal = document.getElementById('settings-modal');
     const settingsForm = document.getElementById('settings-form');
     const camperKmTotaliInput = document.getElementById('camper-km-totali');
+    const camperKmDataValiditaInput = document.getElementById('camper-km-data-validita');
 
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
@@ -731,7 +741,7 @@
     let viaggiList = [];
     let tempRefuelings = [];
     let tempLuoghi = [];
-    let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0 };
+    let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0, kmDataValidita: null };
     let currentCalendarDate = new Date();
     let map = null;
     let markersGroup = null;
@@ -1486,8 +1496,14 @@
       costoTotalePreview.textContent = `€ ${totaleViaggio.toFixed(2)}`;
     }
 
-    async function updateKmTotaliAutomatic(kmDiff) {
+    async function updateKmTotaliAutomatic(kmDiff, tripDate) {
       if (kmDiff === 0) return;
+      
+      // Controllo data validità
+      if (tripDate && camperSettings.kmDataValidita && tripDate < camperSettings.kmDataValidita) {
+        return; // Ignora se la data del viaggio è precedente alla data di validità
+      }
+
       camperSettings.kmTotali = (camperSettings.kmTotali || 0) + kmDiff;
       camperKmTotaliInput.value = camperSettings.kmTotali;
       
@@ -1570,7 +1586,8 @@
         camperSettings = {
           consumo: parseFloat(data.consumo_medio) || 10.0,
           costoCarburante: parseFloat(data.costo_carburante) || 1.85,
-          kmTotali: parseFloat(data.km_totali) || 0
+          kmTotali: parseFloat(data.km_totali) || 0,
+          kmDataValidita: data.km_data_validita || null
         };
         document.getElementById('camper-nome').value = data.nome_camper || '';
         document.getElementById('camper-nome-utente').value = data.nome_utente || '';
@@ -1582,6 +1599,7 @@
         document.getElementById('camper-livello-carburante').value = data.livello_carburante_pct !== undefined ? data.livello_carburante_pct : 100;
         document.getElementById('camper-livello-acque').value = data.livello_acque_chiare_pct !== undefined ? data.livello_acque_chiare_pct : 100;
         camperKmTotaliInput.value = camperSettings.kmTotali;
+        camperKmDataValiditaInput.value = camperSettings.kmDataValidita || '';
       }
     }
 
@@ -1598,7 +1616,8 @@
         peso: parseFloat(document.getElementById('camper-peso').value),
         livello_carburante_pct: parseInt(document.getElementById('camper-livello-carburante').value) || 0,
         livello_acque_chiare_pct: parseInt(document.getElementById('camper-livello-acque').value) || 0,
-        km_totali: parseFloat(camperKmTotaliInput.value) || 0
+        km_totali: parseFloat(camperKmTotaliInput.value) || 0,
+        km_data_validita: camperKmDataValiditaInput.value || null
       };
 
       const { error } = await supabaseClient.from('camper_settings').upsert(payload, { onConflict: 'user_id' });
@@ -1609,6 +1628,7 @@
         camperSettings.consumo = payload.consumo_medio;
         camperSettings.costoCarburante = payload.costo_carburante;
         camperSettings.kmTotali = payload.km_totali;
+        camperSettings.kmDataValidita = payload.km_data_validita;
         settingsModal.classList.add('hidden');
         alert('Impostazioni salvate!');
       }
@@ -1765,7 +1785,7 @@
         if (rifError) alert('Errore rifornimenti: ' + rifError.message);
       }
       
-      await updateKmTotaliAutomatic(kmDiff);
+      await updateKmTotaliAutomatic(kmDiff, dataPartenzaInput.value);
 
       if (isNewTrip) {
         try {
@@ -1774,7 +1794,7 @@
           emailjs.init("V8kcX2zTDljSVfrW8");
 
           const templateParams = {
-		    to_email: "apenno75@gmail.com", // La tua email dove vuoi ricevere le notifiche
+		    to_email: "apenno75@gmail.com", 
            
             destinazione: destinazioneInput.value,
 			note: noteViaggioInput.value,
@@ -1877,15 +1897,16 @@
 	});
 	
     window.deleteViaggio = async function(id) {
-      if (!confirm('Sicuro di voler eliminare questo viaggio? I chilometri verranno scalati dal totale.')) return;
+      if (!confirm('Sicuro di voler eliminare questo viaggio? ')) return;
       
       const tripToDelete = viaggiList.find(x => x.id === id);
       const kmToDelete = tripToDelete ? parseFloat(tripToDelete.chilometri) || 0 : 0;
+      const tripDate = tripToDelete ? tripToDelete.data_partenza : null;
 
       const { error } = await supabaseClient.from('viaggi').delete().eq('id', id);
       
       if (!error) {
-        await updateKmTotaliAutomatic(-kmToDelete);
+        await updateKmTotaliAutomatic(-kmToDelete, tripDate);
         fetchViaggi();
       } else {
         alert("Errore nell'eliminazione: " + error.message);
