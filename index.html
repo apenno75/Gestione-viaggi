@@ -107,13 +107,13 @@
       </div>
       <div class="header-actions flex">
         <button id="open-new-viaggio-btn" class="btn-primary">➕ Nuovo Viaggio</button>
-        <button id="open-viaggi-btn" class="btn-purple">📋 Elenco Viaggi</button>
-        <button id="open-all-luoghi-btn" class="btn-primary" style="background: #ec4899; color: white;">🌍 Elenco Luoghi</button>
+        <button id="open-viaggi-btn" class="btn-purple">📋 Viaggi</button>
+        <button id="open-all-luoghi-btn" class="btn-primary" style="background: #ec4899; color: white;">🌍 Luoghi</button>
         <button id="open-summary-btn" class="btn-info">📊 Costi</button>
         <button id="open-calendar-btn" class="btn-warning">📅 Calendario</button>
-        <button id="open-map-btn" class="btn-success">🗺️ Mappa Viaggi</button>
+        <button id="open-map-btn" class="btn-success">🗺️ Mappa</button>
         <button id="open-settings-btn" class="btn-secondary">⚙️ Settaggi</button>
-        <button id="open-all-campers-btn" class="btn-primary" style="background: #059669; color: white;">🚐 I Camper</button>
+        <button id="open-all-campers-btn" class="btn-primary" style="background: #059669; color: white;">🚐 Camper</button>
         <button id="logout-btn" class="btn-danger">Logout</button>
         <button id="open-help-btn" class="btn-warning" style="background: #eab308; color: white;">❓ Help</button>
       </div>
@@ -540,6 +540,23 @@
       extraDetailModal.classList.remove('hidden');
     }	
 
+    function openSingleLuogoExtraModal(luogoObj, tripDestinazione) {
+      extraDetailTitle.textContent = `🔎 Dettaglio Costi Extra - ${escapeHtml(luogoObj.nome_luogo || 'Luogo')}`;
+      extraDetailTableBody.innerHTML = '';
+      const extraList = luogoObj.costi_extra || [];
+      if (extraList.length === 0) {
+        extraDetailTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito per questo luogo.</td></tr>`;
+      } else {
+        extraList.forEach(c => {
+          const val = parseFloat(c.valore) || 0;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><strong>€ ${val.toFixed(2)}</strong></td><td>${escapeHtml(c.categoria || '-')}</td><td>${escapeHtml(c.nome || '-')}</td><td>${escapeHtml(c.luogo || luogoObj.nome_luogo || '-')}</td><td>${escapeHtml(c.note || '-')}</td>`;
+          extraDetailTableBody.appendChild(tr);
+        });
+      }
+      extraDetailModal.classList.remove('hidden');
+    }
+
     function openCarburanteDetailModal(tripItem) {
       carburanteDetailTitle.textContent = `⛽ Dettaglio Carburante - ${escapeHtml(tripItem.destinazione)}`;
       carburanteDetailTableBody.innerHTML = '';
@@ -754,7 +771,13 @@
                 ${(l.costi_extra || []).map((c, cIdx) => `
                   <tr class="extra-cost-row">
                     <td><input type="number" step="0.01" class="extra-valore" value="${c.valore}" oninput="updateFormCalculations()" style="padding: 6px; min-height: 34px;"></td>
-                    <td><select class="extra-categoria" style="padding: 6px; min-height: 34px;"><option value="ristorante" ${c.categoria === 'ristorante' ? 'selected' : ''}>Ristorante</option><option value="souvenir" ${c.categoria === 'souvenir' ? 'selected' : ''}>Souvenir</option><option value="bar" ${c.categoria === 'bar' ? 'selected' : ''}>Bar / Caffè</option><option value="attività" ${c.categoria === 'attività' ? 'selected' : ''}>Attività / Musei</option><option value="spesa" ${c.categoria === 'spesa' ? 'selected' : ''}>Spesa Alimentare</option><option value="altro" ${c.categoria === 'altro' ? 'selected' : ''}>Altro</option></select></td>
+                    <td><select class="extra-categoria" style="padding: 6px; min-height: 34px;">
+						<option value="ristorante" ${c.categoria === 'ristorante' ? 'selected' : ''}>Ristorante</option>
+						<option value="souvenir" ${c.categoria === 'souvenir' ? 'selected' : ''}>Souvenir</option>
+						<option value="bar" ${c.categoria === 'bar' ? 'selected' : ''}>Bar / Caffè</option>
+						<option value="attività" ${c.categoria === 'attività' ? 'selected' : ''}>Attività / Musei</option>
+						<option value="spesa" ${c.categoria === 'spesa' ? 'selected' : ''}>Spesa Alimentare</option>
+						<option value="altro" ${c.categoria === 'altro' ? 'selected' : ''}>Altro</option></select></td>
                     <td><input type="text" class="extra-nome" value="${escapeHtml(c.nome)}" style="padding: 6px; min-height: 34px;"></td>
                     <td><input type="text" class="extra-luogo" value="${escapeHtml(c.luogo)}" style="padding: 6px; min-height: 34px;"></td>
                     <td><input type="text" class="extra-note" value="${escapeHtml(c.note)}" style="padding: 6px; min-height: 34px;"></td>
@@ -1039,7 +1062,8 @@
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
           (trip.luoghi || []).forEach(l => {
             const tr = document.createElement('tr'); tr.style.fontSize = "13px";
-            tr.innerHTML = `<td><strong style="color: #0284c7;">${escapeHtml(l.nome_luogo || 'N/D')}</strong></td><td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td><td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td><td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td><td>${escapeHtml(l.tipologia || 'camping')}</td><td>${escapeHtml(l.nome_campeggio || '-')}</td><td>${escapeHtml(l.note_luogo || '-')}</td><td>${renderStars(l.rating_luogo)}</td><td>${renderStars(l.rating_campeggio)}</td><td>${formatDate(trip.data_partenza)}</td>`;
+            tr.innerHTML = `<td><strong class="clickable-luogo-nome" style="color: #0284c7; cursor: pointer; text-decoration: underline;">${escapeHtml(l.nome_luogo || 'N/D')}</strong></td><td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td><td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td><td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td><td>${escapeHtml(l.tipologia || 'camping')}</td><td>${escapeHtml(l.nome_campeggio || '-')}</td><td>${escapeHtml(l.note_luogo || '-')}</td><td>${renderStars(l.rating_luogo)}</td><td>${renderStars(l.rating_campeggio)}</td><td>${formatDate(trip.data_partenza)}</td>`;
+            tr.querySelector('.clickable-luogo-nome').addEventListener('click', () => openSingleLuogoExtraModal(l, trip.destinazione));
             allLuoghiTableBody.appendChild(tr);
           });
         });
