@@ -417,6 +417,7 @@
 
     const viaggioFormContainer = document.getElementById('viaggio-form-container');
     const viaggioForm = document.getElementById('viaggio-form');
+    const saveViaggioBtn = document.getElementById('save-btn');
     const viaggioIdInput = document.getElementById('viaggio-id');
     const destinazioneInput = document.getElementById('destinazione');
     const dataPartenzaInput = document.getElementById('data_partenza');
@@ -904,6 +905,11 @@
 
     viaggioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (saveViaggioBtn.disabled) return; // evita doppio invio se è già in corso un salvataggio
+      saveViaggioBtn.disabled = true;
+      const saveBtnOriginalText = saveViaggioBtn.innerHTML;
+      saveViaggioBtn.innerHTML = '⏳ Salvataggio in corso...';
+      try {
       const startDate = new Date(dataPartenzaInput.value); const endDate = new Date(dataArrivoInput.value);
       startDate.setHours(0,0,0,0); endDate.setHours(0,0,0,0);
       
@@ -1012,6 +1018,10 @@
       }
       alert('Viaggio salvato con successo!');
       viaggioFormContainer.classList.add('hidden'); resetViaggioForm(); fetchViaggi();
+      } finally {
+        saveViaggioBtn.disabled = false;
+        saveViaggioBtn.innerHTML = saveBtnOriginalText;
+      }
     });
 
     function resetViaggioForm() {
