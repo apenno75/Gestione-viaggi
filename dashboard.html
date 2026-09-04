@@ -229,6 +229,29 @@
       { bg: '#ccfbf1', border: '#14b8a6', text: '#0f766e' }, { bg: '#ffedd5', border: '#f97316', text: '#c2410c' }
     ];
 
+    // Palette di colori univoci assegnabili agli utenti (usata per il colore delle bandierine sulla mappa,
+    // deve rimanere identica a quella definita in settaggi.html)
+    const USER_COLORS = [
+      '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', '#6366f1', '#14b8a6', '#f97316',
+      '#eab308', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9', '#ef4444', '#10b981', '#c026d3'
+    ];
+    function generaColoreFallback() {
+      return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    }
+    // Assegna (se non presente) un colore univoco all'utente corrente: viene chiamata al login/registrazione
+    // e non modifica il colore se l'utente ne ha già uno salvato in camper_settings.colore_utente
+    async function ensureUserColor() {
+      try {
+        const { data: allCampers } = await supabaseClient.from('camper_settings').select('user_id, colore_utente');
+        const mine = (allCampers || []).find(c => c.user_id === currentUser.id);
+        if (mine && mine.colore_utente) return;
+        const usedColors = new Set((allCampers || []).filter(c => c.colore_utente).map(c => c.colore_utente));
+        let chosen = USER_COLORS.find(c => !usedColors.has(c));
+        if (!chosen) { do { chosen = generaColoreFallback(); } while (usedColors.has(chosen)); }
+        await supabaseClient.from('camper_settings').upsert({ user_id: currentUser.id, colore_utente: chosen }, { onConflict: 'user_id' });
+      } catch (err) { console.error('Errore assegnazione colore utente:', err); }
+    }
+
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authForm = document.getElementById('auth-form');
@@ -305,7 +328,7 @@
       if (session) {
         currentUser = session.user; userEmailDisplay.textContent = `${currentUser.email}`;
         authSection.classList.add('hidden'); appSection.classList.remove('hidden');
-        await fetchViaggi(); handleUrlParams();
+        await fetchViaggi(); await ensureUserColor(); handleUrlParams();
       } else {
         currentUser = null; appSection.classList.add('hidden'); authSection.classList.remove('hidden');
       }
@@ -521,8 +544,12 @@
       updateZoomDisplay();
       if (markersGroup) markersGroup.clearLayers(); else markersGroup = L.layerGroup().addTo(map);
       try {
-        const { data: settingsData } = await supabaseClient.from('camper_settings').select('user_id, nome_utente');
-        const usersMap = {}; (settingsData || []).forEach(s => { if (s.user_id && s.nome_utente) usersMap[s.user_id] = s.nome_utente; });
+        const { data: settingsData } = await supabaseClient.from('camper_settings').select('user_id, nome_utente, colore_utente');
+        const usersMap = {}; const userColorMap = {};
+        (settingsData || []).forEach(s => {
+          if (s.user_id && s.nome_utente) usersMap[s.user_id] = s.nome_utente;
+          if (s.user_id && s.colore_utente) userColorMap[s.user_id] = s.colore_utente;
+        });
         const { data: trips } = await supabaseClient.from('viaggi').select('*');
         if (!trips || trips.length === 0) return;
 
@@ -542,6 +569,7 @@
 
         for (const trip of trips) {
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
+          const ownerColor = userColorMap[trip.user_id] || '#dc2626';
           const luoghi = trip.luoghi || []; const latLngsForTrip = [];
           for (let index = 0; index < luoghi.length; index++) {
             const luogo = luoghi[index]; const query = luogo.nome_luogo || luogo.viaggio_destinazione || trip.destinazione;
@@ -561,7 +589,7 @@
             }
             if (latLng) {
               latLngsForTrip.push(latLng);
-              const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: #dc2626; color: white; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${index + 1}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
+              const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: ${ownerColor}; color: white; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${index + 1}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
               const marker = L.marker(latLng, { icon: customIcon });
               marker.on('click', () => {
                 const fullOverlay = document.createElement('div'); fullOverlay.className = 'map-full-overlay';

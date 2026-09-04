@@ -189,6 +189,7 @@
         <table>
           <thead>
             <tr>
+              <th>Colore</th>
               <th>Nome Camper</th>
               <th>Nome Utente</th>
               <th>Lunghezza (m)</th>
@@ -219,6 +220,28 @@
     const SUPABASE_URL = 'https://erukzvrtjnvyzjvfuirn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FDhQ03affjzeyhCHuoKulg_Rp7PdyLM';
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Palette di colori univoci assegnabili agli utenti (colonna "Colore" elenco camper + bandierine mappa)
+    const USER_COLORS = [
+      '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', '#6366f1', '#14b8a6', '#f97316',
+      '#eab308', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9', '#ef4444', '#10b981', '#c026d3'
+    ];
+    function generaColoreFallback() {
+      return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    }
+    // Assegna (se non presente) un colore univoco all'utente corrente: viene chiamata al login/registrazione
+    // e non modifica il colore se l'utente ne ha già uno salvato in camper_settings.colore_utente
+    async function ensureUserColor() {
+      try {
+        const { data: allCampers } = await supabaseClient.from('camper_settings').select('user_id, colore_utente');
+        const mine = (allCampers || []).find(c => c.user_id === currentUser.id);
+        if (mine && mine.colore_utente) return;
+        const usedColors = new Set((allCampers || []).filter(c => c.colore_utente).map(c => c.colore_utente));
+        let chosen = USER_COLORS.find(c => !usedColors.has(c));
+        if (!chosen) { do { chosen = generaColoreFallback(); } while (usedColors.has(chosen)); }
+        await supabaseClient.from('camper_settings').upsert({ user_id: currentUser.id, colore_utente: chosen }, { onConflict: 'user_id' });
+      } catch (err) { console.error('Errore assegnazione colore utente:', err); }
+    }
 
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
@@ -271,7 +294,7 @@
       if (session) {
         currentUser = session.user; userEmailDisplay.textContent = `${currentUser.email}`;
         authSection.classList.add('hidden'); appSection.classList.remove('hidden');
-        await fetchSettings(); handleUrlParams();
+        await fetchSettings(); await ensureUserColor(); handleUrlParams();
       } else {
         currentUser = null; appSection.classList.add('hidden'); authSection.classList.remove('hidden');
       }
@@ -343,17 +366,18 @@
     closeAllCampersBtn.addEventListener('click', () => allCampersModal.classList.add('hidden'));
 
     async function fetchAllCampers() {
-      allCampersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Caricamento in corso...</td></tr>';
+      allCampersTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Caricamento in corso...</td></tr>';
       try {
         const { data: campers } = await supabaseClient.from('camper_settings').select('*');
         allCampersTableBody.innerHTML = '';
-        if (!campers || campers.length === 0) { allCampersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">Nessun camper trovato.</td></tr>'; return; }
+        if (!campers || campers.length === 0) { allCampersTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b;">Nessun camper trovato.</td></tr>'; return; }
         campers.forEach(camper => {
           const tr = document.createElement('tr'); tr.style.fontSize = "13px";
-          tr.innerHTML = `<td><strong style="color: #0284c7;">${escapeHtml(camper.nome_camper || 'N/D')}</strong></td><td style="color: #475569;">${escapeHtml(camper.nome_utente || camper.user_email || 'N/D')}</td><td>${camper.lunghezza ? camper.lunghezza + ' m' : '-'}</td><td>${camper.altezza ? camper.altezza + ' m' : '-'}</td><td><strong>${camper.km_totali != null ? camper.km_totali + ' km' : '-'}</strong></td>`;
+          const colorSwatch = `<span title="${escapeHtml(camper.colore_utente || '')}" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${camper.colore_utente || '#94a3b8'}; border:1px solid #cbd5e1; vertical-align:middle;"></span>`;
+          tr.innerHTML = `<td>${colorSwatch}</td><td><strong style="color: #0284c7;">${escapeHtml(camper.nome_camper || 'N/D')}</strong></td><td style="color: #475569;">${escapeHtml(camper.nome_utente || camper.user_email || 'N/D')}</td><td>${camper.lunghezza ? camper.lunghezza + ' m' : '-'}</td><td>${camper.altezza ? camper.altezza + ' m' : '-'}</td><td><strong>${camper.km_totali != null ? camper.km_totali + ' km' : '-'}</strong></td>`;
           allCampersTableBody.appendChild(tr);
         });
-      } catch (err) { allCampersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Errore durante il caricamento dei dati.</td></tr>'; }
+      } catch (err) { allCampersTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#dc2626;">Errore durante il caricamento dei dati.</td></tr>'; }
     }
   </script>
 <div style="width: 100%; text-align: center; padding: 10px; box-sizing: border-box;">
