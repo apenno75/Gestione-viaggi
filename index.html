@@ -640,6 +640,15 @@
       });
     }
 
+    // Se l'anno ha meno di 4 cifre (es. 0026) lo porta al secolo corrente (2026)
+    function normalizeDateYear(v) {
+      const m = /^(\d{1,6})-(\d{2})-(\d{2})$/.exec(v || '');
+      if (!m) return v || '';
+      let y = parseInt(m[1], 10);
+      if (y < 100) y += Math.floor(new Date().getFullYear() / 100) * 100;
+      return `${String(y).padStart(4, '0')}-${m[2]}-${m[3]}`;
+    }
+
     function getTodayStr() {
       const t = new Date();
       return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
@@ -861,6 +870,13 @@
     });
 
     window.removeLuogo = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi.splice(lIdx, 1); renderLuoghi(); updateFormCalculations(); };
+    luoghiListContainer.addEventListener('focusout', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('extra-data')) {
+        const n = normalizeDateYear(e.target.value);
+        if (n !== e.target.value) e.target.value = n;
+      }
+    });
+
     window.addCostoExtraRow = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.push({ valore: 0, data: getDayDateStr(tempLuoghi[lIdx].giorno) || getTodayStr(), categoria: 'ristorante', nome: '', luogo: '', note: '' }); renderLuoghi(); updateFormCalculations(); };
     window.removeCostoExtraRow = function(lIdx, cIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.splice(cIdx, 1); renderLuoghi(); updateFormCalculations(); };
 
@@ -883,7 +899,7 @@
         extraRows.forEach(row => {
           tempLuoghi[lIdx].costi_extra.push({
             valore: parseFloat(row.querySelector('.extra-valore').value) || 0,
-            data: row.querySelector('.extra-data').value || '',
+            data: normalizeDateYear(row.querySelector('.extra-data').value),
             categoria: row.querySelector('.extra-categoria').value,
             nome: row.querySelector('.extra-nome').value,
             luogo: row.querySelector('.extra-luogo').value,
