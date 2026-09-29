@@ -333,6 +333,7 @@
           <thead>
             <tr>
               <th>Costo</th>
+              <th>Data</th>
               <th>Categoria</th>
               <th>Nome</th>
               <th>Luogo</th>
@@ -550,32 +551,32 @@
       const allExtra = []; 
       (tripItem.luoghi || []).forEach(l => { 
         (l.costi_extra || []).forEach(c => { 
-          allExtra.push({ valore: parseFloat(c.valore) || 0, categoria: c.categoria || '-', nome: c.nome || '-', luogo: c.luogo || l.nome_luogo || '-', note: c.note || '-' }); 
+          allExtra.push({ valore: parseFloat(c.valore) || 0, data: c.data || '', categoria: c.categoria || '-', nome: c.nome || '-', luogo: c.luogo || l.nome_luogo || '-', note: c.note || '-' }); 
         }); 
       });
       if (allExtra.length === 0) {
-        extraDetailTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito.</td></tr>`;
+        extraDetailTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito.</td></tr>`;
       } else {
         allExtra.forEach(c => { 
           const tr = document.createElement('tr'); 
-          tr.innerHTML = `<td><strong>€ ${c.valore.toFixed(2)}</strong></td><td>${escapeHtml(c.categoria)}</td><td>${escapeHtml(c.nome)}</td><td>${escapeHtml(c.luogo)}</td><td>${escapeHtml(c.note)}</td>`; 
+          tr.innerHTML = `<td><strong>€ ${c.valore.toFixed(2)}</strong></td><td>${c.data ? formatDate(c.data) : '-'}</td><td>${escapeHtml(c.categoria)}</td><td>${escapeHtml(c.nome)}</td><td>${escapeHtml(c.luogo)}</td><td>${escapeHtml(c.note)}</td>`; 
           extraDetailTableBody.appendChild(tr); 
         });
       }
       extraDetailModal.classList.remove('hidden');
     }	
 
-    function openSingleLuogoExtraModal(luogoObj, tripDestinazione) {
+    function openSingleLuogoExtraModal(luogoObj, tripDestinazione, tripObj) {
       extraDetailTitle.textContent = `🔎 Dettaglio Costi Extra - ${escapeHtml(luogoObj.nome_luogo || 'Luogo')}`;
       extraDetailTableBody.innerHTML = '';
       const extraList = luogoObj.costi_extra || [];
       if (extraList.length === 0) {
-        extraDetailTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito per questo luogo.</td></tr>`;
+        extraDetailTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito per questo luogo.</td></tr>`;
       } else {
         extraList.forEach(c => {
           const val = parseFloat(c.valore) || 0;
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td><strong>€ ${val.toFixed(2)}</strong></td><td>${escapeHtml(c.categoria || '-')}</td><td>${escapeHtml(c.nome || '-')}</td><td>${escapeHtml(c.luogo || luogoObj.nome_luogo || '-')}</td><td>${escapeHtml(c.note || '-')}</td>`;
+          tr.innerHTML = `<td><strong>€ ${val.toFixed(2)}</strong></td><td>${c.data ? formatDate(c.data) : '-'}</td><td>${escapeHtml(c.categoria || '-')}</td><td>${escapeHtml(c.nome || '-')}</td><td>${escapeHtml(c.luogo || luogoObj.nome_luogo || '-')}</td><td>${escapeHtml(c.note || '-')}</td>`;
           extraDetailTableBody.appendChild(tr);
         });
       }
@@ -637,6 +638,11 @@
         };
         reader.onerror = (err) => reject(err);
       });
+    }
+
+    function getTodayStr() {
+      const t = new Date();
+      return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
     }
 
     function formatDate(dateStr) {
@@ -855,7 +861,7 @@
     });
 
     window.removeLuogo = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi.splice(lIdx, 1); renderLuoghi(); updateFormCalculations(); };
-    window.addCostoExtraRow = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.push({ valore: 0, categoria: 'ristorante', nome: '', luogo: '', note: '' }); renderLuoghi(); updateFormCalculations(); };
+    window.addCostoExtraRow = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.push({ valore: 0, data: getTodayStr(), categoria: 'ristorante', nome: '', luogo: '', note: '' }); renderLuoghi(); updateFormCalculations(); };
     window.removeCostoExtraRow = function(lIdx, cIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.splice(cIdx, 1); renderLuoghi(); updateFormCalculations(); };
 
     function syncLuoghiDataFromDOM() {
@@ -877,6 +883,7 @@
         extraRows.forEach(row => {
           tempLuoghi[lIdx].costi_extra.push({
             valore: parseFloat(row.querySelector('.extra-valore').value) || 0,
+            data: row.querySelector('.extra-data').value || '',
             categoria: row.querySelector('.extra-categoria').value,
             nome: row.querySelector('.extra-nome').value,
             luogo: row.querySelector('.extra-luogo').value,
@@ -1031,12 +1038,13 @@
           <div style="margin-top: 10px;"><label style="font-size: 12px;">Note del Luogo</label><textarea class="luogo-note-input" rows="2" placeholder="Note del luogo e/o campeggio...">${escapeHtml(l.note_luogo)}</textarea></div>
           <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
           <div class="table-container">
-            <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 600px;">
-              <thead><tr><th style="width: 15%;">Costo (€)</th><th style="width: 20%;">Categoria Extra</th><th style="width: 20%;">Nome</th><th style="width: 20%;">Luogo</th><th style="width: 20%;">Note Extra</th><th style="width: 5%; text-align: right;">Azione</th></tr></thead>
+            <table style="margin-top: 4px; font-size: 12px; background: #fff; min-width: 760px;">
+              <thead><tr><th style="width: 12%;">Costo (€)</th><th style="width: 16%;">Data</th><th style="width: 17%;">Categoria Extra</th><th style="width: 17%;">Nome</th><th style="width: 17%;">Luogo</th><th style="width: 17%;">Note Extra</th><th style="width: 4%; text-align: right;">Azione</th></tr></thead>
               <tbody>
                 ${(l.costi_extra || []).map((c, cIdx) => `
                   <tr class="extra-cost-row">
                     <td><input type="number" step="0.01" class="extra-valore" value="${c.valore}" oninput="updateFormCalculations()" style="padding: 6px; min-height: 34px;"></td>
+                    <td><input type="date" class="extra-data" value="${escapeHtml(c.data || '')}" style="padding: 6px; min-height: 34px;"></td>
                     <td><select class="extra-categoria" style="padding: 6px; min-height: 34px;">
 						<option value="ristorante" ${c.categoria === 'ristorante' ? 'selected' : ''}>Ristorante</option>
 						<option value="souvenir" ${c.categoria === 'souvenir' ? 'selected' : ''}>Souvenir</option>
@@ -1050,7 +1058,7 @@
                     <td style="text-align: right;"><button type="button" class="btn-danger btn-sm" onclick="removeCostoExtraRow(${lIdx}, ${cIdx})" style="padding: 2px 6px;">&times;</button></td>
                   </tr>
                 `).join('')}
-                ${(!l.costi_extra || l.costi_extra.length === 0) ? `<tr><td colspan="6" style="text-align: center; color: #94a3b8; font-size: 11px;">Nessun costo extra.</td></tr>` : ''}
+                ${(!l.costi_extra || l.costi_extra.length === 0) ? `<tr><td colspan="7" style="text-align: center; color: #94a3b8; font-size: 11px;">Nessun costo extra.</td></tr>` : ''}
               </tbody>
             </table>
           </div>
@@ -1374,7 +1382,7 @@
           luoghiUnici.forEach(({ l, count }) => {
             const tr = document.createElement('tr'); tr.style.fontSize = "13px";
             tr.innerHTML = `<td><strong class="clickable-luogo-nome" style="color: #0284c7; cursor: pointer; text-decoration: underline;">${escapeHtml(l.nome_luogo || 'N/D')}</strong>${count > 1 ? ` <small style="color: #64748b;">(${count} giorni)</small>` : ''}</td><td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td><td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td><td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td><td>${escapeHtml(l.tipologia || 'camping')}</td><td>${escapeHtml(l.nome_campeggio || '-')}</td><td>${escapeHtml(l.note_luogo || '-')}</td><td>${renderStars(l.rating_luogo)}</td><td>${renderStars(l.rating_campeggio)}</td><td>${formatDate(trip.data_partenza)}</td>`;
-            tr.querySelector('.clickable-luogo-nome').addEventListener('click', () => openSingleLuogoExtraModal(l, trip.destinazione));
+            tr.querySelector('.clickable-luogo-nome').addEventListener('click', () => openSingleLuogoExtraModal(l, trip.destinazione, trip));
             allLuoghiTableBody.appendChild(tr);
           });
         });
