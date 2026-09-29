@@ -861,7 +861,7 @@
     });
 
     window.removeLuogo = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi.splice(lIdx, 1); renderLuoghi(); updateFormCalculations(); };
-    window.addCostoExtraRow = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.push({ valore: 0, data: getTodayStr(), categoria: 'ristorante', nome: '', luogo: '', note: '' }); renderLuoghi(); updateFormCalculations(); };
+    window.addCostoExtraRow = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.push({ valore: 0, data: getDayDateStr(tempLuoghi[lIdx].giorno) || getTodayStr(), categoria: 'ristorante', nome: '', luogo: '', note: '' }); renderLuoghi(); updateFormCalculations(); };
     window.removeCostoExtraRow = function(lIdx, cIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.splice(cIdx, 1); renderLuoghi(); updateFormCalculations(); };
 
     function syncLuoghiDataFromDOM() {
