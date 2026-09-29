@@ -885,6 +885,14 @@
     window.addCostoExtraRow = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.push({ valore: 0, data: getDayDateStr(tempLuoghi[lIdx].giorno) || getTodayStr(), categoria: 'ristorante', nome: '', luogo: '', note: '' }); renderLuoghi(); updateFormCalculations(); };
     window.removeCostoExtraRow = function(lIdx, cIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.splice(cIdx, 1); renderLuoghi(); updateFormCalculations(); };
 
+    window.onLuogoTipologiaChange = function(sel) {
+      const card = sel.closest('.luogo-card'); if (!card) return;
+      const t = sel.value;
+      card.querySelector('.luogo-camping-wrap').style.display = (t === 'parcheggio' || t === 'autogrill' || t === 'libera') ? 'none' : '';
+      card.querySelector('.luogo-costo-wrap').style.display = (t === 'autogrill' || t === 'libera') ? 'none' : '';
+      updateFormCalculations();
+    };
+
     function syncLuoghiDataFromDOM() {
       syncGiorniFromDOM();
       const cards = luoghiListContainer.querySelectorAll('.luogo-card');
@@ -895,6 +903,8 @@
         tempLuoghi[lIdx].tipologia = card.querySelector('.luogo-tipologia-input')?.value || '';
         tempLuoghi[lIdx].nome_campeggio = card.querySelector('.luogo-camping-input')?.value || '';
         tempLuoghi[lIdx].costo_giornaliero = parseFloat(card.querySelector('.luogo-costo-notte-input')?.value) || 0;
+        if (['parcheggio', 'autogrill', 'libera'].includes(tempLuoghi[lIdx].tipologia)) tempLuoghi[lIdx].nome_campeggio = '';
+        if (['autogrill', 'libera'].includes(tempLuoghi[lIdx].tipologia)) tempLuoghi[lIdx].costo_giornaliero = 0;
         tempLuoghi[lIdx].rating_luogo = parseInt(card.querySelector('.luogo-rating-luogo-input')?.value) || 3;
         tempLuoghi[lIdx].rating_campeggio = parseInt(card.querySelector('.luogo-rating-campeggio-input')?.value) || 3;
         tempLuoghi[lIdx].note_luogo = card.querySelector('.luogo-note-input')?.value || '';
@@ -1052,19 +1062,20 @@
           <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
             <div style="flex: 2;"><label style="font-size: 12px;">Nome del Luogo / Tappa</label><input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo)}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()"></div>
             <div style="flex: 1.5;"><label style="font-size: 12px;">Tipologia</label>
-              <select class="luogo-tipologia-input">
+              <select class="luogo-tipologia-input" onchange="onLuogoTipologiaChange(this)">
                 <option value="camping" ${l.tipologia === 'camping' ? 'selected' : ''}>Camping</option>
                 <option value="area sosta" ${l.tipologia === 'area sosta' ? 'selected' : ''}>Area sosta</option>
                 <option value="parcheggio" ${l.tipologia === 'parcheggio' ? 'selected' : ''}>Parcheggio</option>
+                <option value="autogrill" ${l.tipologia === 'autogrill' ? 'selected' : ''}>Autogrill</option>
                 <option value="libera" ${l.tipologia === 'libera' ? 'selected' : ''}>Libera</option>
               </select>
             </div>
-            <div style="flex: 2;"><label style="font-size: 12px;">Nome Camping / Struttura</label><input type="text" class="luogo-camping-input" value="${escapeHtml(l.nome_campeggio)}" placeholder="Es. Camping Toblacher See" oninput="updateFormCalculations()"></div>
-            <div style="flex: 1;"><label style="font-size: 12px;">Costo (€/notte)</label><input type="number" step="0.01" class="luogo-costo-notte-input" value="${l.costo_giornaliero}" oninput="updateFormCalculations()"></div>
+            <div class="luogo-camping-wrap" style="flex: 2;${(l.tipologia === 'parcheggio' || l.tipologia === 'autogrill' || l.tipologia === 'libera') ? ' display: none;' : ''}"><label style="font-size: 12px;">Nome Camping / Struttura</label><input type="text" class="luogo-camping-input" value="${escapeHtml(l.nome_campeggio)}" placeholder="Es. Camping Toblacher See" oninput="updateFormCalculations()"></div>
+            <div class="luogo-costo-wrap" style="flex: 1;${(l.tipologia === 'autogrill' || l.tipologia === 'libera') ? ' display: none;' : ''}"><label style="font-size: 12px;">Costo (€/notte)</label><input type="number" step="0.01" class="luogo-costo-notte-input" value="${l.costo_giornaliero}" oninput="updateFormCalculations()"></div>
           </div>
           <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Luogo</label><select class="luogo-rating-luogo-input"><option value="5" ${l.rating_luogo == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_luogo == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_luogo == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_luogo == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_luogo == 1 ? 'selected' : ''}>⭐</option></select></div>
-            <div style="flex: 1;"><label style="font-size: 12px;">Rating Campeggio</label><select class="luogo-rating-campeggio-input"><option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_campeggio == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐</option></select></div>
+            <div style="flex: 1;"><label style="font-size: 12px;">Rating Sosta</label><select class="luogo-rating-campeggio-input"><option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_campeggio == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐</option></select></div>
           </div>
           <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">Totale Camping Luogo: € <span class="luogo-subtotale">${subtotalCampingLuogo}</span></div>
           <div style="margin-top: 10px;"><label style="font-size: 12px;">Note del Luogo</label><textarea class="luogo-note-input" rows="2" placeholder="Note del luogo e/o campeggio...">${escapeHtml(l.note_luogo)}</textarea></div>
@@ -1186,7 +1197,7 @@
         return;
       }
 	  
-	  const hasEmptyCamping = tempLuoghi.some(l => !l.nome_campeggio || !l.nome_campeggio.trim());
+	  const hasEmptyCamping = tempLuoghi.some(l => !['parcheggio', 'autogrill', 'libera'].includes(l.tipologia) && (!l.nome_campeggio || !l.nome_campeggio.trim()));
       if (hasEmptyCamping) {
         alert("Attenzione: inserire il Nome Camping / Struttura per il luogo inserito.");
         return;
