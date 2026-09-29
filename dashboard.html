@@ -171,6 +171,21 @@
     </div>
   </div>
 
+  <div id="toll-detail-modal" class="modal-overlay hidden" style="z-index: 1100;">
+    <div class="modal-content" style="max-width: 550px;">
+      <div class="flex-center">
+        <h2 style="margin:0; font-size: 18px;" id="toll-detail-title">💶 Dettaglio Pedaggi</h2>
+        <button id="close-toll-detail-btn" class="btn-secondary btn-sm">Chiudi</button>
+      </div>
+      <div class="table-container" style="margin-top: 15px;">
+        <table>
+          <thead><tr><th>Data</th><th>Costo (€)</th><th>Tipologia</th></tr></thead>
+          <tbody id="toll-detail-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div id="calendar-modal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="flex-center">
@@ -284,6 +299,11 @@
     const fuelDetailTitle = document.getElementById('fuel-detail-title');
     const fuelDetailTableBody = document.getElementById('fuel-detail-table-body');
     const closeFuelDetailBtn = document.getElementById('close-fuel-detail-btn');
+
+    const tollDetailModal = document.getElementById('toll-detail-modal');
+    const tollDetailTitle = document.getElementById('toll-detail-title');
+    const tollDetailTableBody = document.getElementById('toll-detail-table-body');
+    const closeTollDetailBtn = document.getElementById('close-toll-detail-btn');
 
     const openCalendarBtn = document.getElementById('open-calendar-btn');
     const closeCalendarBtn = document.getElementById('close-calendar-btn');
@@ -535,9 +555,10 @@
           const totale = camping + pedaggi + carburante + extra;
           grandCamping += camping; grandExtra += extra; grandFuel += carburante; grandTolls += pedaggi;
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td><strong>${escapeHtml(item.destinazione)}</strong></td><td>€ ${camping.toFixed(2)}</td><td style="color: #8b5cf6; font-weight: bold; ${extra > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${extra > 0 ? 'summary-extra-click' : ''}">€ ${extra.toFixed(2)}</td><td style="color: #0284c7; font-weight: bold; ${carburante > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${carburante > 0 ? 'summary-fuel-click' : ''}">€ ${carburante.toFixed(2)}</td><td>€ ${pedaggi.toFixed(2)}</td><td><strong style="color: #0369a1;">€ ${totale.toFixed(2)}</strong></td>`;
+          tr.innerHTML = `<td><strong>${escapeHtml(item.destinazione)}</strong></td><td>€ ${camping.toFixed(2)}</td><td style="color: #8b5cf6; font-weight: bold; ${extra > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${extra > 0 ? 'summary-extra-click' : ''}">€ ${extra.toFixed(2)}</td><td style="color: #0284c7; font-weight: bold; ${carburante > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${carburante > 0 ? 'summary-fuel-click' : ''}">€ ${carburante.toFixed(2)}</td><td style="color: #b45309; font-weight: bold; ${pedaggi > 0 ? 'cursor: pointer; text-decoration: underline;' : ''}" class="${pedaggi > 0 ? 'summary-toll-click' : ''}">€ ${pedaggi.toFixed(2)}</td><td><strong style="color: #0369a1;">€ ${totale.toFixed(2)}</strong></td>`;
           if (extra > 0) tr.querySelector('.summary-extra-click')?.addEventListener('click', () => openExtraDetailModal(item));
           if (carburante > 0) tr.querySelector('.summary-fuel-click')?.addEventListener('click', () => openFuelDetailModal(item));
+          if (pedaggi > 0) tr.querySelector('.summary-toll-click')?.addEventListener('click', () => openTollDetailModal(item));
           summaryTableBody.appendChild(tr);
         });
       }
@@ -548,6 +569,7 @@
 
     closeExtraDetailBtn.addEventListener('click', () => extraDetailModal.classList.add('hidden'));
     closeFuelDetailBtn.addEventListener('click', () => fuelDetailModal.classList.add('hidden'));
+    closeTollDetailBtn.addEventListener('click', () => tollDetailModal.classList.add('hidden'));
 
     function openExtraDetailModal(tripItem) {
       extraDetailTitle.textContent = `🔎 Dettaglio Costi Extra - ${tripItem.destinazione}`; extraDetailTableBody.innerHTML = '';
@@ -563,6 +585,27 @@
       if (rifList.length === 0) fuelDetailTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Nessun rifornimento inserito.</td></tr>`;
       else rifList.forEach(r => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${formatDate(r.data_rifornimento)}</td><td><strong>€ ${parseFloat(r.costo_sostenuto || 0).toFixed(2)}</strong></td><td>${parseFloat(r.litri || 0).toFixed(2)} L</td>`; fuelDetailTableBody.appendChild(tr); });
       fuelDetailModal.classList.remove('hidden');
+    }
+
+    // Data (YYYY-MM-DD) del giorno N di un viaggio, calcolata dalla data di partenza
+    function getDateOfTripDay(tripItem, dayNum) {
+      const [y0, m0, d0] = (tripItem.data_partenza || '').split('-').map(Number);
+      if (!y0) return '';
+      const dt = new Date(Date.UTC(y0, m0 - 1, d0 + dayNum - 1));
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+    }
+
+    function openTollDetailModal(tripItem) {
+      tollDetailTitle.textContent = `💶 Dettaglio Pedaggi - ${tripItem.destinazione}`; tollDetailTableBody.innerHTML = '';
+      const totGiorni = calculateNights(tripItem.data_partenza, tripItem.data_arrivo) + 1;
+      const tolls = [];
+      for (let dayNum = 1; dayNum <= totGiorni; dayNum++) {
+        const { pedaggi, tipo } = getDatiGiorno(tripItem, dayNum);
+        if (pedaggi > 0) tolls.push({ data: getDateOfTripDay(tripItem, dayNum), valore: pedaggi, tipo: tipo || '-' });
+      }
+      if (tolls.length === 0) tollDetailTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Nessun pedaggio inserito.</td></tr>`;
+      else tolls.forEach(t => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${t.data ? formatDate(t.data) : '-'}</td><td><strong>€ ${t.valore.toFixed(2)}</strong></td><td>${escapeHtml(t.tipo)}</td>`; tollDetailTableBody.appendChild(tr); });
+      tollDetailModal.classList.remove('hidden');
     }
 
     // Modal Calendario
