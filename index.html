@@ -80,6 +80,14 @@
       box-shadow: 0 1px 0 #cbd5e1;
     }
 
+    /* --- Wizard nuovo viaggio --- */
+    .wizard-steps { display: flex; gap: 8px; margin-bottom: 14px; }
+    .wizard-step-pill { flex: 1; text-align: center; padding: 8px 6px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #e2e8f0; color: #64748b; }
+    .wizard-step-pill.active { background: #0070f3; color: #fff; }
+    .day-block { background: #f8fafc; border: 2px solid #bae6fd; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+    .day-header { display: flex; justify-content: space-between; align-items: center; background: #0284c7; color: #fff; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+    .day-empty { text-align: center; color: #94a3b8; font-size: 12px; padding: 10px; }
+
     @media (max-width: 768px) {
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
       .header-actions button { width: 100%; font-size: 12px; padding: 8px; }
@@ -157,107 +165,88 @@
         <input type="hidden" id="viaggio-id">
         <input type="hidden" id="foto_copertina_base64">
         
-        <div class="flex flex-mobile-col" style="align-items: flex-end;">
-          <div style="flex: 2;">
-            <label for="destinazione">Nome del Viaggio (Padre)</label>
-            <input type="text" id="destinazione" required placeholder="Es. Tour delle Dolomiti 2026">
-          </div>
-          <div style="flex: 1;">
-            <label for="data_partenza">Data Partenza</label>
-            <input type="date" id="data_partenza" required>
-          </div>
-          <div style="flex: 1;">
-            <label for="data_arrivo">Data Ritorno</label>
-            <input type="date" id="data_arrivo" required>
-          </div>
-          <div style="flex: 0.8;">
-            <label for="totale_notti_viaggio">Tot. Notti Viaggio</label>
-            <input type="text" id="totale_notti_viaggio" value="0" readonly style="font-weight: bold; text-align: center; color: #0284c7;">
-          </div>
+        <div class="wizard-steps">
+          <div id="wizard-pill-1" class="wizard-step-pill active">1 · Dati del viaggio</div>
+          <div id="wizard-pill-2" class="wizard-step-pill">2 · Giorni e costi</div>
         </div>
 
-        <div class="flex flex-mobile-col" style="margin-top: 10px; align-items: flex-end;">
-          <div style="flex: 1;">
-            <label for="totale_campeggio">Tot. Costi Pernottamento (€)</label>
-            <input type="text" id="totale_campeggio" value="0.00" readonly style="font-weight: bold; color: #16a34a;">
-          </div>
-          <div style="flex: 1;">
-            <label for="chilometri">Tot. Chilometri A/R (Km)</label>
-            <input type="number" step="0.1" id="chilometri" required placeholder="0">
-          </div>
-          <div style="flex: 1;">
-            <label for="costo_pedaggi">Tot. Pedaggi A/R (€)</label>
-            <input type="number" step="0.01" id="costo_pedaggi" value="0">
-          </div>
-        </div>
-
-        <div class="flex flex-mobile-col" style="margin-top: 12px; gap: 10px;">
-          <div style="flex: 2;">
-            <label for="note_viaggio">Note Generali Viaggio</label>
-            <textarea id="note_viaggio" rows="2" placeholder="Note generali del viaggio..."></textarea>
-          </div>
-          <div style="flex: 1;">
-            <label for="foto_copertina_input">Foto Copertina Viaggio</label>
-            <input type="file" id="foto_copertina_input" accept="image/*" style="padding: 6px; min-height: Auto;">
-            <small style="color: #64748b; font-size: 11px; display: block; margin-top: 2px;">Verrà ridimensionata in automatico (&lt;300KB).</small>
-            <div id="preview-container" class="hidden" style="margin-top: 8px; text-align: center;">
-              <img id="foto_preview" src="" alt="Anteprima Copertina" style="max-width: 100%; max-height: 90px; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: cover;">
-              <button type="button" id="remove-foto-btn" class="btn-danger btn-sm" style="width: 100%; margin-top: 4px;">Rimuovi Foto</button>
-            </div>
-          </div>
-        </div>
-		
-        <div class="refuel-box">
-          <label style="color: #0369a1; font-size: 13px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
+        <!-- ===== VIDEATA 1 ===== -->
+        <div id="wizard-step-1">
           <div class="flex flex-mobile-col" style="align-items: flex-end;">
-            <div style="flex: 1;">
-              <label for="rif-data">Data Rifornimento</label>
-              <input type="date" id="rif-data">
+            <div style="flex: 2;">
+              <label for="destinazione">Nome del Viaggio (Padre)</label>
+              <input type="text" id="destinazione" required placeholder="Es. Tour delle Dolomiti 2026">
             </div>
             <div style="flex: 1;">
-              <label for="rif-costo">Costo (€)</label>
-              <input type="number" step="0.01" id="rif-costo" placeholder="Es. 50.00" style="width: 90px;">
+              <label for="data_partenza">Data Partenza</label>
+              <input type="date" id="data_partenza" required>
             </div>
-            <div style="flex: 1; padding-bottom: 8px; font-size: 13px;">
-              Litri stimati: <strong id="rif-litri-preview" style="color: #2563eb;">0.00 L</strong>
+            <div style="flex: 1;">
+              <label for="data_arrivo">Data Ritorno</label>
+              <input type="date" id="data_arrivo" required>
             </div>
-            <button type="button" id="add-refuel-btn" class="btn-info btn-sm" style="width: 100%;">+ Salva Rifornimento</button>
-          </div>	  
-          <div class="table-container">
-            <table style="margin-top: 10px; background: white; border-radius: 6px; min-width: 100%;">
-              <thead>
-                <tr style="font-size: 12px;">
-                  <th>Data</th>
-                  <th>Costo (€)</th>
-                  <th>Litri (L)</th>
-                  <th style="text-align: right;">Azione</th>
-                </tr>
-              </thead>
-              <tbody id="refuel-table-body">
-                <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun rifornimento aggiunto.</td></tr>
-              </tbody>
-            </table>
+            <div style="flex: 0.8;">
+              <label for="totale_notti_viaggio">Tot. Notti Viaggio</label>
+              <input type="text" id="totale_notti_viaggio" value="0" readonly style="font-weight: bold; text-align: center; color: #0284c7;">
+            </div>
           </div>
-          <div style="text-align: right; margin-top: 8px; font-size: 13px;">
-            Totale Carburante Viaggio: <strong id="totale-carburante-viaggio" style="color: #2563eb;">€ 0.00</strong>
+
+          <div class="flex flex-mobile-col" style="margin-top: 12px; gap: 10px;">
+            <div style="flex: 1;">
+              <label for="foto_copertina_input">Foto Copertina Viaggio</label>
+              <input type="file" id="foto_copertina_input" accept="image/*" style="padding: 6px; min-height: Auto;">
+              <small style="color: #64748b; font-size: 11px; display: block; margin-top: 2px;">Verrà ridimensionata in automatico (&lt;300KB).</small>
+              <div id="preview-container" class="hidden" style="margin-top: 8px; text-align: center;">
+                <img id="foto_preview" src="" alt="Anteprima Copertina" style="max-width: 100%; max-height: 90px; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: cover;">
+                <button type="button" id="remove-foto-btn" class="btn-danger btn-sm" style="width: 100%; margin-top: 4px;">Rimuovi Foto</button>
+              </div>
+            </div>
+            <div style="flex: 2;">
+              <label for="note_viaggio">Note Generali Viaggio</label>
+              <textarea id="note_viaggio" rows="3" placeholder="Note generali del viaggio..."></textarea>
+            </div>
           </div>
-        </div>		
-		
-        <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
-          <div class="flex-center" style="margin-bottom: 10px;">
-            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Viaggio (Collegati)</label>
-            <button type="button" id="add-luogo-btn" class="btn-purple btn-sm">+ Aggiungi Luogo</button>
+
+          <div class="flex" style="margin-top: 15px; justify-content: flex-end;">
+            <button type="button" id="wizard-cancel-btn" class="btn-secondary" style="flex:1;">Annulla</button>
+            <button type="button" id="wizard-next-btn" class="btn-primary" style="flex:1;">Avanti ➡️</button>
           </div>
+        </div>
+
+        <!-- ===== VIDEATA 2 ===== -->
+        <div id="wizard-step-2" class="hidden">
           <div id="luoghi-list-container"></div>
-        </div>		
-		
-        <div class="flex flex-mobile-col" style="margin-top: 15px; justify-content: space-between; align-items: center;">
-          <div style="font-size: 16px; margin-bottom: 8px;">
-            Totale Viaggio:<BR> <strong id="costo-totale-preview" style="color: #0284c7;">€ 0.00</strong>
+
+          <div class="refuel-box" style="margin-top: 15px; border-color: #cbd5e1; background: #fafafa;">
+            <label style="color: #0f172a; font-size: 14px; margin-bottom: 8px; font-weight: 700;">🧾 Riepilogo costi del Viaggio</label>
+            <div class="flex flex-mobile-col" style="align-items: flex-end;">
+              <div style="flex: 1;">
+                <label for="totale_campeggio">Tot. Costi Pernottamento (€)</label>
+                <input type="text" id="totale_campeggio" value="0.00" readonly style="font-weight: bold; color: #16a34a;">
+              </div>
+              <div style="flex: 1;">
+                <label for="chilometri">Tot. Chilometri A/R (Km)</label>
+                <input type="number" step="0.1" id="chilometri" required placeholder="0">
+              </div>
+              <div style="flex: 1;">
+                <label for="costo_pedaggi">Tot. Pedaggi A/R (€)</label>
+                <input type="number" step="0.01" id="costo_pedaggi" value="0">
+              </div>
+            </div>
+            <div style="text-align: right; margin-top: 8px; font-size: 13px;">
+              Totale Carburante Viaggio: <strong id="totale-carburante-viaggio" style="color: #2563eb;">€ 0.00</strong>
+            </div>
           </div>
-          <div class="flex" style="width: 100%; justify-content: flex-end;">
-            <button type="button" id="cancel-edit-btn" class="btn-secondary hidden" style="flex:1;">Annulla</button>
-            <button type="submit" id="save-btn" class="btn-primary" style="flex:1;">💾 Salva Viaggio</button>
+
+          <div class="flex flex-mobile-col" style="margin-top: 15px; justify-content: space-between; align-items: center;">
+            <div style="font-size: 16px; margin-bottom: 8px;">
+              Totale Viaggio:<BR> <strong id="costo-totale-preview" style="color: #0284c7;">€ 0.00</strong>
+            </div>
+            <div class="flex" style="width: 100%; justify-content: flex-end;">
+              <button type="button" id="wizard-back-btn" class="btn-secondary" style="flex:1;">⬅️ Indietro</button>
+              <button type="button" id="cancel-edit-btn" class="btn-secondary hidden" style="flex:1;">Annulla</button>
+              <button type="submit" id="save-btn" class="btn-primary" style="flex:1;">💾 Salva Viaggio</button>
+            </div>
           </div>
         </div>
       </form>
@@ -436,14 +425,16 @@
     const formTitle = document.getElementById('form-title');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     
-    const rifDataInput = document.getElementById('rif-data');
-    const rifCostoInput = document.getElementById('rif-costo');
-    const rifLitriPreview = document.getElementById('rif-litri-preview');
-    const addRefuelBtn = document.getElementById('add-refuel-btn');
-    const refuelTableBody = document.getElementById('refuel-table-body');
     const totaleCarburanteViaggioDisplay = document.getElementById('totale-carburante-viaggio');
     const luoghiListContainer = document.getElementById('luoghi-list-container');
-    const addLuogoBtn = document.getElementById('add-luogo-btn');
+
+    const wizardStep1 = document.getElementById('wizard-step-1');
+    const wizardStep2 = document.getElementById('wizard-step-2');
+    const wizardPill1 = document.getElementById('wizard-pill-1');
+    const wizardPill2 = document.getElementById('wizard-pill-2');
+    const wizardNextBtn = document.getElementById('wizard-next-btn');
+    const wizardBackBtn = document.getElementById('wizard-back-btn');
+    const wizardCancelBtn = document.getElementById('wizard-cancel-btn');
 
     const viaggiModal = document.getElementById('viaggi-modal');
     const closeViaggiBtn = document.getElementById('close-viaggi-btn');
@@ -458,6 +449,7 @@
     let viaggiList = [];
     let tempRefuelings = [];
     let tempLuoghi = [];
+    let tempGiorni = {}; // km e pedaggi per giorno: { 1: {km, pedaggi}, ... }
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0, kmDataValidita: null };
 
     function handleUrlParams() {
@@ -728,9 +720,137 @@
       document.body.appendChild(fullOverlay);
     }
 
-    addLuogoBtn.addEventListener('click', () => {
-      tempLuoghi.push({ id: Date.now(), nome_luogo: '', tipologia: 'camping', nome_campeggio: '', costo_giornaliero: 0, notti: 0, rating_luogo: 3, rating_campeggio: 3, costi_extra: [], note_luogo: '' });
+    // ---------- WIZARD (2 videate) ----------
+    function showWizardStep(n) {
+      wizardStep1.classList.toggle('hidden', n !== 1);
+      wizardStep2.classList.toggle('hidden', n !== 2);
+      wizardPill1.classList.toggle('active', n === 1);
+      wizardPill2.classList.toggle('active', n === 2);
+      window.scrollTo(0, 0);
+    }
+
+    // Normalizza gli anni scritti a mano con 2 cifre (es. 26 -> 2026) impostando il secolo attuale
+    function normalizzaDataInput(inp) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(inp.value || '');
+      if (!m) return false;
+      const anno = parseInt(m[1], 10);
+      if (anno < 1 || anno > 99) return false;
+      const secolo = Math.floor(new Date().getFullYear() / 100) * 100;
+      inp.value = `${secolo + anno}-${m[2]}-${m[3]}`;
+      return true;
+    }
+    // Sul blur (e non mentre si digita) per non interferire con la scrittura dell'anno
+    [dataPartenzaInput, dataArrivoInput].forEach(inp => {
+      inp.addEventListener('blur', () => { if (normalizzaDataInput(inp)) updateFormCalculations(); });
+    });
+
+    wizardNextBtn.addEventListener('click', () => {
+      normalizzaDataInput(dataPartenzaInput); normalizzaDataInput(dataArrivoInput); updateFormCalculations();
+      // stessi controlli sui campi obbligatori e sulle date
+      for (const el of [destinazioneInput, dataPartenzaInput, dataArrivoInput]) {
+        if (!el.checkValidity()) { el.reportValidity(); return; }
+      }
+      const startDate = new Date(dataPartenzaInput.value); const endDate = new Date(dataArrivoInput.value);
+      startDate.setHours(0,0,0,0); endDate.setHours(0,0,0,0);
+      if (startDate > endDate) { alert("Attenzione: la data di partenza non può essere successiva alla data di ritorno."); return; }
+      updateFormCalculations();
+      renderLuoghi();
+      showWizardStep(2);
+    });
+
+    wizardBackBtn.addEventListener('click', () => { syncLuoghiDataFromDOM(); showWizardStep(1); });
+    wizardCancelBtn.addEventListener('click', () => cancelEditBtn.click());
+
+    // Giorni = notti calcolate (minimo 1 per i viaggi in giornata)
+    function getNumeroGiorni() { return Math.max(1, calculateNights(dataPartenzaInput.value, dataArrivoInput.value)); }
+
+    function getDayDateStr(dayNum) {
+      const p = dataPartenzaInput.value; if (!p) return '';
+      const [y, m, d] = p.split('-').map(Number);
+      const dt = new Date(y, m - 1, d + dayNum - 1);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+
+    function getRefuelDayNumber(r, nDays) {
+      const p = dataPartenzaInput.value; const rd = (r.data_rifornimento || '').slice(0, 10);
+      if (!p || !rd) return 1;
+      const [y, m, d] = p.split('-').map(Number); const [y2, m2, d2] = rd.split('-').map(Number);
+      const diff = Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y, m - 1, d)) / 86400000);
+      return Math.min(nDays, Math.max(1, diff + 1));
+    }
+
+    // Associa ogni luogo a un giorno (i viaggi salvati prima del wizard vengono distribuiti in base alle notti)
+    function assignGiorniLuoghi(nDays) {
+      const result = []; let cursor = 0;
+      tempLuoghi.forEach(l => {
+        const g = parseInt(l.giorno);
+        if (g >= 1) { l.giorno = Math.min(g, nDays); result.push(l); return; }
+        // luogo salvato prima del wizard: un luogo con N notti diventa N giorni consecutivi
+        const notti = parseInt(l.notti) || 0;
+        if (notti <= 1) { l.giorno = Math.min(nDays, cursor + 1); result.push(l); }
+        else {
+          for (let i = 0; i < notti; i++) {
+            const c = i === 0 ? l : JSON.parse(JSON.stringify(l));
+            if (i > 0) { c.id = Date.now() + i; c.costi_extra = []; c.note_luogo = ''; }
+            c.giorno = Math.min(nDays, cursor + 1 + i);
+            result.push(c);
+          }
+        }
+        cursor += notti;
+      });
+      tempLuoghi = result;
+      tempLuoghi.sort((a, b) => a.giorno - b.giorno);
+      applyNottiToLuoghi();
+    }
+
+    function addLuogoToDay(day) {
+      syncLuoghiDataFromDOM();
+      tempLuoghi.push({ id: Date.now(), giorno: day, nome_luogo: '', tipologia: 'camping', nome_campeggio: '', costo_giornaliero: 0, notti: 0, rating_luogo: 3, rating_campeggio: 3, costi_extra: [], note_luogo: '' });
       renderLuoghi(); updateFormCalculations();
+    }
+
+    function addRefuelToDay(day) {
+      const costoInput = luoghiListContainer.querySelector(`.day-rif-costo[data-day="${day}"]`);
+      const dataRif = getDayDateStr(day) || dataPartenzaInput.value;
+      const costo = parseFloat(costoInput ? costoInput.value : '') || 0;
+
+      if (!dataRif) { alert('Seleziona una data.'); return; }
+      if (isNaN(costo) || costo <= 0) { alert('Inserisci un costo valido per il rifornimento.'); return; }
+
+      if (dataPartenzaInput.value && dataArrivoInput.value) {
+        const startDate = new Date(dataPartenzaInput.value);
+        const endDate = new Date(dataArrivoInput.value);
+        const refDate = new Date(dataRif);
+        startDate.setHours(0,0,0,0);
+        endDate.setHours(0,0,0,0);
+        refDate.setHours(0,0,0,0);
+        if (refDate < startDate || refDate > endDate) {
+          alert("Attenzione: la data del rifornimento deve essere compresa nelle date del viaggio.");
+          return;
+        }
+      }
+
+      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
+      tempRefuelings.push({ data_rifornimento: dataRif, costo_sostenuto: costo, litri: parseFloat(litri.toFixed(2)) });
+      if (costoInput) costoInput.value = '';
+      const prev = luoghiListContainer.querySelector(`.day-rif-litri[data-day="${day}"]`); if (prev) prev.textContent = '0.00 L';
+      renderRefuelTable(); updateFormCalculations();
+    }
+
+    luoghiListContainer.addEventListener('click', (e) => {
+      const addL = e.target.closest('.add-luogo-day-btn');
+      if (addL) { addLuogoToDay(parseInt(addL.dataset.day)); return; }
+      const addR = e.target.closest('.add-refuel-day-btn');
+      if (addR) { addRefuelToDay(parseInt(addR.dataset.day)); }
+    });
+
+    luoghiListContainer.addEventListener('input', (e) => {
+      if (e.target.classList.contains('day-km-input') || e.target.classList.contains('day-pedaggi-input')) { updateTotaliDaGiorni(); return; }
+      if (!e.target.classList.contains('day-rif-costo')) return;
+      const costo = parseFloat(e.target.value) || 0;
+      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
+      const prev = luoghiListContainer.querySelector(`.day-rif-litri[data-day="${e.target.dataset.day}"]`);
+      if (prev) prev.textContent = `${litri.toFixed(2)} L`;
     });
 
     window.removeLuogo = function(lIdx) { syncLuoghiDataFromDOM(); tempLuoghi.splice(lIdx, 1); renderLuoghi(); updateFormCalculations(); };
@@ -738,14 +858,15 @@
     window.removeCostoExtraRow = function(lIdx, cIdx) { syncLuoghiDataFromDOM(); tempLuoghi[lIdx].costi_extra.splice(cIdx, 1); renderLuoghi(); updateFormCalculations(); };
 
     function syncLuoghiDataFromDOM() {
+      syncGiorniFromDOM();
       const cards = luoghiListContainer.querySelectorAll('.luogo-card');
-      cards.forEach((card, lIdx) => {
-        if (!tempLuoghi[lIdx]) return;
+      cards.forEach((card) => {
+        const lIdx = parseInt(card.dataset.lidx);
+        if (isNaN(lIdx) || !tempLuoghi[lIdx]) return;
         tempLuoghi[lIdx].nome_luogo = card.querySelector('.luogo-nome-input')?.value || '';
         tempLuoghi[lIdx].tipologia = card.querySelector('.luogo-tipologia-input')?.value || '';
         tempLuoghi[lIdx].nome_campeggio = card.querySelector('.luogo-camping-input')?.value || '';
         tempLuoghi[lIdx].costo_giornaliero = parseFloat(card.querySelector('.luogo-costo-notte-input')?.value) || 0;
-        tempLuoghi[lIdx].notti = parseInt(card.querySelector('.luogo-notti-input')?.value) || 0;
         tempLuoghi[lIdx].rating_luogo = parseInt(card.querySelector('.luogo-rating-luogo-input')?.value) || 3;
         tempLuoghi[lIdx].rating_campeggio = parseInt(card.querySelector('.luogo-rating-campeggio-input')?.value) || 3;
         tempLuoghi[lIdx].note_luogo = card.querySelector('.luogo-note-input')?.value || '';
@@ -762,19 +883,129 @@
           });
         });
       });
+      applyNottiToLuoghi();
     }
 
-    function renderLuoghi() {
-      luoghiListContainer.innerHTML = '';
-      if (tempLuoghi.length === 0) { luoghiListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;">Nessun luogo aggiunto a questo viaggio. Clicca "+ Aggiungi Luogo".</div>`; return; }
+    // La notte di ogni giorno viene assegnata all'ultimo luogo del giorno (dove si pernotta); gli altri luoghi hanno 0 notti
+    function applyNottiToLuoghi() {
+      if (tempLuoghi.some(l => !(parseInt(l.giorno) >= 1))) return;
+      const totN = calculateNights(dataPartenzaInput.value, dataArrivoInput.value);
+      const lastIdx = {};
+      tempLuoghi.forEach((l, i) => { lastIdx[l.giorno] = i; });
+      tempLuoghi.forEach((l, i) => { l.notti = (totN > 0 && lastIdx[l.giorno] === i) ? 1 : 0; });
+    }
 
+    function syncGiorniFromDOM() {
+      luoghiListContainer.querySelectorAll('.day-km-input').forEach(inp => {
+        const d = inp.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
+        tempGiorni[d].km = parseFloat(inp.value) || 0;
+      });
+      luoghiListContainer.querySelectorAll('.day-pedaggi-input').forEach(inp => {
+        const d = inp.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
+        tempGiorni[d].pedaggi = parseFloat(inp.value) || 0;
+      });
+    }
+
+    // Totali viaggio = somma di km e pedaggi dei singoli giorni
+    function updateTotaliDaGiorni() {
+      syncGiorniFromDOM();
+      let km = 0, ped = 0;
+      for (let d = 1; d <= getNumeroGiorni(); d++) { const g = tempGiorni[d]; if (g) { km += g.km || 0; ped += g.pedaggi || 0; } }
+      chilometriInput.value = Math.round(km * 10) / 10;
+      costoPedaggiInput.value = Math.round(ped * 100) / 100;
+      updateFormCalculations();
+    }
+
+    // Prima del salvataggio: km/pedaggi del giorno vengono memorizzati nel primo luogo del giorno (nessuna modifica alle tabelle)
+    function applyGiorniToLuoghi() {
+      syncGiorniFromDOM();
+      tempLuoghi.forEach(l => { delete l.km_giorno; delete l.pedaggi_giorno; });
+      for (let d = 1; d <= getNumeroGiorni(); d++) {
+        const g = tempGiorni[d]; if (!g || (!g.km && !g.pedaggi)) continue;
+        const first = tempLuoghi.find(l => l.giorno === d);
+        if (first) { if (g.km) first.km_giorno = g.km; if (g.pedaggi) first.pedaggi_giorno = g.pedaggi; }
+      }
+      applyNottiToLuoghi();
+    }
+
+    window.cloneLuogoNext = function(lIdx) {
+      syncLuoghiDataFromDOM();
+      const src = tempLuoghi[lIdx]; if (!src) return;
+      const max = getNumeroGiorni() - src.giorno;
+      if (max < 1) { alert('Non ci sono giorni successivi in cui clonare questo luogo.'); return; }
+      const ans = prompt(`Per quanti giorni successivi vuoi clonare i dati di questo luogo? (da 1 a ${max})`, '1');
+      if (ans === null) return;
+      const n = parseInt(ans);
+      if (isNaN(n) || n < 1 || n > max) { alert(`Inserisci un numero intero da 1 a ${max}.`); return; }
+      for (let k = 1; k <= n; k++) {
+        tempLuoghi.push({ id: Date.now() + k, giorno: src.giorno + k, nome_luogo: src.nome_luogo, tipologia: src.tipologia, nome_campeggio: src.nome_campeggio, costo_giornaliero: src.costo_giornaliero, notti: 0, rating_luogo: src.rating_luogo, rating_campeggio: src.rating_campeggio, costi_extra: [], note_luogo: '' });
+      }
+      renderLuoghi(); updateFormCalculations();
+    };
+
+    function renderLuoghi() {
+      syncGiorniFromDOM();
+      const savedRifCosti = {};
+      luoghiListContainer.querySelectorAll('.day-rif-costo').forEach(inp => { savedRifCosti[inp.dataset.day] = inp.value; });
+      luoghiListContainer.innerHTML = '';
+
+      const nDays = getNumeroGiorni();
+      assignGiorniLuoghi(nDays);
+      const dayLuoghiContainers = [];
+      for (let d = 1; d <= nDays; d++) {
+        const dayDate = getDayDateStr(d);
+        const block = document.createElement('div'); block.className = 'day-block';
+        block.innerHTML = `
+          <div class="day-header"><strong>📅 Giorno ${d} di ${nDays}</strong><span>${dayDate ? formatDate(dayDate) : ''}</span></div>
+          <div class="flex flex-mobile-col" style="gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div style="flex: 1 1 150px;"><label>🛣️ Km percorsi nel giorno</label><input type="number" min="0" step="0.1" class="day-km-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].km) || ''}" placeholder="0"></div>
+            <div style="flex: 1 1 150px;"><label>💶 Pedaggi pagati nel giorno (€)</label><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00"></div>
+          </div>
+          <div class="flex-center" style="margin-bottom: 10px;">
+            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">🌙 Il pernottamento è assegnato all'ultimo luogo del giorno</small></label>
+            <button type="button" class="btn-purple btn-sm add-luogo-day-btn" data-day="${d}">+ Aggiungi Luogo</button>
+          </div>
+          <div class="day-luoghi"></div>
+          <div class="refuel-box">
+            <label style="color: #0369a1; font-size: 13px; margin-bottom: 8px;">⛽ Rifornimenti Carburante Viaggio</label>
+            <div class="flex flex-mobile-col" style="align-items: flex-end; flex-wrap: wrap;">
+              <div style="flex: 1 1 130px;">
+                <label>Data Rifornimento</label>
+                <input type="text" value="${dayDate ? formatDate(dayDate) : ''}" readonly>
+              </div>
+              <div style="flex: 2 1 180px;">
+                <label>Costo (€)</label>
+                <input type="number" step="0.01" class="day-rif-costo" data-day="${d}" placeholder="Es. 50.00" style="min-width: 140px;">
+              </div>
+              <div style="flex: 1 1 130px; padding-bottom: 8px; font-size: 13px;">
+                Litri stimati: <strong class="day-rif-litri" data-day="${d}" style="color: #2563eb;">0.00 L</strong>
+              </div>
+              <button type="button" class="btn-info btn-sm add-refuel-day-btn" data-day="${d}" style="width: 100%; flex: 0 0 auto;">+ Salva Rifornimento</button>
+            </div>
+            <div class="table-container">
+              <table style="margin-top: 10px; background: white; border-radius: 6px; min-width: 100%;">
+                <thead><tr style="font-size: 12px;"><th>Data</th><th>Costo (€)</th><th>Litri (L)</th><th style="text-align: right;">Azione</th></tr></thead>
+                <tbody class="day-refuel-body" data-day="${d}"></tbody>
+              </table>
+            </div>
+          </div>
+        `;
+        luoghiListContainer.appendChild(block);
+        dayLuoghiContainers[d] = block.querySelector('.day-luoghi');
+      }
+
+      const dayCount = {};
       tempLuoghi.forEach((l, lIdx) => {
-        const div = document.createElement('div'); div.className = 'luogo-card';
+        dayCount[l.giorno] = (dayCount[l.giorno] || 0) + 1; const dayN = dayCount[l.giorno];
+        const div = document.createElement('div'); div.className = 'luogo-card'; div.dataset.lidx = lIdx;
         const subtotalCampingLuogo = ((parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0)).toFixed(2);
         div.innerHTML = `
           <div class="flex-center" style="margin-bottom: 8px;">
-            <strong style="color: #0070f3; font-size: 13px;">📍 Luogo #${lIdx + 1}</strong>
-            <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${lIdx})">&times; Rimuovi Luogo</button>
+            <strong style="color: #0070f3; font-size: 13px;">📍 Luogo #${dayN}</strong>
+            <div class="flex" style="gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+              ${l.giorno < nDays ? `<button type="button" class="btn-info btn-sm" onclick="cloneLuogoNext(${lIdx})">📋 Clona dati nei giorni successivi</button>` : ''}
+              <button type="button" class="btn-danger btn-sm" onclick="removeLuogo(${lIdx})">&times; Rimuovi Luogo</button>
+            </div>
           </div>
           <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
             <div style="flex: 2;"><label style="font-size: 12px;">Nome del Luogo / Tappa</label><input type="text" class="luogo-nome-input" value="${escapeHtml(l.nome_luogo)}" placeholder="Es. Lago di Braies" oninput="updateFormCalculations()"></div>
@@ -788,13 +1019,12 @@
             </div>
             <div style="flex: 2;"><label style="font-size: 12px;">Nome Camping / Struttura</label><input type="text" class="luogo-camping-input" value="${escapeHtml(l.nome_campeggio)}" placeholder="Es. Camping Toblacher See" oninput="updateFormCalculations()"></div>
             <div style="flex: 1;"><label style="font-size: 12px;">Costo (€/notte)</label><input type="number" step="0.01" class="luogo-costo-notte-input" value="${l.costo_giornaliero}" oninput="updateFormCalculations()"></div>
-            <div style="flex: 1;"><label style="font-size: 12px;">Notti</label><input type="number" min="0" class="luogo-notti-input" value="${l.notti}" oninput="updateFormCalculations()"></div>
           </div>
           <div class="flex flex-mobile-col" style="gap: 8px; margin-bottom: 8px;">
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Luogo</label><select class="luogo-rating-luogo-input"><option value="5" ${l.rating_luogo == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_luogo == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_luogo == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_luogo == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_luogo == 1 ? 'selected' : ''}>⭐</option></select></div>
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Campeggio</label><select class="luogo-rating-campeggio-input"><option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_campeggio == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐</option></select></div>
           </div>
-          <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">Totale Camping Luogo: € <span>${subtotalCampingLuogo}</span></div>
+          <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">Totale Camping Luogo: € <span class="luogo-subtotale">${subtotalCampingLuogo}</span></div>
           <div style="margin-top: 10px;"><label style="font-size: 12px;">Note del Luogo</label><textarea class="luogo-note-input" rows="2" placeholder="Note del luogo e/o campeggio...">${escapeHtml(l.note_luogo)}</textarea></div>
           <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
           <div class="table-container">
@@ -823,13 +1053,26 @@
           </div>
           <button type="button" class="btn-info btn-sm" onclick="addCostoExtraRow(${lIdx})" style="margin-top: 6px;">+ Aggiungi Costo Extra</button>
         `;
-        luoghiListContainer.appendChild(div);
+        dayLuoghiContainers[l.giorno].appendChild(div);
       });
+
+      for (let d = 1; d <= nDays; d++) {
+        if (!dayLuoghiContainers[d].children.length) dayLuoghiContainers[d].innerHTML = `<div class="day-empty">Nessun luogo per questo giorno. Clicca "+ Aggiungi Luogo".</div>`;
+      }
+      Object.keys(savedRifCosti).forEach(d => {
+        const inp = luoghiListContainer.querySelector(`.day-rif-costo[data-day="${d}"]`);
+        if (inp) { inp.value = savedRifCosti[d]; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+      renderRefuelTable();
     }
 
     function updateFormCalculations() {
       const nottiTotali = calculateNights(dataPartenzaInput.value, dataArrivoInput.value); totaleNottiViaggioInput.value = nottiTotali;
       syncLuoghiDataFromDOM();
+      luoghiListContainer.querySelectorAll('.luogo-card').forEach(card => {
+        const lo = tempLuoghi[parseInt(card.dataset.lidx)]; const sp = card.querySelector('.luogo-subtotale');
+        if (lo && sp) sp.textContent = ((parseFloat(lo.costo_giornaliero) || 0) * (parseInt(lo.notti) || 0)).toFixed(2);
+      });
       let totCamping = 0; let extraLuoghi = 0;
       tempLuoghi.forEach(l => {
         totCamping += (parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0);
@@ -842,50 +1085,24 @@
       costoTotalePreview.textContent = `€ ${(totCamping + pedaggi + carburante + extraLuoghi).toFixed(2)}`;
     }
 
-    dataPartenzaInput.addEventListener('change', () => { if (!rifDataInput.value) rifDataInput.value = dataPartenzaInput.value; updateFormCalculations(); });
+    dataPartenzaInput.addEventListener('change', updateFormCalculations);
     dataArrivoInput.addEventListener('change', updateFormCalculations);
     costoPedaggiInput.addEventListener('input', updateFormCalculations);
 
-    rifCostoInput.addEventListener('input', () => {
-      const costo = parseFloat(rifCostoInput.value) || 0;
-      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
-      rifLitriPreview.textContent = `${litri.toFixed(2)} L`;
-    });
-
-    addRefuelBtn.addEventListener('click', () => {
-      const dataRif = rifDataInput.value || dataPartenzaInput.value;
-      const costo = parseFloat(rifCostoInput.value) || 0;
-      
-      if (!dataRif) { alert('Seleziona una data.'); return; }
-      if (isNaN(costo) || costo <= 0) { alert('Inserisci un costo valido per il rifornimento.'); return; }
-
-      if (dataPartenzaInput.value && dataArrivoInput.value) {
-        const startDate = new Date(dataPartenzaInput.value);
-        const endDate = new Date(dataArrivoInput.value);
-        const refDate = new Date(dataRif);
-        startDate.setHours(0,0,0,0);
-        endDate.setHours(0,0,0,0);
-        refDate.setHours(0,0,0,0);
-        if (refDate < startDate || refDate > endDate) {
-          alert("Attenzione: la data del rifornimento deve essere compresa nelle date del viaggio.");
-          return;
-        }
-      }
-
-      const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
-      tempRefuelings.push({ data_rifornimento: dataRif, costo_sostenuto: costo, litri: parseFloat(litri.toFixed(2)) });
-      rifCostoInput.value = ''; rifLitriPreview.textContent = '0.00 L';
-      renderRefuelTable(); updateFormCalculations();
-    });
-
     function renderRefuelTable() {
       tempRefuelings.sort((a, b) => new Date(a.data_rifornimento) - new Date(b.data_rifornimento));
-      refuelTableBody.innerHTML = '';
-      if (tempRefuelings.length === 0) { refuelTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun rifornimento aggiunto.</td></tr>`; return; }
+      const nDays = getNumeroGiorni();
+      const bodies = luoghiListContainer.querySelectorAll('.day-refuel-body');
+      bodies.forEach(body => { body.innerHTML = ''; });
       tempRefuelings.forEach((r, idx) => {
+        const body = luoghiListContainer.querySelector(`.day-refuel-body[data-day="${getRefuelDayNumber(r, nDays)}"]`);
+        if (!body) return;
         const tr = document.createElement('tr'); tr.style.fontSize = '12px';
         tr.innerHTML = `<td>${formatDate(r.data_rifornimento)}</td><td>€ ${parseFloat(r.costo_sostenuto).toFixed(2)}</td><td>${parseFloat(r.litri).toFixed(2)} L</td><td style="text-align: right;"><button type="button" class="btn-danger btn-sm" onclick="removeRefuel(${idx})">&times;</button></td>`;
-        refuelTableBody.appendChild(tr);
+        body.appendChild(tr);
+      });
+      bodies.forEach(body => {
+        if (!body.children.length) body.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8; font-size: 12px;">Nessun rifornimento aggiunto.</td></tr>`;
       });
     }
 
@@ -919,6 +1136,7 @@
 	  if (invalidRefuel) { alert("Attenzione: le date dei rifornimenti devono essere comprese nel viaggio."); return; }
 
       syncLuoghiDataFromDOM();
+      applyGiorniToLuoghi();
 
       if (tempLuoghi.length === 0) {
         alert("Attenzione: devi inserire almeno un luogo per poter salvare il viaggio.");
@@ -931,29 +1149,17 @@
         return;
       }	  
 
-      // --- CONTROLLI BLOCCANTI SULLE NOTTI DEI LUOGHI ---
-      const cardsLuoghi = luoghiListContainer.querySelectorAll('.luogo-card');
-      let nottiCompilate = true;
-      cardsLuoghi.forEach(card => {
-        const val = card.querySelector('.luogo-notti-input')?.value;
-        if (val === undefined || val === null || val.trim() === '') {
-          nottiCompilate = false;
-        }
-      });
-
-      if (!nottiCompilate) {
-        alert("Attenzione: compilare il campo Notti per ciascun luogo inserito.");
-        return;
-      }
-
-      const sommaNottiLuoghi = tempLuoghi.reduce((sum, l) => sum + (parseInt(l.notti) || 0), 0);
+      // --- CONTROLLO BLOCCANTE: ogni giorno del viaggio deve avere almeno un luogo ---
       const totNottiViaggio = parseInt(totaleNottiViaggioInput.value) || 0;
-
-      if (sommaNottiLuoghi !== totNottiViaggio) {
-        alert(`Attenzione: la somma delle notti dei luoghi (${sommaNottiLuoghi}) deve essere uguale al Tot. Notti Viaggio (${totNottiViaggio}).`);
-        return;
+      if (totNottiViaggio > 0) {
+        const giorniSenzaLuoghi = [];
+        for (let d = 1; d <= getNumeroGiorni(); d++) { if (!tempLuoghi.some(l => l.giorno === d)) giorniSenzaLuoghi.push(d); }
+        if (giorniSenzaLuoghi.length > 0) {
+          alert(`Attenzione: ogni giorno deve avere almeno un luogo. Mancano i luoghi per: Giorno ${giorniSenzaLuoghi.join(', Giorno ')}.`);
+          return;
+        }
       }
-      // --- FINE CONTROLLI BLOCCANTI SULLE NOTTI ---
+      // --- FINE CONTROLLO GIORNI ---
 
       // --- CONTROLLO BLOCCANTE SUI COSTI EXTRA ---
       let extraCostiCompilati = true;
@@ -1026,17 +1232,17 @@
 
     function resetViaggioForm() {
       viaggioIdInput.value = ''; viaggioForm.reset(); fotoCopertinaBase64.value = ''; fotoPreview.src = '';
-      previewContainer.classList.add('hidden'); tempLuoghi = []; tempRefuelings = [];
-      renderLuoghi(); renderRefuelTable(); updateFormCalculations(); formTitle.textContent = 'Aggiungi Nuovo Viaggio';
+      previewContainer.classList.add('hidden'); tempLuoghi = []; tempRefuelings = []; tempGiorni = {}; luoghiListContainer.innerHTML = '';
+      renderLuoghi(); renderRefuelTable(); updateFormCalculations(); formTitle.textContent = 'Aggiungi Nuovo Viaggio'; showWizardStep(1);
     }
 
     window.prepareEdit = function(id) {
       const item = viaggiList.find(v => v.id === id); if (!item) return;
       viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
       if (item.foto_copertina) { fotoCopertinaBase64.value = item.foto_copertina; fotoPreview.src = item.foto_copertina; previewContainer.classList.remove('hidden'); } else { fotoCopertinaBase64.value = ''; fotoPreview.src = ''; previewContainer.classList.add('hidden'); }
-      tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : [];
+      luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; });
       renderLuoghi(); renderRefuelTable(); updateFormCalculations();
-      formTitle.textContent = 'Modifica Viaggio'; viaggioFormContainer.classList.remove('hidden'); viaggiModal.classList.add('hidden'); cancelEditBtn.classList.remove('hidden'); window.scrollTo(0, 0);
+      formTitle.textContent = 'Modifica Viaggio'; showWizardStep(1); viaggioFormContainer.classList.remove('hidden'); viaggiModal.classList.add('hidden'); cancelEditBtn.classList.remove('hidden'); window.scrollTo(0, 0);
     };
 
     window.deleteViaggio = async function(id) {
