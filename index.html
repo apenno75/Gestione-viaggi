@@ -671,16 +671,17 @@
     }
 
     function getTripTooltipHTML(tripItem) {
-      const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
+      const notti = tripItem._nottiTot !== undefined ? tripItem._nottiTot : calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
       const camping = getCampingTotalFromTrip(tripItem);
       const pedaggi = Number(tripItem.costo_pedaggi || 0);
       const carburante = (tripItem.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
       let extraLuoghi = 0;
       (tripItem.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0); });
       const totale = camping + pedaggi + carburante + extraLuoghi;
+      const luoghiDisp = raggruppaLuoghiPerNome(tripItem.luoghi).map(x => x.l);
 
-	  const ratingsText = (tripItem.luoghi || []).length > 0
-		? tripItem.luoghi.map(l => {
+	  const ratingsText = (luoghiDisp || []).length > 0
+		? luoghiDisp.map(l => {
 			const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
 			return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`;
 		  }).join('<br>')
@@ -695,9 +696,9 @@
           <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
 		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
 		  <p>---------------------------------------------------------------------------</p>
-          ${(tripItem.luoghi || []).length > 0 ? `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
+          ${(luoghiDisp || []).length > 0 ? `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${luoghiDisp.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
           <p font-size: 12px;>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
-		  <p font-size: 12px;>📝 <strong>Note Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
+		  <p font-size: 12px;>📝 <strong>Note Luoghi:</strong><BR> - ${luoghiDisp.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
 		  <p>---------------------------------------------------------------------------</p>
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
@@ -1263,23 +1264,81 @@
     openViaggiBtn.addEventListener('click', () => viaggiModal.classList.remove('hidden'));
     closeViaggiBtn.addEventListener('click', () => viaggiModal.classList.add('hidden'));
 
+    // Unisce i luoghi con lo stesso nome (es. luoghi clonati su più giorni) in un solo elemento: [{ count, l }]
+    function raggruppaLuoghiPerNome(luoghi) {
+      const gruppi = new Map(); let senzaNome = 0;
+      (luoghi || []).forEach(lu => {
+        const nome = (lu.nome_luogo || '').trim().toLowerCase();
+        const key = nome ? nome : '__senza_nome_' + (senzaNome++);
+        if (!gruppi.has(key)) gruppi.set(key, []);
+        gruppi.get(key).push(lu);
+      });
+      const uniq = (arr) => [...new Set(arr.map(v => (v || '').toString().trim()).filter(Boolean))];
+      return [...gruppi.values()].map(items => {
+        const avg = (field) => { const v = items.map(i => parseInt(i[field])).filter(n => !isNaN(n)); return v.length ? Math.round(v.reduce((x, y) => x + y, 0) / v.length) : items[0][field]; };
+        return {
+          count: items.length,
+          l: Object.assign({}, items[0], {
+            tipologia: uniq(items.map(i => i.tipologia)).join(' / ') || items[0].tipologia,
+            nome_campeggio: uniq(items.map(i => i.nome_campeggio)).join(', '),
+            note_luogo: uniq(items.map(i => i.note_luogo)).join(' | '),
+            rating_luogo: avg('rating_luogo'),
+            rating_campeggio: avg('rating_campeggio'),
+            costi_extra: items.reduce((acc, i) => acc.concat(i.costi_extra || []), [])
+          })
+        };
+      });
+    }
+
+    // Unisce più viaggi con lo stesso Nome Viaggio in un unico elemento con totali sommati
+    function unisciViaggi(gruppo) {
+      const uniqStr = (arr) => [...new Set(arr.map(v => (v || '').toString().trim()).filter(Boolean))];
+      const note = uniqStr(gruppo.map(v => v.note_viaggio || v.note)).join(' | ');
+      return Object.assign({}, gruppo[0], {
+        data_partenza: gruppo.map(v => v.data_partenza).filter(Boolean).sort()[0],
+        data_arrivo: gruppo.map(v => v.data_arrivo).filter(Boolean).sort().slice(-1)[0],
+        _nottiTot: gruppo.reduce((sum, v) => sum + calculateNights(v.data_partenza, v.data_arrivo), 0),
+        chilometri: Math.round(gruppo.reduce((sum, v) => sum + (Number(v.chilometri) || 0), 0) * 10) / 10,
+        costo_pedaggi: gruppo.reduce((sum, v) => sum + (Number(v.costo_pedaggi) || 0), 0),
+        luoghi: gruppo.reduce((acc, v) => acc.concat(v.luoghi || []), []),
+        rifornimenti: gruppo.reduce((acc, v) => acc.concat(v.rifornimenti || []), []),
+        note: note, note_viaggio: note,
+        foto_copertina: (gruppo.find(v => v.foto_copertina) || {}).foto_copertina || null
+      });
+    }
+
     function renderViaggiTable(viaggi) {
       viaggiTableBody.innerHTML = '';
       if (viaggi.length === 0) { viaggiTableBody.innerHTML = `<tr><td colSpan="11" style="text-align:center; color:#94a3b8;">Nessun viaggio inserito.</td></tr>`; return; }
-      viaggi.forEach(item => {
-        const nottiTotaliViaggio = calculateNights(item.data_partenza, item.data_arrivo);
+      const gruppiViaggi = new Map(); let senzaNomeV = 0;
+      viaggi.forEach(v => {
+        const key = (v.destinazione || '').trim().toLowerCase() || '__senza_nome_' + (senzaNomeV++);
+        if (!gruppiViaggi.has(key)) gruppiViaggi.set(key, []);
+        gruppiViaggi.get(key).push(v);
+      });
+      gruppiViaggi.forEach(gruppo => {
+        const merged = gruppo.length > 1;
+        const item = merged ? unisciViaggi(gruppo) : gruppo[0];
+        const luoghiDisp = raggruppaLuoghiPerNome(item.luoghi).map(x => x.l);
+        const nottiTotaliViaggio = item._nottiTot !== undefined ? item._nottiTot : calculateNights(item.data_partenza, item.data_arrivo);
+        const dateHtml = merged
+          ? gruppo.map(v => `${formatDate(v.data_partenza)} &rarr; ${formatDate(v.data_arrivo)}`).join('<br>')
+          : `${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)}`;
+        const azioniHtml = merged
+          ? gruppo.map(v => `<div style="margin-bottom: 6px;"><small style="color:#64748b; display:block;">${formatDate(v.data_partenza)}</small><button class="btn-warning btn-sm" onclick="prepareEdit(${v.id})">✏️ Modifica</button> <button class="btn-danger btn-sm" onclick="deleteViaggio(${v.id})">🗑️ Elimina</button></div>`).join('')
+          : `<button class="btn-warning btn-sm" onclick="prepareEdit(${item.id})" style="margin-bottom: 4px;">✏️ Modifica</button><button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">🗑️ Elimina</button>`;
         const totCamping = getCampingTotalFromTrip(item); const pedaggi = Number(item.costo_pedaggi || 0);
         const carburante = (item.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
         let extraLuoghiTot = 0; (item.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => extraLuoghiTot += parseFloat(c.valore) || 0); });
         const totaleViaggio = totCamping + pedaggi + carburante + extraLuoghiTot;
-        const ratingDisplay = (item.luoghi || []).length > 0 ? item.luoghi.map(l => `📍 ${renderStars(l.rating_luogo || 3)}<br>🏕️ ${renderStars(l.rating_campeggio || 3)}`).join('<br><div style="height:4px;"></div>') : `📍 ${renderStars(item.rating_luogo || 3)}<br>🏕️ ${renderStars(item.rating_campeggio || 3)}`;
+        const ratingDisplay = luoghiDisp.length > 0 ? luoghiDisp.map(l => `📍 ${renderStars(l.rating_luogo || 3)}<br>🏕️ ${renderStars(l.rating_campeggio || 3)}`).join('<br><div style="height:4px;"></div>') : `📍 ${renderStars(item.rating_luogo || 3)}<br>🏕️ ${renderStars(item.rating_campeggio || 3)}`;
         const thumbHtml = item.foto_copertina ? `<img src="${item.foto_copertina}" class="trip-thumb clickable-trip">` : `<div class="clickable-trip" style="width:70px; height:70px; background:#e2e8f0; border-radius:6px; display:flex; align-items:center; justify-content:center;">📷</div>`;
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${thumbHtml}</td>
-          <td><strong class="clickable-trip" style="color: #0070f3;">${escapeHtml(item.destinazione)}</strong>${item.luoghi?.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: <BR>- ${item.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</small>` : ''}</td>
-          <td style="font-size: 12px; white-space: nowrap;">${formatDate(item.data_partenza)} &rarr; ${formatDate(item.data_arrivo)}<br><strong style="color:#0284c7; font-size: 11px;">🌙 ${nottiTotaliViaggio} notti tot.</strong></td>
+          <td><strong class="clickable-trip" style="color: #0070f3;">${escapeHtml(item.destinazione)}</strong>${merged ? ` <small style="color:#64748b;">(${gruppo.length} viaggi)</small>` : ''}${luoghiDisp.length > 0 ? `<br><small style="color:#8b5cf6;">📍 Luoghi: <BR>- ${luoghiDisp.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</small>` : ''}</td>
+          <td style="font-size: 12px; white-space: nowrap;">${dateHtml}<br><strong style="color:#0284c7; font-size: 11px;">🌙 ${nottiTotaliViaggio} notti tot.</strong></td>
           <td style="font-size: 11px;">${ratingDisplay}</td>
           <td>${item.chilometri} km</td>
           <td>€ ${totCamping.toFixed(2)}</td>
@@ -1287,7 +1346,7 @@
           <td><span class="clickable-carburante" style="color:#0070f3; cursor:pointer; text-decoration:underline; font-weight:bold;">€ ${carburante.toFixed(2)}</span></td>
           <td>€ ${pedaggi.toFixed(2)}</td>
           <td><strong style="color:#0284c7;">€ ${totaleViaggio.toFixed(2)}</strong></td>
-          <td style="text-align: right;"><button class="btn-warning btn-sm" onclick="prepareEdit(${item.id})" style="margin-bottom: 4px;">✏️ Modifica</button><button class="btn-danger btn-sm" onclick="deleteViaggio(${item.id})">🗑️ Elimina</button></td>
+          <td style="text-align: right;">${azioniHtml}</td>
         `;
         tr.querySelectorAll('.clickable-trip').forEach(el => el.addEventListener('click', (e) => showTripTooltip(item, el.parentElement, e)));
         tr.querySelector('.clickable-extra').addEventListener('click', () => openExtraDetailModal(item));
@@ -1308,9 +1367,11 @@
         allLuoghiTableBody.innerHTML = '';
         (trips || []).forEach(trip => {
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
-          (trip.luoghi || []).forEach(l => {
+          // Un solo luogo per ogni nome all'interno dello stesso viaggio (i luoghi clonati su più giorni vengono uniti)
+          const luoghiUnici = raggruppaLuoghiPerNome(trip.luoghi);
+          luoghiUnici.forEach(({ l, count }) => {
             const tr = document.createElement('tr'); tr.style.fontSize = "13px";
-            tr.innerHTML = `<td><strong class="clickable-luogo-nome" style="color: #0284c7; cursor: pointer; text-decoration: underline;">${escapeHtml(l.nome_luogo || 'N/D')}</strong></td><td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td><td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td><td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td><td>${escapeHtml(l.tipologia || 'camping')}</td><td>${escapeHtml(l.nome_campeggio || '-')}</td><td>${escapeHtml(l.note_luogo || '-')}</td><td>${renderStars(l.rating_luogo)}</td><td>${renderStars(l.rating_campeggio)}</td><td>${formatDate(trip.data_partenza)}</td>`;
+            tr.innerHTML = `<td><strong class="clickable-luogo-nome" style="color: #0284c7; cursor: pointer; text-decoration: underline;">${escapeHtml(l.nome_luogo || 'N/D')}</strong>${count > 1 ? ` <small style="color: #64748b;">(${count} giorni)</small>` : ''}</td><td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td><td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td><td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td><td>${escapeHtml(l.tipologia || 'camping')}</td><td>${escapeHtml(l.nome_campeggio || '-')}</td><td>${escapeHtml(l.note_luogo || '-')}</td><td>${renderStars(l.rating_luogo)}</td><td>${renderStars(l.rating_campeggio)}</td><td>${formatDate(trip.data_partenza)}</td>`;
             tr.querySelector('.clickable-luogo-nome').addEventListener('click', () => openSingleLuogoExtraModal(l, trip.destinazione));
             allLuoghiTableBody.appendChild(tr);
           });
