@@ -403,12 +403,20 @@
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
-          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${pedaggiTipiHTML(tripItem)}</p>
           <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
           <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
         </div>
       `;
     }
+
+    // Tipi di pedaggio usati nei giorni del viaggio (senza duplicati)
+    function getTipiPedaggioViaggio(tripItem) {
+      const tipi = [];
+      (tripItem.luoghi || []).forEach(l => { if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; if ((parseFloat(v.pedaggi) || 0) > 0 && v.tipo_pedaggio && !tipi.includes(v.tipo_pedaggio)) tipi.push(v.tipo_pedaggio); }); });
+      return tipi;
+    }
+    function pedaggiTipiHTML(tripItem) { const t = getTipiPedaggioViaggio(tripItem); return t.length ? ` (${t.map(escapeHtml).join(', ')})` : ''; }
 
     // ===== Tooltip del singolo giorno di viaggio (dal calendario) =====
     function getLuoghiDelGiorno(tripItem, dayNum) {
@@ -426,12 +434,12 @@
     }
 
     function getDatiGiorno(tripItem, dayNum) {
-      let km = 0, pedaggi = 0;
+      let km = 0, pedaggi = 0, tipo = '';
       (tripItem.luoghi || []).forEach(l => {
-        if (l.dati_giorni && l.dati_giorni[dayNum]) { km = parseFloat(l.dati_giorni[dayNum].km) || 0; pedaggi = parseFloat(l.dati_giorni[dayNum].pedaggi) || 0; }
+        if (l.dati_giorni && l.dati_giorni[dayNum]) { km = parseFloat(l.dati_giorni[dayNum].km) || 0; pedaggi = parseFloat(l.dati_giorni[dayNum].pedaggi) || 0; tipo = l.dati_giorni[dayNum].tipo_pedaggio || ''; }
         else if (parseInt(l.giorno) === dayNum && (l.km_giorno || l.pedaggi_giorno)) { km += parseFloat(l.km_giorno) || 0; pedaggi += parseFloat(l.pedaggi_giorno) || 0; }
       });
-      return { km, pedaggi };
+      return { km, pedaggi, tipo };
     }
 
     function getDayTooltipHTML(tripItem, dateStr) {
@@ -439,7 +447,7 @@
       const dayNum = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y0, m0 - 1, d0)) / 86400000) + 1;
       const totGiorni = calculateNights(tripItem.data_partenza, tripItem.data_arrivo) + 1;
       const luoghi = getLuoghiDelGiorno(tripItem, dayNum);
-      const { km, pedaggi } = getDatiGiorno(tripItem, dayNum);
+      const { km, pedaggi, tipo } = getDatiGiorno(tripItem, dayNum);
       const camping = luoghi.reduce((t, l) => t + (parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0), 0);
       const extraList = []; luoghi.forEach(l => (l.costi_extra || []).forEach(c => extraList.push({ valore: parseFloat(c.valore) || 0, categoria: c.categoria || '', nome: c.nome || '', luogo: c.luogo || l.nome_luogo || '', note: c.note || '' })));
       const extraTot = extraList.reduce((t, c) => t + c.valore, 0);
@@ -457,7 +465,7 @@
           ${luoghiHtml}
           <p>---------------------------------------------------------------------------</p>
           <p>🛣️ <strong>Chilometri:</strong> ${km} km</p>
-          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${tipo && pedaggi > 0 ? ` (${escapeHtml(tipo)})` : ''}</p>
           <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraTot.toFixed(2)}</p>${extraHtml}
           <p>⛽ <strong>Rifornimenti:</strong> € ${carburante.toFixed(2)}</p>${fuelHtml || (rifList.length === 0 ? '<p style="margin-left:12px; color:#94a3b8;">Nessun rifornimento in questo giorno.</p>' : '')}
@@ -497,7 +505,7 @@
 		  if ((tripItem.luoghi || []).length > 0) html += `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`;
 		  if ((tripItem.luoghi || []).length > 0) { const noteLuoghi = tripItem.luoghi.filter(l => l.note_luogo && l.note_luogo.trim() !== '').map(l => `<span>- ${escapeHtml(l.nome_luogo || 'Luogo')}:</span> ${escapeHtml(l.note_luogo)}`); if (noteLuoghi.length > 0) html += `<p font-size: 12px;>📝 <strong>Note Luoghi:</strong><br><span>${noteLuoghi.join('<br>')}</span></p>`; }
 		  html += `<p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p><p>---------------------------------------------------------------------------<br></p>`;
-		  if (isOwner) html += `<p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p><p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p><p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p><p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p><p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p><p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>`;
+		  if (isOwner) html += `<p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p><p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p><p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p><p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${pedaggiTipiHTML(tripItem)}</p><p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p><p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>`;
 		  html += `</div>`; return html;
     }
 

@@ -723,7 +723,7 @@
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
-          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${pedaggiTipiHTML(tripItem)}</p>
           <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
           <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
         </div>
@@ -934,6 +934,18 @@
       tempLuoghi.forEach((l, i) => { l.notti = (l.giorno <= totN && lastIdx[l.giorno] === i) ? 1 : 0; });
     }
 
+    const TIPI_PEDAGGIO = ['Autostrada', 'Traghetto', 'Traforo', 'Tangenziale', 'Altro'];
+    function tipoPedaggioOptionsHTML(sel, allowBlank) {
+      return (allowBlank ? `<option value="" ${!sel ? 'selected' : ''}>—</option>` : '') + TIPI_PEDAGGIO.map(t => `<option value="${t}" ${sel === t ? 'selected' : ''}>${t}</option>`).join('');
+    }
+    // Tipi di pedaggio usati nei giorni del viaggio (senza duplicati)
+    function getTipiPedaggioViaggio(tripItem) {
+      const tipi = [];
+      (tripItem.luoghi || []).forEach(l => { if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; if ((parseFloat(v.pedaggi) || 0) > 0 && v.tipo_pedaggio && !tipi.includes(v.tipo_pedaggio)) tipi.push(v.tipo_pedaggio); }); });
+      return tipi;
+    }
+    function pedaggiTipiHTML(tripItem) { const t = getTipiPedaggioViaggio(tripItem); return t.length ? ` (${t.map(escapeHtml).join(', ')})` : ''; }
+
     function syncGiorniFromDOM() {
       luoghiListContainer.querySelectorAll('.day-km-input').forEach(inp => {
         const d = inp.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
@@ -942,6 +954,10 @@
       luoghiListContainer.querySelectorAll('.day-pedaggi-input').forEach(inp => {
         const d = inp.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
         tempGiorni[d].pedaggi = parseFloat(inp.value) || 0;
+      });
+      luoghiListContainer.querySelectorAll('.day-pedaggi-tipo').forEach(sel => {
+        const d = sel.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
+        tempGiorni[d].tipo_pedaggio = sel.value;
       });
     }
 
@@ -964,6 +980,7 @@
       for (let d = 1; d <= getNumeroGiorni(); d++) {
         const g = tempGiorni[d]; if (!g || (!g.km && !g.pedaggi)) continue;
         mappa[d] = { km: g.km || 0, pedaggi: g.pedaggi || 0 };
+        if (g.pedaggi && g.tipo_pedaggio) mappa[d].tipo_pedaggio = g.tipo_pedaggio;
       }
       if (Object.keys(mappa).length > 0 && tempLuoghi.length > 0) tempLuoghi[0].dati_giorni = mappa;
       applyNottiToLuoghi();
@@ -1001,7 +1018,7 @@
           <div class="day-body">
           <div class="flex flex-mobile-col" style="gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             <div style="flex: 1 1 150px;"><label>🛣️ Km percorsi nel giorno</label><input type="number" min="0" step="0.1" class="day-km-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].km) || ''}" placeholder="0"></div>
-            <div style="flex: 1 1 150px;"><label>💶 Pedaggi pagati nel giorno (€)</label><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00"></div>
+            <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div style="display: flex; gap: 6px;"><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00" style="flex: 1; min-width: 0;"><select class="day-pedaggi-tipo" data-day="${d}" style="flex: 1; min-width: 0;">${tipoPedaggioOptionsHTML(tempGiorni[d] ? tempGiorni[d].tipo_pedaggio : 'Autostrada', !!(tempGiorni[d] && tempGiorni[d].pedaggi && !tempGiorni[d].tipo_pedaggio))}</select></div></div>
           </div>
           <div class="flex-center" style="margin-bottom: 10px;">
             <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato all'ultimo luogo del giorno" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
@@ -1294,7 +1311,7 @@
       const item = viaggiList.find(v => v.id === id); if (!item) return;
       viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
       if (item.foto_copertina) { fotoCopertinaBase64.value = item.foto_copertina; fotoPreview.src = item.foto_copertina; previewContainer.classList.remove('hidden'); } else { fotoCopertinaBase64.value = ''; fotoPreview.src = ''; previewContainer.classList.add('hidden'); }
-      expandedDays.clear(); luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: parseFloat(v.pedaggi) || 0 }; }); });
+      expandedDays.clear(); luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: parseFloat(v.pedaggi) || 0, tipo_pedaggio: v.tipo_pedaggio || '' }; }); });
       renderLuoghi(); renderRefuelTable(); updateFormCalculations();
       formTitle.textContent = 'Modifica Viaggio'; showWizardStep(1); viaggioFormContainer.classList.remove('hidden'); viaggiModal.classList.add('hidden'); cancelEditBtn.classList.remove('hidden'); window.scrollTo(0, 0);
     };
