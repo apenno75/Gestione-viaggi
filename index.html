@@ -917,15 +917,17 @@
       updateFormCalculations();
     }
 
-    // Prima del salvataggio: km/pedaggi del giorno vengono memorizzati nel primo luogo del giorno (nessuna modifica alle tabelle)
+    // Prima del salvataggio: km/pedaggi di tutti i giorni vengono memorizzati nel primo luogo del viaggio
+    // (chiave dati_giorni, anche per i giorni senza luoghi; nessuna modifica alle tabelle)
     function applyGiorniToLuoghi() {
       syncGiorniFromDOM();
-      tempLuoghi.forEach(l => { delete l.km_giorno; delete l.pedaggi_giorno; });
+      tempLuoghi.forEach(l => { delete l.km_giorno; delete l.pedaggi_giorno; delete l.dati_giorni; });
+      const mappa = {};
       for (let d = 1; d <= getNumeroGiorni(); d++) {
         const g = tempGiorni[d]; if (!g || (!g.km && !g.pedaggi)) continue;
-        const first = tempLuoghi.find(l => l.giorno === d);
-        if (first) { if (g.km) first.km_giorno = g.km; if (g.pedaggi) first.pedaggi_giorno = g.pedaggi; }
+        mappa[d] = { km: g.km || 0, pedaggi: g.pedaggi || 0 };
       }
+      if (Object.keys(mappa).length > 0 && tempLuoghi.length > 0) tempLuoghi[0].dati_giorni = mappa;
       applyNottiToLuoghi();
     }
 
@@ -1241,7 +1243,7 @@
       const item = viaggiList.find(v => v.id === id); if (!item) return;
       viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
       if (item.foto_copertina) { fotoCopertinaBase64.value = item.foto_copertina; fotoPreview.src = item.foto_copertina; previewContainer.classList.remove('hidden'); } else { fotoCopertinaBase64.value = ''; fotoPreview.src = ''; previewContainer.classList.add('hidden'); }
-      luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; });
+      luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: parseFloat(v.pedaggi) || 0 }; }); });
       renderLuoghi(); renderRefuelTable(); updateFormCalculations();
       formTitle.textContent = 'Modifica Viaggio'; showWizardStep(1); viaggioFormContainer.classList.remove('hidden'); viaggiModal.classList.add('hidden'); cancelEditBtn.classList.remove('hidden'); window.scrollTo(0, 0);
     };
