@@ -866,6 +866,10 @@
     });
 
     luoghiListContainer.addEventListener('input', (e) => {
+      if (e.target.classList.contains('day-pedaggi-input')) {
+        const tipoSel = luoghiListContainer.querySelector(`.day-pedaggi-tipo[data-day="${e.target.dataset.day}"]`);
+        if (tipoSel) tipoSel.style.display = (parseFloat(e.target.value) || 0) > 0 ? '' : 'none';
+      }
       if (e.target.classList.contains('day-km-input') || e.target.classList.contains('day-pedaggi-input')) { updateTotaliDaGiorni(); return; }
       if (!e.target.classList.contains('day-rif-costo')) return;
       const costo = parseFloat(e.target.value) || 0;
@@ -1018,7 +1022,7 @@
           <div class="day-body">
           <div class="flex flex-mobile-col" style="gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             <div style="flex: 1 1 150px;"><label>🛣️ Km percorsi nel giorno</label><input type="number" min="0" step="0.1" class="day-km-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].km) || ''}" placeholder="0"></div>
-            <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div style="display: flex; gap: 6px;"><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00" style="flex: 1; min-width: 0;"><select class="day-pedaggi-tipo" data-day="${d}" style="flex: 1; min-width: 0;">${tipoPedaggioOptionsHTML(tempGiorni[d] ? tempGiorni[d].tipo_pedaggio : 'Autostrada', !!(tempGiorni[d] && tempGiorni[d].pedaggi && !tempGiorni[d].tipo_pedaggio))}</select></div></div>
+            <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div style="display: flex; gap: 6px;"><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00" style="flex: 1; min-width: 0;"><select class="day-pedaggi-tipo" data-day="${d}" style="flex: 1; min-width: 0;${(tempGiorni[d] && tempGiorni[d].pedaggi > 0) ? '' : ' display: none;'}">${tipoPedaggioOptionsHTML(tempGiorni[d] ? tempGiorni[d].tipo_pedaggio : 'Autostrada', !!(tempGiorni[d] && tempGiorni[d].pedaggi && !tempGiorni[d].tipo_pedaggio))}</select></div></div>
           </div>
           <div class="flex-center" style="margin-bottom: 10px;">
             <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato all'ultimo luogo del giorno" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
