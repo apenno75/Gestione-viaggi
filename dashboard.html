@@ -410,6 +410,74 @@
       `;
     }
 
+    // ===== Tooltip del singolo giorno di viaggio (dal calendario) =====
+    function getLuoghiDelGiorno(tripItem, dayNum) {
+      const luoghi = tripItem.luoghi || [];
+      if (luoghi.some(l => parseInt(l.giorno) >= 1)) return luoghi.filter(l => parseInt(l.giorno) === dayNum);
+      // Viaggi salvati prima del wizard: un luogo con N notti copre N giorni consecutivi
+      const result = []; let cursor = 0;
+      luoghi.forEach(l => {
+        const notti = parseInt(l.notti) || 0;
+        const first = cursor + 1; const last = notti <= 1 ? cursor + 1 : cursor + notti;
+        if (dayNum >= first && dayNum <= last) result.push(Object.assign({}, l, { notti: notti <= 1 ? notti : 1 }));
+        cursor += notti;
+      });
+      return result;
+    }
+
+    function getDatiGiorno(tripItem, dayNum) {
+      let km = 0, pedaggi = 0;
+      (tripItem.luoghi || []).forEach(l => {
+        if (l.dati_giorni && l.dati_giorni[dayNum]) { km = parseFloat(l.dati_giorni[dayNum].km) || 0; pedaggi = parseFloat(l.dati_giorni[dayNum].pedaggi) || 0; }
+        else if (parseInt(l.giorno) === dayNum && (l.km_giorno || l.pedaggi_giorno)) { km += parseFloat(l.km_giorno) || 0; pedaggi += parseFloat(l.pedaggi_giorno) || 0; }
+      });
+      return { km, pedaggi };
+    }
+
+    function getDayTooltipHTML(tripItem, dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number); const [y0, m0, d0] = tripItem.data_partenza.split('-').map(Number);
+      const dayNum = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y0, m0 - 1, d0)) / 86400000) + 1;
+      const totGiorni = calculateNights(tripItem.data_partenza, tripItem.data_arrivo) + 1;
+      const luoghi = getLuoghiDelGiorno(tripItem, dayNum);
+      const { km, pedaggi } = getDatiGiorno(tripItem, dayNum);
+      const camping = luoghi.reduce((t, l) => t + (parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0), 0);
+      const extraList = []; luoghi.forEach(l => (l.costi_extra || []).forEach(c => extraList.push({ valore: parseFloat(c.valore) || 0, categoria: c.categoria || '', nome: c.nome || '', luogo: c.luogo || l.nome_luogo || '', note: c.note || '' })));
+      const extraTot = extraList.reduce((t, c) => t + c.valore, 0);
+      const rifList = (tripItem.rifornimenti || []).filter(r => (r.data_rifornimento || '').slice(0, 10) === dateStr);
+      const carburante = rifList.reduce((t, r) => t + (Number(r.costo_sostenuto) || 0), 0);
+      const totale = camping + pedaggi + extraTot + carburante;
+      const luoghiHtml = luoghi.length > 0 ? luoghi.map(l => `<p>📌 <strong>${escapeHtml(l.nome_luogo || 'Tappa')}</strong> ${renderStars(l.rating_luogo || 3)}${l.nome_campeggio ? `<br>🏕️ ${escapeHtml(l.nome_campeggio)} ${renderStars(l.rating_campeggio || 3)}` : ''}${l.note_luogo ? `<br>📝 ${escapeHtml(l.note_luogo)}` : ''}</p>`).join('') : `<p style="color:#94a3b8;">Nessun luogo inserito per questo giorno.</p>`;
+      const extraHtml = extraList.length > 0 ? `<div style="margin:2px 0 4px 12px;">${extraList.map(c => `<p>• € ${c.valore.toFixed(2)} — ${escapeHtml([c.categoria, c.nome].filter(Boolean).join(' · ') || 'Extra')}${c.luogo ? ` (${escapeHtml(c.luogo)})` : ''}${c.note ? `<br><span style="color:#94a3b8;">${escapeHtml(c.note)}</span>` : ''}</p>`).join('')}</div>` : '';
+      const fuelHtml = rifList.length > 0 ? `<div style="margin:2px 0 4px 12px;">${rifList.map(r => `<p>• ${(parseFloat(r.litri) || 0).toFixed(2)} L — € ${(Number(r.costo_sostenuto) || 0).toFixed(2)}</p>`).join('')}</div>` : '';
+      return `
+        <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
+          <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+          <p>📅 <strong>Giorno ${dayNum} di ${totGiorni}</strong> — ${formatDate(dateStr)}</p>
+          <p>---------------------------------------------------------------------------</p>
+          ${luoghiHtml}
+          <p>---------------------------------------------------------------------------</p>
+          <p>🛣️ <strong>Chilometri:</strong> ${km} km</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>
+          <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
+          <p>💰 <strong>Costi Extra:</strong> € ${extraTot.toFixed(2)}</p>${extraHtml}
+          <p>⛽ <strong>Rifornimenti:</strong> € ${carburante.toFixed(2)}</p>${fuelHtml || (rifList.length === 0 ? '<p style="margin-left:12px; color:#94a3b8;">Nessun rifornimento in questo giorno.</p>' : '')}
+          <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE GIORNO: € ${totale.toFixed(2)}</strong></p>
+          <button type="button" class="btn-secondary btn-sm day-full-trip-btn" style="margin-top:8px;">Vedi viaggio completo</button>
+        </div>
+      `;
+    }
+
+    function showDayTooltip(tripItem, dateStr, event) {
+      if (event) event.stopPropagation();
+      document.querySelectorAll('.map-full-overlay').forEach(el => el.remove());
+      const fullOverlay = document.createElement('div'); fullOverlay.className = 'map-full-overlay';
+      fullOverlay.innerHTML = `<div class="map-full-overlay-content"><button class="map-full-overlay-close" title="Chiudi">&times;</button>${getDayTooltipHTML(tripItem, dateStr)}</div>`;
+      fullOverlay.querySelector('.map-full-overlay-close').addEventListener('click', () => fullOverlay.remove());
+      fullOverlay.querySelector('.day-full-trip-btn').addEventListener('click', () => showTripTooltip(tripItem, null, null));
+      fullOverlay.addEventListener('click', (e) => { if (e.target === fullOverlay) fullOverlay.remove(); });
+      document.body.appendChild(fullOverlay);
+    }
+
     function getMapTooltipHTML(tripItem, user, ownerName) {
 		  const isOwner = (user && tripItem.user_id === user.id);
 		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
@@ -518,7 +586,7 @@
           const colorConfig = TRIP_COLORS[(tripIndex >= 0 ? tripIndex : 0) % TRIP_COLORS.length];
           dayCell.style.backgroundColor = colorConfig.bg; dayCell.style.borderColor = colorConfig.border; dayCell.style.color = colorConfig.text;
           matchingTrips.forEach(trip => { const initialSpan = document.createElement('span'); initialSpan.className = 'trip-initial'; initialSpan.style.backgroundColor = colorConfig.border; initialSpan.style.color = '#ffffff'; initialSpan.textContent = trip.destinazione ? trip.destinazione.slice(0, 2) : 'VI'; dayCell.appendChild(initialSpan); });
-          dayCell.addEventListener('click', (e) => showTripTooltip(primaryTrip, dayCell, e));
+          dayCell.addEventListener('click', (e) => showDayTooltip(primaryTrip, currentDateStr, e));
         }
         calendarDaysContainer.appendChild(dayCell);
       }
