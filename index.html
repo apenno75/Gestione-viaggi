@@ -762,8 +762,8 @@
     wizardBackBtn.addEventListener('click', () => { syncLuoghiDataFromDOM(); showWizardStep(1); });
     wizardCancelBtn.addEventListener('click', () => cancelEditBtn.click());
 
-    // Giorni = notti calcolate (minimo 1 per i viaggi in giornata)
-    function getNumeroGiorni() { return Math.max(1, calculateNights(dataPartenzaInput.value, dataArrivoInput.value)); }
+    // Giorni effettivi = notti + 1 (il giorno di ritorno non ha pernottamento)
+    function getNumeroGiorni() { return calculateNights(dataPartenzaInput.value, dataArrivoInput.value) + 1; }
 
     function getDayDateStr(dayNum) {
       const p = dataPartenzaInput.value; if (!p) return '';
@@ -893,7 +893,7 @@
       const totN = calculateNights(dataPartenzaInput.value, dataArrivoInput.value);
       const lastIdx = {};
       tempLuoghi.forEach((l, i) => { lastIdx[l.giorno] = i; });
-      tempLuoghi.forEach((l, i) => { l.notti = (totN > 0 && lastIdx[l.giorno] === i) ? 1 : 0; });
+      tempLuoghi.forEach((l, i) => { l.notti = (l.giorno <= totN && lastIdx[l.giorno] === i) ? 1 : 0; });
     }
 
     function syncGiorniFromDOM() {
@@ -963,7 +963,7 @@
             <div style="flex: 1 1 150px;"><label>💶 Pedaggi pagati nel giorno (€)</label><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00"></div>
           </div>
           <div class="flex-center" style="margin-bottom: 10px;">
-            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">🌙 Il pernottamento è assegnato all'ultimo luogo del giorno</small></label>
+            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato all'ultimo luogo del giorno" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
             <button type="button" class="btn-purple btn-sm add-luogo-day-btn" data-day="${d}">+ Aggiungi Luogo</button>
           </div>
           <div class="day-luoghi"></div>
@@ -1150,13 +1150,13 @@
         return;
       }	  
 
-      // --- CONTROLLO BLOCCANTE: ogni giorno del viaggio deve avere almeno un luogo ---
+      // --- CONTROLLO BLOCCANTE: ogni giorno con pernottamento deve avere almeno un luogo ---
       const totNottiViaggio = parseInt(totaleNottiViaggioInput.value) || 0;
       if (totNottiViaggio > 0) {
         const giorniSenzaLuoghi = [];
-        for (let d = 1; d <= getNumeroGiorni(); d++) { if (!tempLuoghi.some(l => l.giorno === d)) giorniSenzaLuoghi.push(d); }
+        for (let d = 1; d <= totNottiViaggio; d++) { if (!tempLuoghi.some(l => l.giorno === d)) giorniSenzaLuoghi.push(d); }
         if (giorniSenzaLuoghi.length > 0) {
-          alert(`Attenzione: ogni giorno deve avere almeno un luogo. Mancano i luoghi per: Giorno ${giorniSenzaLuoghi.join(', Giorno ')}.`);
+          alert(`Attenzione: ogni giorno con pernottamento deve avere almeno un luogo. Mancano i luoghi per: Giorno ${giorniSenzaLuoghi.join(', Giorno ')}.`);
           return;
         }
       }
