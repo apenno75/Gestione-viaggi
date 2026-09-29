@@ -86,6 +86,10 @@
     .wizard-step-pill.active { background: #0070f3; color: #fff; }
     .day-block { background: #f8fafc; border: 2px solid #bae6fd; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
     .day-header { display: flex; justify-content: space-between; align-items: center; background: #0284c7; color: #fff; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+    .day-header-left { display: flex; align-items: center; gap: 10px; }
+    .day-toggle-btn { background: #fff; color: #0284c7; border: none; border-radius: 6px; width: 30px; height: 30px; min-height: 30px; padding: 0; font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .day-block.collapsed .day-header { margin-bottom: 0; }
+    .day-block.collapsed .day-body { display: none; }
     .day-empty { text-align: center; color: #94a3b8; font-size: 12px; padding: 10px; }
 
     @media (max-width: 768px) {
@@ -450,6 +454,7 @@
     let viaggiList = [];
     let tempRefuelings = [];
     let tempLuoghi = [];
+    const expandedDays = new Set(); // giorni espansi (di default tutti ridotti)
     let tempGiorni = {}; // km e pedaggi per giorno: { 1: {km, pedaggi}, ... }
     let camperSettings = { consumo: 10.0, costoCarburante: 1.85, kmTotali: 0, kmDataValidita: null };
 
@@ -982,7 +987,8 @@
         const dayDate = getDayDateStr(d);
         const block = document.createElement('div'); block.className = 'day-block';
         block.innerHTML = `
-          <div class="day-header"><strong>📅 Giorno ${d} di ${nDays}</strong><span>${dayDate ? formatDate(dayDate) : ''}</span></div>
+          <div class="day-header"><div class="day-header-left"><button type="button" class="day-toggle-btn" title="Espandi / riduci il giorno"></button><strong>📅 Giorno ${d} di ${nDays}</strong></div><span>${dayDate ? formatDate(dayDate) : ''}</span></div>
+          <div class="day-body">
           <div class="flex flex-mobile-col" style="gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             <div style="flex: 1 1 150px;"><label>🛣️ Km percorsi nel giorno</label><input type="number" min="0" step="0.1" class="day-km-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].km) || ''}" placeholder="0"></div>
             <div style="flex: 1 1 150px;"><label>💶 Pedaggi pagati nel giorno (€)</label><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00"></div>
@@ -1015,7 +1021,17 @@
               </table>
             </div>
           </div>
+          </div>
         `;
+        const toggleBtn = block.querySelector('.day-toggle-btn');
+        const applyDayState = () => {
+          const open = expandedDays.has(d);
+          block.classList.toggle('collapsed', !open);
+          toggleBtn.textContent = open ? '-' : '+';
+          toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        toggleBtn.addEventListener('click', () => { if (expandedDays.has(d)) expandedDays.delete(d); else expandedDays.add(d); applyDayState(); });
+        applyDayState();
         luoghiListContainer.appendChild(block);
         dayLuoghiContainers[d] = block.querySelector('.day-luoghi');
       }
@@ -1259,7 +1275,7 @@
 
     function resetViaggioForm() {
       viaggioIdInput.value = ''; viaggioForm.reset(); fotoCopertinaBase64.value = ''; fotoPreview.src = '';
-      previewContainer.classList.add('hidden'); tempLuoghi = []; tempRefuelings = []; tempGiorni = {}; luoghiListContainer.innerHTML = '';
+      previewContainer.classList.add('hidden'); tempLuoghi = []; tempRefuelings = []; tempGiorni = {}; expandedDays.clear(); luoghiListContainer.innerHTML = '';
       renderLuoghi(); renderRefuelTable(); updateFormCalculations(); formTitle.textContent = 'Aggiungi Nuovo Viaggio'; showWizardStep(1);
     }
 
@@ -1267,7 +1283,7 @@
       const item = viaggiList.find(v => v.id === id); if (!item) return;
       viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
       if (item.foto_copertina) { fotoCopertinaBase64.value = item.foto_copertina; fotoPreview.src = item.foto_copertina; previewContainer.classList.remove('hidden'); } else { fotoCopertinaBase64.value = ''; fotoPreview.src = ''; previewContainer.classList.add('hidden'); }
-      luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: parseFloat(v.pedaggi) || 0 }; }); });
+      expandedDays.clear(); luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: parseFloat(v.pedaggi) || 0 }; }); });
       renderLuoghi(); renderRefuelTable(); updateFormCalculations();
       formTitle.textContent = 'Modifica Viaggio'; showWizardStep(1); viaggioFormContainer.classList.remove('hidden'); viaggiModal.classList.add('hidden'); cancelEditBtn.classList.remove('hidden'); window.scrollTo(0, 0);
     };
