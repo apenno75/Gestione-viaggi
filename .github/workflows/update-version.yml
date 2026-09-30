@@ -1,0 +1,33 @@
+name: Aggiorna version.json
+
+on:
+  push:
+    branches: [main]          # se il tuo ramo si chiama "master", cambia qui
+    paths-ignore:
+      - 'version.json'        # evita che il commit automatico riavvii il workflow
+
+permissions:
+  contents: write             # serve per fare il commit di version.json
+
+jobs:
+  aggiorna-versione:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # storico completo, serve per contare i commit
+
+      - name: Genera version.json
+        run: |
+          # Numero progressivo = commit fatti da te (esclusi quelli automatici di questo workflow)
+          COUNT=$(git rev-list --count HEAD --invert-grep --grep="aggiorna version.json")
+          DATA=$(date -u +%Y-%m-%d)
+          echo "{ \"version\": \"1.0.${COUNT}\", \"data\": \"${DATA}\" }" > version.json
+          cat version.json
+
+      - name: Commit e push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git diff --cached --quiet || (git commit -m "chore: aggiorna version.json [skip ci]" && git push)
