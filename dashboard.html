@@ -661,7 +661,7 @@
         map.on('zoomend', updateZoomDisplay);
       }
       updateZoomDisplay();
-      if (markersGroup) markersGroup.clearLayers(); else markersGroup = L.layerGroup().addTo(map);
+      if (markersGroup) markersGroup.clearLayers(); else markersGroup = L.featureGroup().addTo(map);
       try {
         const { data: settingsData } = await supabaseClient.from('camper_settings').select('user_id, nome_utente, colore_utente');
         const usersMap = {}; const userColorMap = {};
