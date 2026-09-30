@@ -690,8 +690,25 @@
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
           const ownerColor = userColorMap[trip.user_id] || '#dc2626';
           const luoghi = trip.luoghi || []; const latLngsForTrip = [];
-          for (let index = 0; index < luoghi.length; index++) {
-            const luogo = luoghi[index]; const query = luogo.nome_luogo || luogo.viaggio_destinazione || trip.destinazione;
+          // Una sola bandierina per luogo: i luoghi con lo stesso nome nel viaggio (più giorni) vengono uniti.
+          // Luogo su più giorni -> bandierina con il numero di notti (piccolo); luogo univoco -> numero del giorno del viaggio.
+          const gruppiMappa = []; const gruppiByKey = new Map(); let cursorGiorni = 0;
+          luoghi.forEach(lu => {
+            const notti = parseInt(lu.notti) || 0; let giorno = parseInt(lu.giorno); let giorniCoperti = 1;
+            if (!(giorno >= 1)) { giorno = cursorGiorni + 1; giorniCoperti = Math.max(notti, 1); cursorGiorni += notti; } // viaggi salvati prima del wizard: N notti = N giorni
+            const nome = (lu.nome_luogo || '').trim().toLowerCase();
+            const key = nome || ('__senza_nome_' + gruppiMappa.length);
+            let g = gruppiByKey.get(key);
+            if (!g) { g = { luogo: lu, giorni: new Set(), notti: 0, primoGiorno: giorno }; gruppiByKey.set(key, g); gruppiMappa.push(g); }
+            g.notti += notti; g.primoGiorno = Math.min(g.primoGiorno, giorno);
+            for (let k = 0; k < giorniCoperti; k++) g.giorni.add(giorno + k);
+          });
+          for (const g of gruppiMappa) {
+            const luogo = g.luogo; const query = luogo.nome_luogo || luogo.viaggio_destinazione || trip.destinazione;
+            const multiGiorno = g.giorni.size > 1;
+            const flagLabel = multiGiorno ? g.notti : g.primoGiorno;
+            const flagFontPx = multiGiorno ? 9 : 11;
+            const flagTitle = multiGiorno ? `${g.notti} ${g.notti === 1 ? 'notte' : 'notti'}` : `Giorno ${g.primoGiorno}`;
             if (!query) continue;
             let latLng = cacheMap[query] || null;
             if (!latLng) {
@@ -708,8 +725,8 @@
             }
             if (latLng) {
               latLngsForTrip.push(latLng);
-              const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: ${ownerColor}; color: white; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${index + 1}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
-              const marker = L.marker(latLng, { icon: customIcon });
+              const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: ${ownerColor}; color: white; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: ${flagFontPx}px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${flagLabel}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
+              const marker = L.marker(latLng, { icon: customIcon, title: flagTitle });
               marker.on('click', () => {
                 const fullOverlay = document.createElement('div'); fullOverlay.className = 'map-full-overlay';
                 fullOverlay.innerHTML = `<div class="map-full-overlay-content"><button class="map-full-overlay-close" title="Chiudi">&times;</button>${getMapTooltipHTML(trip, currentUser, ownerName)}</div>`;
@@ -731,7 +748,6 @@
 				
 		
         if (markersGroup.getLayers().length > 0) { 
-		map = L.map('map-container').setView([41.9028, 12.5040], 5);
           map.fitBounds(markersGroup.getBounds().pad(0.2)); 
           if (map.getZoom() > 5) map.setZoom(5);
           if (map.getZoom() < 5) map.setZoom(5);
