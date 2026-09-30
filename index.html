@@ -690,6 +690,32 @@
       return total;
     }
 
+    // Numeri di giorno (1..N) a cui si riferisce ogni luogo (array allineato a `luoghi`);
+    // viaggi salvati prima del wizard: un luogo con N notti copre N giorni consecutivi
+    function giorniPerLuogo(luoghi) {
+      let cursor = 0;
+      return (luoghi || []).map(l => {
+        const g = parseInt(l.giorno);
+        if (g >= 1) return [g];
+        const notti = parseInt(l.notti) || 0; const first = cursor + 1; cursor += notti;
+        return Array.from({ length: Math.max(notti, 1) }, (_, k) => first + k);
+      });
+    }
+    function dataDelGiornoViaggio(tripItem, dayNum) {
+      const [y, m, d] = (tripItem.data_partenza || '').split('-').map(Number); if (!y) return '';
+      const dt = new Date(Date.UTC(y, m - 1, d + dayNum - 1));
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+    }
+    // Data (o intervallo di date) del/i giorno/i di un luogo, da anteporre al nome nell'elenco dei luoghi
+    function dateLuogoHTML(tripItem, giorni) {
+      const gs = [...new Set(giorni || [])].sort((a, b) => a - b);
+      if (!gs.length || !tripItem.data_partenza) return '';
+      const dt = n => formatDate(dataDelGiornoViaggio(tripItem, n));
+      const contigui = gs.every((g, i) => i === 0 || g === gs[i - 1] + 1);
+      const txt = gs.length === 1 ? dt(gs[0]) : (contigui ? `${dt(gs[0])} - ${dt(gs[gs.length - 1])}` : gs.map(dt).join(', '));
+      return `<span style="color: #94a3b8;">${txt}</span> `;
+    }
+
     function getTripTooltipHTML(tripItem) {
       const notti = tripItem._nottiTot !== undefined ? tripItem._nottiTot : calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
       const camping = getCampingTotalFromTrip(tripItem);
@@ -698,7 +724,7 @@
       let extraLuoghi = 0;
       (tripItem.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0); });
       const totale = camping + pedaggi + carburante + extraLuoghi;
-      const luoghiDisp = raggruppaLuoghiPerNome(tripItem.luoghi).map(x => x.l);
+      const gruppiLuoghi = raggruppaLuoghiPerNome(tripItem.luoghi); const luoghiDisp = gruppiLuoghi.map(x => x.l);
 
 	  const ratingsText = (luoghiDisp || []).length > 0
 		? luoghiDisp.map(l => {
@@ -716,7 +742,7 @@
           <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
 		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
 		  <p>---------------------------------------------------------------------------</p>
-          ${(luoghiDisp || []).length > 0 ? `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${luoghiDisp.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
+          ${(luoghiDisp || []).length > 0 ? `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${gruppiLuoghi.map(x => dateLuogoHTML(tripItem, x.giorni) + escapeHtml(x.l.nome_luogo)).join('<BR>- ')}</p>` : ''}
           <p font-size: 12px;>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
 		  <p font-size: 12px;>📝 <strong>Note Luoghi:</strong><BR> - ${luoghiDisp.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
 		  <p>---------------------------------------------------------------------------</p>
@@ -1348,18 +1374,20 @@
 
     // Unisce i luoghi con lo stesso nome (es. luoghi clonati su più giorni) in un solo elemento: [{ count, l }]
     function raggruppaLuoghiPerNome(luoghi) {
-      const gruppi = new Map(); let senzaNome = 0;
-      (luoghi || []).forEach(lu => {
+      const gruppi = new Map(); const giorniGruppi = new Map(); let senzaNome = 0; const gpl = giorniPerLuogo(luoghi);
+      (luoghi || []).forEach((lu, idx) => {
         const nome = (lu.nome_luogo || '').trim().toLowerCase();
         const key = nome ? nome : '__senza_nome_' + (senzaNome++);
         if (!gruppi.has(key)) gruppi.set(key, []);
         gruppi.get(key).push(lu);
+        giorniGruppi.set(key, (giorniGruppi.get(key) || []).concat(gpl[idx]));
       });
       const uniq = (arr) => [...new Set(arr.map(v => (v || '').toString().trim()).filter(Boolean))];
-      return [...gruppi.values()].map(items => {
+      return [...gruppi.entries()].map(([gKey, items]) => {
         const avg = (field) => { const v = items.map(i => parseInt(i[field])).filter(n => !isNaN(n)); return v.length ? Math.round(v.reduce((x, y) => x + y, 0) / v.length) : items[0][field]; };
         return {
           count: items.length,
+          giorni: [...new Set(giorniGruppi.get(gKey))].sort((a, b) => a - b),
           l: Object.assign({}, items[0], {
             tipologia: uniq(items.map(i => i.tipologia)).join(' / ') || items[0].tipologia,
             nome_campeggio: uniq(items.map(i => i.nome_campeggio)).join(', '),

@@ -506,6 +506,32 @@
       document.body.appendChild(fullOverlay);
     }
 
+    // Numeri di giorno (1..N) a cui si riferisce ogni luogo (array allineato a `luoghi`);
+    // viaggi salvati prima del wizard: un luogo con N notti copre N giorni consecutivi
+    function giorniPerLuogo(luoghi) {
+      let cursor = 0;
+      return (luoghi || []).map(l => {
+        const g = parseInt(l.giorno);
+        if (g >= 1) return [g];
+        const notti = parseInt(l.notti) || 0; const first = cursor + 1; cursor += notti;
+        return Array.from({ length: Math.max(notti, 1) }, (_, k) => first + k);
+      });
+    }
+    function dataDelGiornoViaggio(tripItem, dayNum) {
+      const [y, m, d] = (tripItem.data_partenza || '').split('-').map(Number); if (!y) return '';
+      const dt = new Date(Date.UTC(y, m - 1, d + dayNum - 1));
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+    }
+    // Data (o intervallo di date) del/i giorno/i di un luogo, da anteporre al nome nell'elenco dei luoghi
+    function dateLuogoHTML(tripItem, giorni) {
+      const gs = [...new Set(giorni || [])].sort((a, b) => a - b);
+      if (!gs.length || !tripItem.data_partenza) return '';
+      const dt = n => formatDate(dataDelGiornoViaggio(tripItem, n));
+      const contigui = gs.every((g, i) => i === 0 || g === gs[i - 1] + 1);
+      const txt = gs.length === 1 ? dt(gs[0]) : (contigui ? `${dt(gs[0])} - ${dt(gs[gs.length - 1])}` : gs.map(dt).join(', '));
+      return `<span style="color: #94a3b8;">${txt}</span> `;
+    }
+
     function getMapTooltipHTML(tripItem, user, ownerName) {
 		  const isOwner = (user && tripItem.user_id === user.id);
 		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
@@ -522,7 +548,7 @@
 		  if (isOwner) html += `<p font-size: 12px;>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
 		  if (tripItem.note_viaggio || tripItem.note) html += `<p font-size: 12px;>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
 		  html += `<p>---------------------------------------------------------------------------<br></p>`;
-		  if ((tripItem.luoghi || []).length > 0) html += `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`;
+		  if ((tripItem.luoghi || []).length > 0) { const gpl = giorniPerLuogo(tripItem.luoghi); html += `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map((l, i) => (isOwner ? dateLuogoHTML(tripItem, gpl[i]) : '') + escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`; }
 		  if ((tripItem.luoghi || []).length > 0) { const noteLuoghi = tripItem.luoghi.filter(l => l.note_luogo && l.note_luogo.trim() !== '').map(l => `<span>- ${escapeHtml(l.nome_luogo || 'Luogo')}:</span> ${escapeHtml(l.note_luogo)}`); if (noteLuoghi.length > 0) html += `<p font-size: 12px;>📝 <strong>Note Luoghi:</strong><br><span>${noteLuoghi.join('<br>')}</span></p>`; }
 		  html += `<p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p><p>---------------------------------------------------------------------------<br></p>`;
 		  if (isOwner) html += `<p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p><p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p><p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p><p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${pedaggiTipiHTML(tripItem)}</p><p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p><p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>`;
