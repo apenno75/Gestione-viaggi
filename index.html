@@ -336,8 +336,8 @@
         <table>
           <thead>
             <tr>
-              <th>Costo</th>
               <th>Data</th>
+              <th>Costo</th>
               <th>Categoria</th>
               <th>Nome</th>
               <th>Luogo</th>
@@ -564,7 +564,7 @@
       } else {
         allExtra.forEach(c => { 
           const tr = document.createElement('tr'); 
-          tr.innerHTML = `<td><strong>€ ${c.valore.toFixed(2)}</strong></td><td>${c.data ? formatDate(c.data) : '-'}</td><td>${escapeHtml(c.categoria)}</td><td>${escapeHtml(c.nome)}</td><td>${escapeHtml(c.luogo)}</td><td>${escapeHtml(c.note)}</td>`; 
+          tr.innerHTML = `<td>${c.data ? formatDate(c.data) : '-'}</td><td><strong>€ ${c.valore.toFixed(2)}</strong></td><td>${escapeHtml(c.categoria)}</td><td>${escapeHtml(c.nome)}</td><td>${escapeHtml(c.luogo)}</td><td>${escapeHtml(c.note)}</td>`; 
           extraDetailTableBody.appendChild(tr); 
         });
       }
@@ -581,7 +581,7 @@
         extraList.forEach(c => {
           const val = parseFloat(c.valore) || 0;
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td><strong>€ ${val.toFixed(2)}</strong></td><td>${c.data ? formatDate(c.data) : '-'}</td><td>${escapeHtml(c.categoria || '-')}</td><td>${escapeHtml(c.nome || '-')}</td><td>${escapeHtml(c.luogo || luogoObj.nome_luogo || '-')}</td><td>${escapeHtml(c.note || '-')}</td>`;
+          tr.innerHTML = `<td>${c.data ? formatDate(c.data) : '-'}</td><td><strong>€ ${val.toFixed(2)}</strong></td><td>${escapeHtml(c.categoria || '-')}</td><td>${escapeHtml(c.nome || '-')}</td><td>${escapeHtml(c.luogo || luogoObj.nome_luogo || '-')}</td><td>${escapeHtml(c.note || '-')}</td>`;
           extraDetailTableBody.appendChild(tr);
         });
       }

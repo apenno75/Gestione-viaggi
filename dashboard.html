@@ -149,7 +149,7 @@
       </div>
       <div class="table-container" style="margin-top: 15px;">
         <table>
-          <thead><tr><th>Costo (€)</th><th>Data</th><th>Categoria</th><th>Nome</th><th>Luogo</th><th>Note</th></tr></thead>
+          <thead><tr><th>Data</th><th>Costo (€)</th><th>Categoria</th><th>Nome</th><th>Luogo</th><th>Note</th></tr></thead>
           <tbody id="extra-detail-table-body"></tbody>
         </table>
       </div>
@@ -575,7 +575,7 @@
       extraDetailTitle.textContent = `🔎 Dettaglio Costi Extra - ${tripItem.destinazione}`; extraDetailTableBody.innerHTML = '';
       const allExtra = []; (tripItem.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => { allExtra.push({ valore: parseFloat(c.valore) || 0, data: c.data || '', categoria: c.categoria || '-', nome: c.nome || '-', luogo: c.luogo || l.nome_luogo || '-', note: c.note || '-' }); }); });
       if (allExtra.length === 0) extraDetailTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Nessun costo extra inserito.</td></tr>`;
-      else allExtra.forEach(c => { const tr = document.createElement('tr'); tr.innerHTML = `<td><strong>€ ${c.valore.toFixed(2)}</strong></td><td>${c.data ? formatDate(c.data) : '-'}</td><td>${escapeHtml(c.categoria)}</td><td>${escapeHtml(c.nome)}</td><td>${escapeHtml(c.luogo)}</td><td>${escapeHtml(c.note)}</td>`; extraDetailTableBody.appendChild(tr); });
+      else allExtra.forEach(c => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${c.data ? formatDate(c.data) : '-'}</td><td><strong>€ ${c.valore.toFixed(2)}</strong></td><td>${escapeHtml(c.categoria)}</td><td>${escapeHtml(c.nome)}</td><td>${escapeHtml(c.luogo)}</td><td>${escapeHtml(c.note)}</td>`; extraDetailTableBody.appendChild(tr); });
       extraDetailModal.classList.remove('hidden');
     }
 
