@@ -54,6 +54,17 @@
     .calendar-tooltip hr.tt-sep { border: 0; border-top: 1px solid #334155; margin: 8px 0; }
     .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 110px; }
     .stat-card .amount { font-size: 16px; font-weight: bold; color: #0284c7; margin-top: 4px; }
+    #replay-panel { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 1100; background: rgba(15,23,42,.93); color: #f1f5f9; border-radius: 12px; padding: 10px 12px; font-size: 13px; max-height: 52%; overflow-y: auto; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+    #replay-panel .rp-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+    #replay-panel .rp-ctrl { display: flex; gap: 6px; align-items: center; }
+    #replay-panel select { padding: 4px 6px; font-size: 12px; border-radius: 6px; }
+    #replay-panel .rp-day { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    #replay-panel .rp-place { margin: 2px 0; }
+    #replay-panel .rp-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; padding-top: 6px; border-top: 1px solid #334155; }
+    #replay-panel .rp-tot { color: #94a3b8; font-size: 12px; margin-top: 2px; }
+    #replay-panel .rp-bar { height: 4px; background: #334155; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    #replay-panel .rp-bar > div { height: 100%; width: 0; background: #22c55e; transition: width .4s; }
+    .rp-camper { font-size: 30px; line-height: 30px; text-align: center; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
     .map-full-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.95); z-index: 20000; overflow-y: auto; padding: 20px; box-sizing: border-box; display: flex; justify-content: center; align-items: flex-start; }
     .map-full-overlay-content { position: relative; width: 100%; max-width: 600px; margin: 20px auto; background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 20px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .map-full-overlay-close { position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: #b8253b; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; z-index: 2; }
@@ -222,13 +233,28 @@
       <div class="flex-center" style="margin-bottom: 12px;">
         <h2 style="margin:0; font-size: 18px;">🗺️ Mappa dei Luoghi Visitati <span id="map-zoom-level" style="font-size: 14px; font-weight: normal; color: #64748b; margin-left: 6px;">(Zoom: -)</span></h2>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+          <button id="replay-btn" type="button" class="btn-primary btn-sm" disabled title="Seleziona un viaggio dal filtro per riprodurlo">▶ Riproduci viaggio</button>
           <select id="map-trip-filter" disabled style="padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; max-width: 260px;" title="Filtra le bandierine per viaggio">
             <option value="all">Tutti</option>
           </select>
           <button id="close-map-btn" class="btn-secondary btn-sm">Chiudi</button>
         </div>
       </div>
-      <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
+      <div style="position: relative;">
+        <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
+        <div id="replay-panel" class="hidden">
+          <div class="rp-head">
+            <strong id="rp-title"></strong>
+            <span class="rp-ctrl">
+              <button id="rp-pause" type="button" class="btn-secondary btn-sm" title="Pausa / riprendi">⏸</button>
+              <select id="rp-speed" title="Velocità"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select>
+              <button id="rp-stop" type="button" class="btn-secondary btn-sm" title="Chiudi replay">✕</button>
+            </span>
+          </div>
+          <div id="rp-body"></div>
+          <div class="rp-bar"><div id="rp-bar-fill"></div></div>
+        </div>
+      </div>
     </div>
   </div>
   
@@ -751,7 +777,7 @@
 
     // Modal Mappa
     openMapBtn.addEventListener('click', () => { mapModal.classList.remove('hidden'); setTimeout(initAndRenderMap, 200); });
-    closeMapBtn.addEventListener('click', () => mapModal.classList.add('hidden'));
+    closeMapBtn.addEventListener('click', () => { stopReplay(); mapModal.classList.add('hidden'); });
 
     function updateZoomDisplay() {
       const zoomSpan = document.getElementById('map-zoom-level');
@@ -764,6 +790,7 @@
     function applyMapTripFilter() {
       const sel = document.getElementById('map-trip-filter');
       const value = sel ? sel.value : 'all';
+      stopReplay();
       markersGroup.clearLayers();
       mapTripLayers.forEach(t => { if (value === 'all' || t.key === value) t.layers.forEach(l => markersGroup.addLayer(l)); });
       if (markersGroup.getLayers().length > 0) {
@@ -775,6 +802,7 @@
         }
       }
       updateZoomDisplay();
+      updateReplayButton();
     }
     document.getElementById('map-trip-filter').addEventListener('change', applyMapTripFilter);
 
@@ -784,8 +812,244 @@
       mapTripLayers.slice().sort((a, b) => a.label.localeCompare(b.label, 'it')).forEach(t => {
         const opt = document.createElement('option'); opt.value = t.key; opt.textContent = t.label; sel.appendChild(opt);
       });
-      sel.value = 'all'; sel.disabled = false;
+      sel.value = 'all'; sel.disabled = false; updateReplayButton();
     }
+
+    // ===== Routing su strada (OSRM / OpenRouteService) con cache condivisa su Supabase (tabella route_cache) =====
+    const ROUTING_CONFIG = {
+      provider: 'osrm',     // 'osrm' (server demo pubblico, gratuito) oppure 'ors' (OpenRouteService, serve una chiave gratuita)
+      orsApiKey: '',        // chiave di openrouteservice.org, usata solo se provider = 'ors'
+      delayMs: 700,         // pausa tra due richieste di routing non presenti in cache
+      simplifyMeters: 40    // tolleranza di semplificazione della geometria salvata in cache
+    };
+    let geoCoords = {};     // query luogo -> [lat, lon]: è lo stesso oggetto cacheMap usato dalla mappa
+    const routeMem = {};    // chiave tratta -> { coords, km, fallback }
+    const routeInflight = {};
+    let routeQueue = Promise.resolve();
+    let mapRouteToken = 0;
+
+    function routeKey(a, b) { const f = p => p[0].toFixed(4) + ';' + p[1].toFixed(4); return f(a) + '>' + f(b); }
+    function samePoint(a, b) { return Math.abs(a[0] - b[0]) < 1e-4 && Math.abs(a[1] - b[1]) < 1e-4; }
+    function simplifyCoords(coords) {
+      if (coords.length < 3) return coords;
+      const P = L.Projection.SphericalMercator;
+      const pts = coords.map(c => P.project(L.latLng(c[0], c[1])));
+      return L.LineUtil.simplify(pts, ROUTING_CONFIG.simplifyMeters).map(p => { const ll = P.unproject(p); return [Math.round(ll.lat * 1e5) / 1e5, Math.round(ll.lng * 1e5) / 1e5]; });
+    }
+
+    // Una richiesta di routing. Ritorna { coords, km } | { noRoute: true } | null (errore temporaneo: non va in cache)
+    async function fetchRouteRemote(a, b) {
+      try {
+        if (ROUTING_CONFIG.provider === 'ors' && ROUTING_CONFIG.orsApiKey) {
+          const res = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', { method: 'POST', headers: { 'Authorization': ROUTING_CONFIG.orsApiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ coordinates: [[a[1], a[0]], [b[1], b[0]]] }) });
+          if (res.status === 404) return { noRoute: true };
+          if (!res.ok) return null;
+          const j = await res.json(); const f = j.features && j.features[0]; if (!f) return { noRoute: true };
+          return { coords: f.geometry.coordinates.map(c => [c[1], c[0]]), km: f.properties.summary.distance / 1000 };
+        }
+        const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
+        const j = await res.json().catch(() => null);
+        if (j && (j.code === 'NoRoute' || j.code === 'NoSegment')) return { noRoute: true };
+        if (!res.ok || !j || j.code !== 'Ok' || !j.routes || !j.routes[0]) return null;
+        return { coords: j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]), km: j.routes[0].distance / 1000 };
+      } catch (e) { console.warn('Routing non riuscito:', e); return null; }
+    }
+    // Le richieste remote passano in coda una alla volta (come per Nominatim), senza duplicare quelle già in corso
+    function routeFetchOnce(k, a, b) {
+      if (routeInflight[k]) return routeInflight[k];
+      const p = routeQueue.then(async () => { const r = await fetchRouteRemote(a, b); await new Promise(res => setTimeout(res, ROUTING_CONFIG.delayMs)); return r; });
+      routeQueue = p; routeInflight[k] = p; p.then(() => { delete routeInflight[k]; });
+      return p;
+    }
+
+    // Percorsi su strada per ogni coppia di waypoint consecutivi: memoria -> route_cache (Supabase) -> servizio di routing.
+    // Ritorna un array [{ coords, km, fallback }] allineato alle tratte; se il routing fallisce usa la linea retta (fallback).
+    async function getLegRoutes(wps, cancelled, onProgress) {
+      const pairs = []; for (let i = 1; i < wps.length; i++) pairs.push([wps[i - 1], wps[i]]);
+      const keys = [...new Set(pairs.map(p => routeKey(p[0], p[1])))];
+      const missing = keys.filter(k => !routeMem[k]);
+      for (let i = 0; i < missing.length; i += 40) {
+        const { data, error } = await supabaseClient.from('route_cache').select('chiave, coords, km, provider').in('chiave', missing.slice(i, i + 40));
+        if (error) { console.warn('route_cache non leggibile (hai creato la tabella?):', error.message); break; }
+        (data || []).forEach(r => { routeMem[r.chiave] = { coords: r.coords, km: r.km, fallback: r.provider === 'linea-retta' }; });
+      }
+      const toFetch = keys.filter(k => !routeMem[k]); const newRows = []; let done = 0;
+      const prov = (ROUTING_CONFIG.provider === 'ors' && ROUTING_CONFIG.orsApiKey) ? 'ors' : 'osrm';
+      for (const k of toFetch) {
+        if (cancelled && cancelled()) break;
+        const pair = pairs.find(p => routeKey(p[0], p[1]) === k);
+        const r = await routeFetchOnce(k, pair[0], pair[1]);
+        if (r && r.coords) { const coords = simplifyCoords(r.coords); const km = Math.round(r.km * 10) / 10; routeMem[k] = { coords, km }; newRows.push({ chiave: k, provider: prov, km, coords }); }
+        else if (r && r.noRoute) { routeMem[k] = { coords: [pair[0], pair[1]], km: null, fallback: true }; newRows.push({ chiave: k, provider: 'linea-retta', km: null, coords: [pair[0], pair[1]] }); }
+        if (onProgress) onProgress(++done, toFetch.length);
+      }
+      if (newRows.length > 0) {
+        const { error } = await supabaseClient.from('route_cache').upsert(newRows, { onConflict: 'chiave' });
+        if (error) console.warn('Errore salvataggio route_cache:', error.message);
+      }
+      return pairs.map(p => routeMem[routeKey(p[0], p[1])] || { coords: [p[0], p[1]], km: null, fallback: true });
+    }
+
+    // ===== Giorni del viaggio con coordinate (usati sia dalla mappa sia dal replay) =====
+    function tripTotalDays(trip) {
+      const tot = (trip.data_partenza && trip.data_arrivo) ? calculateNights(trip.data_partenza, trip.data_arrivo) + 1 : 0;
+      const maxG = Math.max(0, ...(trip.luoghi || []).map(l => parseInt(l.giorno) || 0));
+      return Math.max(tot, maxG, 1);
+    }
+    function buildTripDays(trip) {
+      const n = tripTotalDays(trip); const days = [];
+      for (let d = 1; d <= n; d++) {
+        const luoghi = getLuoghiDelGiorno(trip, d); const stops = [];
+        luoghi.forEach(l => {
+          const q = l.nome_luogo || l.viaggio_destinazione || trip.destinazione; const c = q && geoCoords[q];
+          if (c) { const p = [Number(c[0]), Number(c[1])]; if (isFinite(p[0]) && isFinite(p[1])) stops.push(p); }
+        });
+        days.push({ day: d, luoghi, stops, dati: getDatiGiorno(trip, d) });
+      }
+      return days;
+    }
+    function tripWaypoints(days) {
+      const w = [];
+      days.forEach(dd => dd.stops.forEach(c => { if (!w.length || !samePoint(w[w.length - 1], c)) w.push(c); }));
+      return w;
+    }
+
+    // Dopo il disegno della mappa (linee rette tratteggiate) sostituisce in background i tracciati con i percorsi su strada
+    async function upgradeMapRoutes(token) {
+      for (const t of mapTripLayers) {
+        if (token !== mapRouteToken) return;
+        if (!t.trip || !t.line) continue;
+        const wps = tripWaypoints(buildTripDays(t.trip)); if (wps.length < 2) continue;
+        const legs = await getLegRoutes(wps, () => token !== mapRouteToken);
+        if (token !== mapRouteToken) return;
+        t.line.setLatLngs(legs.map(l => l.coords));
+        t.line.setStyle({ dashArray: legs.some(l => l.fallback) ? '5, 5' : null, opacity: 0.8 });
+      }
+    }
+
+    // ===== Replay animato del viaggio =====
+    const replay = { active: false, paused: false, speed: 1, token: 0, camper: null, trail: null, entry: null };
+
+    function replayEntry() {
+      const v = document.getElementById('map-trip-filter').value;
+      return v === 'all' ? null : (mapTripLayers.find(t => t.key === v && t.trip) || null);
+    }
+    function updateReplayButton() {
+      const btn = document.getElementById('replay-btn'); if (!btn) return;
+      const ok = !!replayEntry(); btn.disabled = !ok;
+      btn.title = ok ? 'Riproduci il viaggio sulla mappa' : 'Seleziona un viaggio dal filtro per riprodurlo';
+    }
+    function setPauseLabel() { document.getElementById('rp-pause').textContent = replay.paused ? '▶' : '⏸'; }
+
+    // Timer/animazione che rispetta pausa e velocità. Ritorna true a fine corsa, false se il replay è stato interrotto.
+    function rpTween(ms, fn) {
+      const tok = replay.token;
+      return new Promise(res => {
+        let t = 0, last = null;
+        const tick = now => {
+          if (tok !== replay.token) return res(false);
+          if (last === null) last = now;
+          if (!replay.paused) t += (now - last) * replay.speed;
+          last = now;
+          const p = Math.min(1, t / ms); if (fn) fn(p);
+          if (p >= 1) res(true); else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    }
+    function rpMove(path, done) {
+      const cum = [0]; for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + map.distance(path[i - 1], path[i]));
+      const total = cum[cum.length - 1] || 1;
+      const ms = Math.min(6500, Math.max(2200, 1500 + total / 1000 * 5));
+      let idx = 0;
+      return rpTween(ms, p => {
+        const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        const target = e * total;
+        while (idx < cum.length - 2 && cum[idx + 1] < target) idx++;
+        const seg = (cum[idx + 1] - cum[idx]) || 1;
+        const f = Math.min(1, Math.max(0, (target - cum[idx]) / seg));
+        const a = path[idx], b = path[idx + 1] || path[idx];
+        const pos = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+        replay.camper.setLatLng(pos);
+        replay.trail.setLatLngs(done.concat([path.slice(0, idx + 1).concat([pos])]));
+      });
+    }
+    function rpDayHTML(trip, dd, nDays, totKm, totToll) {
+      const date = formatDate(dataDelGiornoViaggio(trip, dd.day));
+      const places = dd.luoghi.length
+        ? dd.luoghi.map(l => `<div class="rp-place">📍 <strong>${escapeHtml(l.nome_luogo || 'Tappa')}</strong> ${renderStars(l.rating_luogo || 3)}${l.nome_campeggio ? `<br>🏕️ ${escapeHtml(l.nome_campeggio)} ${renderStars(l.rating_campeggio || 3)}` : ''}</div>`).join('')
+        : '<div class="rp-place" style="color:#94a3b8;">Nessun luogo inserito per questo giorno</div>';
+      return `<div class="rp-day">Giorno ${dd.day} di ${nDays}${date ? ' · ' + date : ''}</div>${places}<div class="rp-stats"><span>🛣️ <strong>${Math.round(dd.dati.km * 10) / 10}</strong> km</span><span>💶 <strong>€ ${dd.dati.pedaggi.toFixed(2)}</strong> pedaggi</span></div><div class="rp-tot">Finora: ${Math.round(totKm * 10) / 10} km · € ${totToll.toFixed(2)} di pedaggi</div>`;
+    }
+
+    function stopReplay() {
+      replay.token++; replay.active = false; replay.paused = false;
+      if (map && replay.camper) map.removeLayer(replay.camper);
+      if (map && replay.trail) map.removeLayer(replay.trail);
+      replay.camper = null; replay.trail = null;
+      if (replay.entry && replay.entry.line) replay.entry.line.setStyle({ opacity: 0.8 });
+      replay.entry = null;
+      const panel = document.getElementById('replay-panel'); if (panel) panel.classList.add('hidden');
+    }
+
+    async function startReplay() {
+      const entry = replayEntry(); if (!entry) return;
+      stopReplay();
+      const tok = ++replay.token; replay.active = true; replay.entry = entry;
+      const trip = entry.trip; const color = entry.color || '#dc2626';
+      const body = document.getElementById('rp-body'); const fill = document.getElementById('rp-bar-fill');
+      document.getElementById('replay-panel').classList.remove('hidden');
+      document.getElementById('rp-title').textContent = '🚐 ' + (trip.destinazione || 'Viaggio');
+      fill.style.width = '0%'; setPauseLabel();
+
+      const days = buildTripDays(trip); const wps = tripWaypoints(days);
+      if (wps.length < 1) { body.innerHTML = '<p>Nessun luogo geolocalizzato in questo viaggio: impossibile riprodurlo.</p>'; replay.active = false; return; }
+      body.innerHTML = '<p>⏳ Preparo il percorso su strada…</p>';
+      const legs = wps.length > 1 ? await getLegRoutes(wps, () => tok !== replay.token, (d, n) => { if (tok === replay.token) body.innerHTML = `<p>⏳ Calcolo il percorso su strada… ${d}/${n} tratte</p>`; }) : [];
+      if (tok !== replay.token) return;
+
+      replay.camper = L.marker(wps[0], { icon: L.divIcon({ className: '', html: '<div class="rp-camper">🚐</div>', iconSize: [32, 32], iconAnchor: [16, 16] }), interactive: false, zIndexOffset: 2000 }).addTo(map);
+      replay.trail = L.polyline([], { color, weight: 5, opacity: 0.95 }).addTo(map);
+      if (entry.line) entry.line.setStyle({ opacity: 0.25 });
+
+      const done = []; let cur = wps[0]; let wpIdx = 0; let totKm = 0, totToll = 0; const placeSet = new Set();
+      map.flyTo(wps[0], 9, { duration: 1.2 });
+      if (!(await rpTween(1400))) return;
+
+      for (let i = 0; i < days.length; i++) {
+        const dd = days[i];
+        totKm += dd.dati.km; totToll += dd.dati.pedaggi;
+        dd.luoghi.forEach(l => { const n = (l.nome_luogo || '').trim().toLowerCase(); if (n) placeSet.add(n); });
+        body.innerHTML = rpDayHTML(trip, dd, days.length, totKm, totToll);
+        fill.style.width = (i / days.length * 100) + '%';
+
+        const dayLegs = [];
+        dd.stops.forEach(c => { if (!samePoint(c, wps[wpIdx])) { wpIdx++; dayLegs.push(legs[wpIdx - 1]); } });
+        if (dayLegs.length === 0) {
+          map.flyTo(cur, Math.max(map.getZoom(), 9), { duration: 1 });
+          if (!(await rpTween(2600))) return;
+        } else {
+          for (const leg of dayLegs) {
+            map.flyToBounds(L.latLngBounds(leg.coords).pad(0.35), { duration: 1.2, maxZoom: 10 });
+            if (!(await rpTween(1300))) return;
+            if (!(await rpMove(leg.coords, done))) return;
+            done.push(leg.coords); cur = leg.coords[leg.coords.length - 1];
+          }
+          if (!(await rpTween(1800))) return;
+        }
+      }
+
+      fill.style.width = '100%';
+      body.innerHTML = `<div class="rp-day">🏁 Viaggio concluso</div><div class="rp-place">${days.length} giorni · ${placeSet.size} luoghi</div><div class="rp-stats"><span>🛣️ <strong>${Math.round(totKm * 10) / 10}</strong> km</span><span>💶 <strong>€ ${totToll.toFixed(2)}</strong> pedaggi</span><button id="rp-again" type="button" class="btn-secondary btn-sm">↻ Rivedi</button></div>`;
+      document.getElementById('rp-again').addEventListener('click', startReplay);
+      if (done.length) map.flyToBounds(L.latLngBounds(done.flat()).pad(0.2), { duration: 1.5, maxZoom: 9 });
+      replay.active = false;
+    }
+
+    document.getElementById('replay-btn').addEventListener('click', startReplay);
+    document.getElementById('rp-stop').addEventListener('click', stopReplay);
+    document.getElementById('rp-pause').addEventListener('click', () => { replay.paused = !replay.paused; setPauseLabel(); });
+    document.getElementById('rp-speed').addEventListener('change', e => { replay.speed = Number(e.target.value) || 1; });
 
     async function initAndRenderMap() {
       if (!map) { 
@@ -794,6 +1058,7 @@
         map.on('zoomend', updateZoomDisplay);
       }
       updateZoomDisplay();
+      stopReplay(); const routeToken = ++mapRouteToken; updateReplayButton();
       if (markersGroup) markersGroup.clearLayers(); else markersGroup = L.featureGroup().addTo(map);
       mapTripLayers = [];
       const tripFilterSel = document.getElementById('map-trip-filter');
@@ -816,7 +1081,7 @@
         }));
 
         // Carica dalla cache condivisa (tabella geocode_cache) tutte le coordinate già note
-        const cacheMap = {};
+        const cacheMap = geoCoords;
         if (allQueries.size > 0) {
           const { data: cachedRows } = await supabaseClient.from('geocode_cache').select('query, lat, lon').in('query', Array.from(allQueries));
           (cachedRows || []).forEach(r => { cacheMap[r.query] = [r.lat, r.lon]; });
@@ -827,7 +1092,7 @@
           const tripLayers = [];
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
           const ownerColor = userColorMap[trip.user_id] || '#dc2626';
-          const luoghi = trip.luoghi || []; const latLngsForTrip = [];
+          const luoghi = trip.luoghi || []; const latLngsForTrip = []; let tripLine = null;
           // Una sola bandierina per luogo: i luoghi con lo stesso nome nel viaggio (più giorni) vengono uniti.
           // Luogo su più giorni -> bandierina con il numero di notti (piccolo); luogo univoco -> numero del giorno del viaggio.
           const gruppiMappa = []; const gruppiByKey = new Map(); let cursorGiorni = 0;
@@ -877,8 +1142,8 @@
               tripLayers.push(marker); markersGroup.addLayer(marker);
             }
           }
-          if (latLngsForTrip.length > 1) { const line = L.polyline(latLngsForTrip, { color: '#dc2626', weight: 3, opacity: 0.8, dashArray: '5, 5' }); tripLayers.push(line); markersGroup.addLayer(line); }
-          if (tripLayers.length > 0) mapTripLayers.push({ key: String(trip.id ?? ('idx' + mapTripLayers.length)), label: `${trip.destinazione || 'Viaggio senza nome'} (${ownerName})`, layers: tripLayers });
+          if (latLngsForTrip.length > 1) { tripLine = L.polyline(latLngsForTrip, { color: '#dc2626', weight: 3, opacity: 0.8, dashArray: '5, 5' }); tripLayers.push(tripLine); markersGroup.addLayer(tripLine); }
+          if (tripLayers.length > 0) mapTripLayers.push({ key: String(trip.id ?? ('idx' + mapTripLayers.length)), label: `${trip.destinazione || 'Viaggio senza nome'} (${ownerName})`, layers: tripLayers, trip, color: ownerColor, line: tripLine });
         }
         // Salva nella cache condivisa le coordinate appena geocodificate: la prossima apertura della mappa,
         // da qualunque utente, non richiamerà più Nominatim per queste query
@@ -896,6 +1161,7 @@
         }
       } catch (err) { console.error("Errore nel caricamento della mappa:", err); }
       updateZoomDisplay();
+      upgradeMapRoutes(routeToken); // in background: sostituisce le linee rette con i percorsi su strada
     }
   </script>
 <div style="width: 100%; text-align: center; padding: 10px; box-sizing: border-box;">
