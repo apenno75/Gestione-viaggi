@@ -929,13 +929,21 @@
       applyNottiToLuoghi();
     }
 
-    // La notte di ogni giorno viene assegnata all'ultimo luogo del giorno (dove si pernotta); gli altri luoghi hanno 0 notti
+    // La notte di ogni giorno viene assegnata al luogo con costo (€/notte) > 0; gli altri luoghi hanno 0 notti.
+    // Se nel giorno più luoghi hanno costo > 0 vince l'ultimo di essi; se nessuno ha costo > 0 (pernottamento gratuito)
+    // la notte resta sull'ultimo luogo del giorno, senza effetti sui costi.
     function applyNottiToLuoghi() {
       if (tempLuoghi.some(l => !(parseInt(l.giorno) >= 1))) return;
       const totN = calculateNights(dataPartenzaInput.value, dataArrivoInput.value);
-      const lastIdx = {};
-      tempLuoghi.forEach((l, i) => { lastIdx[l.giorno] = i; });
-      tempLuoghi.forEach((l, i) => { l.notti = (l.giorno <= totN && lastIdx[l.giorno] === i) ? 1 : 0; });
+      const nightIdx = {}; const lastIdx = {};
+      tempLuoghi.forEach((l, i) => {
+        lastIdx[l.giorno] = i;
+        if ((parseFloat(l.costo_giornaliero) || 0) > 0) nightIdx[l.giorno] = i;
+      });
+      tempLuoghi.forEach((l, i) => {
+        const target = nightIdx[l.giorno] !== undefined ? nightIdx[l.giorno] : lastIdx[l.giorno];
+        l.notti = (l.giorno <= totN && target === i) ? 1 : 0;
+      });
     }
 
     const TIPI_PEDAGGIO = ['Autostrada', 'Traghetto', 'Traforo', 'Tangenziale', 'Altro'];
@@ -1025,7 +1033,7 @@
             <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div style="display: flex; gap: 6px;"><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00" style="flex: 1; min-width: 0;"><select class="day-pedaggi-tipo" data-day="${d}" style="flex: 1; min-width: 0;${(tempGiorni[d] && tempGiorni[d].pedaggi > 0) ? '' : ' display: none;'}">${tipoPedaggioOptionsHTML(tempGiorni[d] ? tempGiorni[d].tipo_pedaggio : 'Autostrada', !!(tempGiorni[d] && tempGiorni[d].pedaggi && !tempGiorni[d].tipo_pedaggio))}</select></div></div>
           </div>
           <div class="flex-center" style="margin-bottom: 10px;">
-            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato all'ultimo luogo del giorno" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
+            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato al luogo con costo €/notte maggiore di 0" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
             <button type="button" class="btn-purple btn-sm add-luogo-day-btn" data-day="${d}">+ Aggiungi Luogo</button>
           </div>
           <div class="day-luoghi"></div>
@@ -1098,7 +1106,7 @@
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Luogo</label><select class="luogo-rating-luogo-input"><option value="5" ${l.rating_luogo == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_luogo == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_luogo == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_luogo == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_luogo == 1 ? 'selected' : ''}>⭐</option></select></div>
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Sosta</label><select class="luogo-rating-campeggio-input"><option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_campeggio == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐</option></select></div>
           </div>
-          <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">Totale Camping Luogo: € <span class="luogo-subtotale">${subtotalCampingLuogo}</span></div>
+          <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">Totale pernottamento Luogo: € <span class="luogo-subtotale">${subtotalCampingLuogo}</span></div>
           <div style="margin-top: 10px;"><label style="font-size: 12px;">Note del Luogo</label><textarea class="luogo-note-input" rows="2" placeholder="Note del luogo e/o campeggio...">${escapeHtml(l.note_luogo)}</textarea></div>
           <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
           <div class="table-container">
@@ -1439,6 +1447,7 @@
         const usersMap = {}; (settingsData || []).forEach(s => { if (s.user_id && s.nome_utente) usersMap[s.user_id] = s.nome_utente; });
         const { data: trips } = await supabaseClient.from('viaggi').select('*').order('data_partenza', { ascending: false });
         allLuoghiTableBody.innerHTML = '';
+        const righe = [];
         (trips || []).forEach(trip => {
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
           // Un solo luogo per ogni nome all'interno dello stesso viaggio (i luoghi clonati su più giorni vengono uniti)
@@ -1447,9 +1456,12 @@
             const tr = document.createElement('tr'); tr.style.fontSize = "13px";
             tr.innerHTML = `<td><strong class="clickable-luogo-nome" style="color: #0284c7; cursor: pointer; text-decoration: underline;">${escapeHtml(l.nome_luogo || 'N/D')}</strong>${count > 1 ? ` <small style="color: #64748b;">(${count} giorni)</small>` : ''}</td><td><span style="color: #475569;">${escapeHtml(trip.destinazione)}</span></td><td>${escapeHtml(trip.note_viaggio || trip.note || '-')}</td><td style="color: #8b5cf6;">${escapeHtml(ownerName)}</td><td>${escapeHtml(l.tipologia || 'camping')}</td><td>${escapeHtml(l.nome_campeggio || '-')}</td><td>${escapeHtml(l.note_luogo || '-')}</td><td>${renderStars(l.rating_luogo)}</td><td>${renderStars(l.rating_campeggio)}</td><td>${formatDate(trip.data_partenza)}</td>`;
             tr.querySelector('.clickable-luogo-nome').addEventListener('click', () => openSingleLuogoExtraModal(l, trip.destinazione, trip));
-            allLuoghiTableBody.appendChild(tr);
+            righe.push({ nome: (l.nome_luogo || '').trim(), tr });
           });
         });
+        // Ordine alfabetico per Nome Luogo (senza distinguere maiuscole/accenti); i luoghi senza nome vanno in fondo
+        righe.sort((a, b) => (!a.nome - !b.nome) || a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base', numeric: true }));
+        righe.forEach(r => allLuoghiTableBody.appendChild(r.tr));
       } catch (err) { allLuoghiTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#dc2626;">Errore caricamento.</td></tr>'; }
     }
   </script>
