@@ -192,9 +192,17 @@
               <label for="data_partenza">Data Partenza</label>
               <input type="date" id="data_partenza" required>
             </div>
+            <div style="flex: 1.2;">
+              <label for="luogo_partenza">Luogo di Partenza</label>
+              <input type="text" id="luogo_partenza" placeholder="Es. Torino (casa)">
+            </div>
             <div style="flex: 1;">
               <label for="data_arrivo">Data Ritorno</label>
               <input type="date" id="data_arrivo" required>
+            </div>
+            <div style="flex: 1.2;">
+              <label for="luogo_arrivo">Luogo di Arrivo</label>
+              <input type="text" id="luogo_arrivo" placeholder="Es. Torino (casa)">
             </div>
             <div style="flex: 0.8;">
               <label for="totale_notti_viaggio">Tot. Notti Viaggio</label>
@@ -423,6 +431,8 @@
     const destinazioneInput = document.getElementById('destinazione');
     const dataPartenzaInput = document.getElementById('data_partenza');
     const dataArrivoInput = document.getElementById('data_arrivo');
+    const luogoPartenzaInput = document.getElementById('luogo_partenza');
+    const luogoArrivoInput = document.getElementById('luogo_arrivo');
     const totaleNottiViaggioInput = document.getElementById('totale_notti_viaggio');
     const totaleCampeggioInput = document.getElementById('totale_campeggio');
     const chilometriInput = document.getElementById('chilometri');
@@ -968,22 +978,41 @@
       applyNottiToLuoghi();
     }
 
-    // La notte di ogni giorno viene assegnata al luogo con costo (€/notte) > 0; gli altri luoghi hanno 0 notti.
-    // Se nel giorno più luoghi hanno costo > 0 vince l'ultimo di essi; se nessuno ha costo > 0 (pernottamento gratuito)
-    // la notte resta sull'ultimo luogo del giorno, senza effetti sui costi.
+    // Assegnazione della notte di ogni giorno (solo per i giorni prima dell'ultimo).
+    // - Giorno con un solo luogo: la notte è di quel luogo.
+    // - Giorno con più luoghi: vince il luogo con la spunta "Pernottato" (pernottato_scelta === true).
+    //   Se nessuno è spuntato, valgono i luoghi non esclusi (pernottato_scelta !== false): tra questi la notte va
+    //   all'ultimo con costo €/notte > 0, altrimenti all'ultimo (pernottamento gratuito, nessun effetto sui costi).
+    // l.pernottato è il valore effettivo (true/false) mostrato dalla spunta e usato da mappa/replay.
     function applyNottiToLuoghi() {
       if (tempLuoghi.some(l => !(parseInt(l.giorno) >= 1))) return;
       const totN = calculateNights(dataPartenzaInput.value, dataArrivoInput.value);
-      const nightIdx = {}; const lastIdx = {};
-      tempLuoghi.forEach((l, i) => {
-        lastIdx[l.giorno] = i;
-        if ((parseFloat(l.costo_giornaliero) || 0) > 0) nightIdx[l.giorno] = i;
+      const perGiorno = {};
+      tempLuoghi.forEach((l, i) => { (perGiorno[l.giorno] = perGiorno[l.giorno] || []).push(i); });
+      const target = {};
+      const pickCosto = (list) => { let t = -1; list.forEach(i => { if ((parseFloat(tempLuoghi[i].costo_giornaliero) || 0) > 0) t = i; }); return t >= 0 ? t : list[list.length - 1]; };
+      Object.keys(perGiorno).forEach(g => {
+        const idxs = perGiorno[g];
+        if (idxs.length === 1) { target[g] = idxs[0]; return; }
+        const scelti = idxs.filter(i => tempLuoghi[i].pernottato_scelta === true);
+        if (scelti.length) { target[g] = scelti[scelti.length - 1]; return; }
+        const cand = idxs.filter(i => tempLuoghi[i].pernottato_scelta !== false);
+        target[g] = pickCosto(cand.length ? cand : idxs);
       });
       tempLuoghi.forEach((l, i) => {
-        const target = nightIdx[l.giorno] !== undefined ? nightIdx[l.giorno] : lastIdx[l.giorno];
-        l.notti = (l.giorno <= totN && target === i) ? 1 : 0;
+        l.notti = (l.giorno <= totN && target[l.giorno] === i) ? 1 : 0;
+        l.pernottato = l.notti === 1;
       });
     }
+
+    // Spunta "Pernottato" su un luogo: in quel giorno diventa l'unico con la notte (gli altri passano a "No")
+    window.onPernottatoChange = function(lIdx, checked) {
+      syncLuoghiDataFromDOM();
+      const l = tempLuoghi[lIdx]; if (!l) return;
+      if (checked) tempLuoghi.forEach((o, i) => { if (parseInt(o.giorno) === parseInt(l.giorno)) o.pernottato_scelta = (i === lIdx); });
+      else l.pernottato_scelta = false;
+      applyNottiToLuoghi(); renderLuoghi(); updateFormCalculations();
+    };
 
     const TIPI_PEDAGGIO = ['Autostrada', 'Traghetto', 'Traforo', 'Tangenziale', 'Altro'];
     function tipoPedaggioOptionsHTML(sel, allowBlank) {
@@ -1094,10 +1123,15 @@
       if (ans === null) return;
       const n = parseInt(ans);
       if (isNaN(n) || n < 1 || n > max) { alert(`Inserisci un numero intero da 1 a ${max}.`); return; }
+      // "Pernottato" viene copiato: se il giorno di origine ha più luoghi vale ciò che si vede (Sì/No), altrimenti la scelta esplicita (se c'è).
+      // Se nel giorno di destinazione c'è già un luogo con "Pernottato = Sì", il clone non gli toglie la notte.
+      const srcMulti = tempLuoghi.filter(x => parseInt(x.giorno) === parseInt(src.giorno)).length > 1;
+      const srcPern = srcMulti ? !!src.pernottato : src.pernottato_scelta;
       for (let k = 1; k <= n; k++) {
-        tempLuoghi.push({ id: Date.now() + k, giorno: src.giorno + k, nome_luogo: src.nome_luogo, tipologia: src.tipologia, nome_campeggio: src.nome_campeggio, costo_giornaliero: src.costo_giornaliero, notti: 0, rating_luogo: src.rating_luogo, rating_campeggio: src.rating_campeggio, costi_extra: [], note_luogo: '' });
+        const destHaSi = tempLuoghi.some(x => parseInt(x.giorno) === src.giorno + k && x.pernottato_scelta === true);
+        tempLuoghi.push({ id: Date.now() + k, giorno: src.giorno + k, nome_luogo: src.nome_luogo, tipologia: src.tipologia, nome_campeggio: src.nome_campeggio, costo_giornaliero: src.costo_giornaliero, notti: 0, pernottato_scelta: (destHaSi && srcPern === true) ? false : srcPern, rating_luogo: src.rating_luogo, rating_campeggio: src.rating_campeggio, costi_extra: [], note_luogo: '' });
       }
-      renderLuoghi(); updateFormCalculations();
+      applyNottiToLuoghi(); renderLuoghi(); updateFormCalculations();
     };
 
     function renderLuoghi() {
@@ -1108,6 +1142,8 @@
 
       const nDays = getNumeroGiorni();
       assignGiorniLuoghi(nDays);
+      applyNottiToLuoghi();
+      const luoghiPerGiorno = {}; tempLuoghi.forEach(l => { luoghiPerGiorno[l.giorno] = (luoghiPerGiorno[l.giorno] || 0) + 1; });
       const dayLuoghiContainers = [];
       for (let d = 1; d <= nDays; d++) {
         const dayDate = getDayDateStr(d);
@@ -1120,7 +1156,7 @@
             <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div class="day-tolls-list" data-day="${d}"></div><button type="button" class="btn-info btn-sm add-toll-day-btn" data-day="${d}">+ Aggiungi Pedaggio</button></div>
           </div>
           <div class="flex-center" style="margin-bottom: 10px;">
-            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato al luogo con costo €/notte maggiore di 0" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
+            <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? ((luoghiPerGiorno[d] || 0) > 1 ? "🌙 Più luoghi nel giorno: spunta «Pernottato» sul luogo dove si dorme" : "🌙 Il pernottamento è assegnato a questo luogo") : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
             <button type="button" class="btn-purple btn-sm add-luogo-day-btn" data-day="${d}">+ Aggiungi Luogo</button>
           </div>
           <div class="day-luoghi"></div>
@@ -1194,6 +1230,7 @@
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Luogo</label><select class="luogo-rating-luogo-input"><option value="5" ${l.rating_luogo == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_luogo == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_luogo == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_luogo == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_luogo == 1 ? 'selected' : ''}>⭐</option></select></div>
             <div style="flex: 1;"><label style="font-size: 12px;">Rating Sosta</label><select class="luogo-rating-campeggio-input"><option value="5" ${l.rating_campeggio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option><option value="4" ${l.rating_campeggio == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option><option value="3" ${l.rating_campeggio == 3 ? 'selected' : ''}>⭐⭐⭐</option><option value="2" ${l.rating_campeggio == 2 ? 'selected' : ''}>⭐⭐</option><option value="1" ${l.rating_campeggio == 1 ? 'selected' : ''}>⭐</option></select></div>
           </div>
+          ${(l.giorno < nDays && (luoghiPerGiorno[l.giorno] || 0) > 1) ? `<div style="margin-bottom: 8px;"><label style="display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 700; color: #0f172a; cursor: pointer;"><input type="checkbox" class="luogo-pernottato-input" style="width: auto; min-height: 0; margin: 0;" ${l.pernottato ? 'checked' : ''} onchange="onPernottatoChange(${lIdx}, this.checked)"> 🌙 Pernottato: <span class="pernottato-label" style="color: #0284c7;">${l.pernottato ? 'Sì' : 'No'}</span></label></div>` : ''}
           <div style="font-size: 12px; text-align: right; color: #16a34a; font-weight: bold; margin-bottom: 8px;">Totale pernottamento Luogo: € <span class="luogo-subtotale">${subtotalCampingLuogo}</span></div>
           <div style="margin-top: 10px;"><label style="font-size: 12px;">Note del Luogo</label><textarea class="luogo-note-input" rows="2" placeholder="Note del luogo e/o campeggio...">${escapeHtml(l.note_luogo)}</textarea></div>
           <label style="font-size: 12px; color: #0284c7; font-weight: bold; margin-top: 8px; display: block;">💰 Tabella Costi Extra del Luogo</label>
@@ -1243,6 +1280,8 @@
       luoghiListContainer.querySelectorAll('.luogo-card').forEach(card => {
         const lo = tempLuoghi[parseInt(card.dataset.lidx)]; const sp = card.querySelector('.luogo-subtotale');
         if (lo && sp) sp.textContent = ((parseFloat(lo.costo_giornaliero) || 0) * (parseInt(lo.notti) || 0)).toFixed(2);
+        const cbP = card.querySelector('.luogo-pernottato-input');
+        if (lo && cbP) { cbP.checked = !!lo.pernottato; const lbP = card.querySelector('.pernottato-label'); if (lbP) lbP.textContent = lo.pernottato ? 'Sì' : 'No'; }
       });
       let totCamping = 0; let extraLuoghi = 0;
       tempLuoghi.forEach(l => {
@@ -1356,6 +1395,7 @@
 
       const payloadViaggio = {
         destinazione: destinazioneInput.value, data_partenza: dataPartenzaInput.value, data_arrivo: dataArrivoInput.value,
+        luogo_partenza: luogoPartenzaInput.value.trim(), luogo_arrivo: luogoArrivoInput.value.trim(),
         costo_campeggio_notte: 0, chilometri: newKm, costo_pedaggi: parseFloat(costoPedaggiInput.value) || 0,
         costo_carburante: tempRefuelings.reduce((sum, r) => sum + parseFloat(r.costo_sostenuto || 0), 0),
         note: noteViaggioInput.value, foto_copertina: fotoCopertinaBase64.value || null, luoghi: tempLuoghi,
@@ -1409,7 +1449,7 @@
 
     window.prepareEdit = function(id) {
       const item = viaggiList.find(v => v.id === id); if (!item) return;
-      viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
+      viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; luogoPartenzaInput.value = item.luogo_partenza || ''; luogoArrivoInput.value = item.luogo_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
       if (item.foto_copertina) { fotoCopertinaBase64.value = item.foto_copertina; fotoPreview.src = item.foto_copertina; previewContainer.classList.remove('hidden'); } else { fotoCopertinaBase64.value = ''; fotoPreview.src = ''; previewContainer.classList.add('hidden'); }
       expandedDays.clear(); luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; const tl = getTollsGiorno(v); tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: sommaPedaggi(tl), tolls: tl }; }); });
       renderLuoghi(); renderRefuelTable(); updateFormCalculations();

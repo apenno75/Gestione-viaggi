@@ -896,6 +896,10 @@
       const maxG = Math.max(0, ...(trip.luoghi || []).map(l => parseInt(l.giorno) || 0));
       return Math.max(tot, maxG, 1);
     }
+    function tripEndpoint(q) {
+      const c = q && geoCoords[q]; if (!c) return null;
+      const p = [Number(c[0]), Number(c[1])]; return (isFinite(p[0]) && isFinite(p[1])) ? p : null;
+    }
     function buildTripDays(trip) {
       const n = tripTotalDays(trip); const days = [];
       for (let d = 1; d <= n; d++) {
@@ -906,6 +910,10 @@
         });
         days.push({ day: d, luoghi, stops, dati: getDatiGiorno(trip, d) });
       }
+      // Luogo di partenza = punto di partenza del giorno 1; luogo di arrivo = arrivo dell'ultimo giorno
+      const ptPart = tripEndpoint(trip.luogo_partenza), ptArr = tripEndpoint(trip.luogo_arrivo);
+      if (ptPart && days.length) days[0].stops.unshift(ptPart);
+      if (ptArr && days.length) days[days.length - 1].stops.push(ptArr);
       return days;
     }
     function tripWaypoints(days) {
@@ -977,9 +985,11 @@
     function rpDayHTML(trip, dd, nDays, totKm, totToll) {
       const date = formatDate(dataDelGiornoViaggio(trip, dd.day));
       const places = dd.luoghi.length
-        ? dd.luoghi.map(l => `<div class="rp-place">📍 <strong>${escapeHtml(l.nome_luogo || 'Tappa')}</strong> ${renderStars(l.rating_luogo || 3)}${l.nome_campeggio ? `<br>🏕️ ${escapeHtml(l.nome_campeggio)} ${renderStars(l.rating_campeggio || 3)}` : ''}</div>`).join('')
+        ? dd.luoghi.map(l => `<div class="rp-place">📍 <strong>${escapeHtml(l.nome_luogo || 'Tappa')}</strong> ${renderStars(l.rating_luogo || 3)}${(dd.luoghi.length > 1 && parseInt(l.notti) === 1) ? ' 🌙' : ''}${l.nome_campeggio ? `<br>🏕️ ${escapeHtml(l.nome_campeggio)} ${renderStars(l.rating_campeggio || 3)}` : ''}</div>`).join('')
         : '<div class="rp-place" style="color:#94a3b8;">Nessun luogo inserito per questo giorno</div>';
-      return `<div class="rp-day">Giorno ${dd.day} di ${nDays}${date ? ' · ' + date : ''}</div>${places}<div class="rp-stats"><span>🛣️ <strong>${Math.round(dd.dati.km * 10) / 10}</strong> km</span><span>💶 <strong>€ ${dd.dati.pedaggi.toFixed(2)}</strong> pedaggi</span></div><div class="rp-tot">Finora: ${Math.round(totKm * 10) / 10} km · € ${totToll.toFixed(2)} di pedaggi</div>`;
+      const partHtml = (dd.day === 1 && trip.luogo_partenza) ? `<div class="rp-place">🏠 Partenza da <strong>${escapeHtml(trip.luogo_partenza)}</strong></div>` : '';
+      const arrHtml = (dd.day === nDays && trip.luogo_arrivo) ? `<div class="rp-place">🏁 Arrivo a <strong>${escapeHtml(trip.luogo_arrivo)}</strong></div>` : '';
+      return `<div class="rp-day">Giorno ${dd.day} di ${nDays}${date ? ' · ' + date : ''}</div>${partHtml}${places}${arrHtml}<div class="rp-stats"><span>🛣️ <strong>${Math.round(dd.dati.km * 10) / 10}</strong> km</span><span>💶 <strong>€ ${dd.dati.pedaggi.toFixed(2)}</strong> pedaggi</span></div><div class="rp-tot">Finora: ${Math.round(totKm * 10) / 10} km · € ${totToll.toFixed(2)} di pedaggi</div>`;
     }
 
     function stopReplay() {
@@ -1079,6 +1089,7 @@
         trips.forEach(trip => (trip.luoghi || []).forEach(luogo => {
           const q = luogo.nome_luogo || luogo.viaggio_destinazione || trip.destinazione; if (q) allQueries.add(q);
         }));
+        trips.forEach(trip => { if (trip.luogo_partenza) allQueries.add(trip.luogo_partenza); if (trip.luogo_arrivo) allQueries.add(trip.luogo_arrivo); });
 
         // Carica dalla cache condivisa (tabella geocode_cache) tutte le coordinate già note
         const cacheMap = geoCoords;
@@ -1087,6 +1098,18 @@
           (cachedRows || []).forEach(r => { cacheMap[r.query] = [r.lat, r.lon]; });
         }
         const newCacheRows = [];
+        // Geocodifica (con cache condivisa) di partenza/arrivo del viaggio
+        const geocodeExtra = async (q) => {
+          if (!q) return null; if (cacheMap[q]) return cacheMap[q];
+          try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+            const results = await response.json();
+            if (results && results.length > 0) { const ll = [parseFloat(results[0].lat), parseFloat(results[0].lon)]; cacheMap[q] = ll; newCacheRows.push({ query: q, lat: ll[0], lon: ll[1] }); }
+          } catch (geoErr) { console.error(`Errore geocodifica di "${q}":`, geoErr); }
+          await new Promise(r => setTimeout(r, 1100));
+          return cacheMap[q] || null;
+        };
+        const endpointIcon = (emoji) => L.divIcon({ className: '', html: `<div style="font-size: 22px; line-height: 24px; text-shadow: 0 0 3px #fff, 0 0 3px #fff;">${emoji}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] });
 
         for (const trip of trips) {
           const tripLayers = [];
@@ -1106,6 +1129,9 @@
             g.notti += notti; g.primoGiorno = Math.min(g.primoGiorno, giorno);
             for (let k = 0; k < giorniCoperti; k++) g.giorni.add(giorno + k);
           });
+          // Partenza (inizio giorno 1) e arrivo (fine ultimo giorno) del viaggio
+          const ptPart = await geocodeExtra(trip.luogo_partenza); const ptArr = await geocodeExtra(trip.luogo_arrivo);
+          if (ptPart) latLngsForTrip.push(ptPart);
           for (const g of gruppiMappa) {
             const luogo = g.luogo; const query = luogo.nome_luogo || luogo.viaggio_destinazione || trip.destinazione;
             const multiGiorno = g.giorni.size > 1;
@@ -1142,6 +1168,10 @@
               tripLayers.push(marker); markersGroup.addLayer(marker);
             }
           }
+          if (ptArr) latLngsForTrip.push(ptArr);
+          const stessoPunto = ptPart && ptArr && Math.abs(ptPart[0] - ptArr[0]) < 1e-4 && Math.abs(ptPart[1] - ptArr[1]) < 1e-4;
+          if (ptPart) { const mk = L.marker(ptPart, { icon: endpointIcon('🏠'), title: stessoPunto ? `Partenza e arrivo: ${trip.luogo_partenza}` : `Partenza: ${trip.luogo_partenza}`, zIndexOffset: 500 }); tripLayers.push(mk); markersGroup.addLayer(mk); }
+          if (ptArr && !stessoPunto) { const mk = L.marker(ptArr, { icon: endpointIcon('🏁'), title: `Arrivo: ${trip.luogo_arrivo}`, zIndexOffset: 500 }); tripLayers.push(mk); markersGroup.addLayer(mk); }
           if (latLngsForTrip.length > 1) { tripLine = L.polyline(latLngsForTrip, { color: '#dc2626', weight: 3, opacity: 0.8, dashArray: '5, 5' }); tripLayers.push(tripLine); markersGroup.addLayer(tripLine); }
           if (tripLayers.length > 0) mapTripLayers.push({ key: String(trip.id ?? ('idx' + mapTripLayers.length)), label: `${trip.destinazione || 'Viaggio senza nome'} (${ownerName})`, layers: tripLayers, trip, color: ownerColor, line: tripLine });
         }
