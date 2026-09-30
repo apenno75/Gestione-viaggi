@@ -725,10 +725,10 @@
 
     // Luoghi, Valutazioni e Note Luoghi in una tabella a 3 colonne (una riga per luogo aggregato)
     function luoghiTabellaHTML(tripItem, gruppiLuoghi, mostraDate) {
-      if (!gruppiLuoghi.length) return `<p>⭐ <strong>Valutazioni:</strong><br>Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}</p>`;
+      if (!gruppiLuoghi.length) return `<p>⭐ <strong>Valutazioni:</strong><br>📍 ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}</p>`;
       const righe = gruppiLuoghi.map(x => {
         const l = x.l; const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
-        return `<tr><td>${mostraDate ? dateLuogoHTML(tripItem, x.giorni) : ''}${escapeHtml(l.nome_luogo || 'Tappa')}</td><td>${renderStars(l.rating_luogo || 3)}<br>🏕️${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</td><td>${escapeHtml(l.note_luogo)}</td></tr>`;
+        return `<tr><td>${mostraDate ? dateLuogoHTML(tripItem, x.giorni) : ''}${escapeHtml(l.nome_luogo || 'Tappa')}</td><td>📍 ${renderStars(l.rating_luogo || 3)}<br>🏕️${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</td><td>${escapeHtml(l.note_luogo)}</td></tr>`;
       }).join('');
       return `<table class="luoghi-table"><thead><tr><th>📌 Luoghi</th><th>⭐ Valutazioni</th><th>📝 Note Luoghi</th></tr></thead><tbody>${righe}</tbody></table>`;
     }
