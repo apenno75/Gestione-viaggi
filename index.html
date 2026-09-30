@@ -40,6 +40,13 @@
     .calendar-tooltip { background: #0f172a; color: white; padding: 12px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-size: 12px; text-align: left; font-weight: normal; }
     .calendar-tooltip h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 14px; }
     .calendar-tooltip p { margin: 3px 0; }
+    .calendar-tooltip .luoghi-table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; margin: 6px 0; font-size: 11px; }
+    .calendar-tooltip .luoghi-table th { background: transparent; text-align: left; color: #38bdf8; font-size: 11px; padding: 4px 4px; border-bottom: 1px solid #475569; white-space: normal; overflow-wrap: anywhere; }
+    .calendar-tooltip .luoghi-table td { color: #e2e8f0; font-size: 11px; padding: 4px 4px; border-bottom: 1px solid #334155; vertical-align: top; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+    .calendar-tooltip .luoghi-table th:nth-child(1), .calendar-tooltip .luoghi-table td:nth-child(1) { width: 38%; }
+    .calendar-tooltip .luoghi-table th:nth-child(2), .calendar-tooltip .luoghi-table td:nth-child(2) { width: 27%; }
+    .calendar-tooltip .luoghi-table th:nth-child(3), .calendar-tooltip .luoghi-table td:nth-child(3) { width: 35%; }
+    .calendar-tooltip hr.tt-sep { border: 0; border-top: 1px solid #334155; margin: 8px 0; }
     .refuel-box { background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px solid #e2e8f0; }
     .trip-thumb { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid #cbd5e1; }
     .clickable-trip { cursor: pointer; transition: opacity 0.2s ease; }
@@ -716,6 +723,16 @@
       return `<span style="color: #94a3b8;">${txt}</span> `;
     }
 
+    // Luoghi, Valutazioni e Note Luoghi in una tabella a 3 colonne (una riga per luogo aggregato)
+    function luoghiTabellaHTML(tripItem, gruppiLuoghi, mostraDate) {
+      if (!gruppiLuoghi.length) return `<p>⭐ <strong>Valutazioni:</strong><br>Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}</p>`;
+      const righe = gruppiLuoghi.map(x => {
+        const l = x.l; const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
+        return `<tr><td>${mostraDate ? dateLuogoHTML(tripItem, x.giorni) : ''}${escapeHtml(l.nome_luogo || 'Tappa')}</td><td>${renderStars(l.rating_luogo || 3)}<br>🏕️${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</td><td>${escapeHtml(l.note_luogo)}</td></tr>`;
+      }).join('');
+      return `<table class="luoghi-table"><thead><tr><th>📌 Luoghi</th><th>⭐ Valutazioni</th><th>📝 Note Luoghi</th></tr></thead><tbody>${righe}</tbody></table>`;
+    }
+
     function getTripTooltipHTML(tripItem) {
       const notti = tripItem._nottiTot !== undefined ? tripItem._nottiTot : calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
       const camping = getCampingTotalFromTrip(tripItem);
@@ -726,13 +743,6 @@
       const totale = camping + pedaggi + carburante + extraLuoghi;
       const gruppiLuoghi = raggruppaLuoghiPerNome(tripItem.luoghi); const luoghiDisp = gruppiLuoghi.map(x => x.l);
 
-	  const ratingsText = (luoghiDisp || []).length > 0
-		? luoghiDisp.map(l => {
-			const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
-			return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`;
-		  }).join('<br>')
-		: `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
-
       const imageHtml = tripItem.foto_copertina ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` : '';
 		
       return `
@@ -741,11 +751,9 @@
           <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
           <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
 		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
-		  <p>---------------------------------------------------------------------------</p>
-          ${(luoghiDisp || []).length > 0 ? `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${gruppiLuoghi.map(x => dateLuogoHTML(tripItem, x.giorni) + escapeHtml(x.l.nome_luogo)).join('<BR>- ')}</p>` : ''}
-          <p font-size: 12px;>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
-		  <p font-size: 12px;>📝 <strong>Note Luoghi:</strong><BR> - ${luoghiDisp.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
-		  <p>---------------------------------------------------------------------------</p>
+		  <hr class="tt-sep">
+          ${luoghiTabellaHTML(tripItem, gruppiLuoghi, true)}
+		  <hr class="tt-sep">
 		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
