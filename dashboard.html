@@ -893,7 +893,15 @@
 <div style="width: 100%; text-align: center; padding: 10px; box-sizing: border-box;">
   <img src="https://apenno75.github.io/Gestione-viaggi/4ASSI-V2.jpg" alt="Schema 4 Assi" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; display: inline-block;">
   <p style="margin-top: 8px; font-size: 0.9rem; color: #64748b;">Ideato e realizzato da: Andrea</p>
-</div>  
+  <p id="app-version" style="margin-top: 2px; font-size: 0.8rem; color: #94a3b8;"></p>
+</div>
+<script>
+  // Numero di versione nel footer (letto da version.json, aggiornato in automatico da GitHub Actions)
+  fetch('version.json', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(v => { const el = document.getElementById('app-version'); if (el && v.version) el.textContent = `Versione ${v.version}` + (v.data ? ` · ${v.data}` : ''); })
+    .catch(() => {});
+</script>  
 </body>
 
 </html>
