@@ -214,7 +214,12 @@
     <div class="modal-content" style="max-width: 900px; width: 90%; max-height: 700px; height: auto;">
       <div class="flex-center" style="margin-bottom: 12px;">
         <h2 style="margin:0; font-size: 18px;">🗺️ Mappa dei Luoghi Visitati <span id="map-zoom-level" style="font-size: 14px; font-weight: normal; color: #64748b; margin-left: 6px;">(Zoom: -)</span></h2>
-        <button id="close-map-btn" class="btn-secondary btn-sm">Chiudi</button>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+          <select id="map-trip-filter" disabled style="padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; max-width: 260px;" title="Filtra le bandierine per viaggio">
+            <option value="all">Tutti</option>
+          </select>
+          <button id="close-map-btn" class="btn-secondary btn-sm">Chiudi</button>
+        </div>
       </div>
       <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
     </div>
@@ -328,6 +333,7 @@
     let currentCalendarDate = new Date();
     let map = null;
     let markersGroup = null;
+    let mapTripLayers = []; // [{ key, label, layers[] }] per il filtro viaggi della mappa
 
     function handleUrlParams() {
       const params = new URLSearchParams(window.location.search);
@@ -680,6 +686,33 @@
       }
     }
 
+    // Filtro viaggi: mostra solo le bandierine (e il tracciato) del viaggio selezionato, oppure tutte
+    function applyMapTripFilter() {
+      const sel = document.getElementById('map-trip-filter');
+      const value = sel ? sel.value : 'all';
+      markersGroup.clearLayers();
+      mapTripLayers.forEach(t => { if (value === 'all' || t.key === value) t.layers.forEach(l => markersGroup.addLayer(l)); });
+      if (markersGroup.getLayers().length > 0) {
+        if (value === 'all') {
+          map.fitBounds(markersGroup.getBounds().pad(0.2));
+          map.setZoom(5);
+        } else {
+          map.fitBounds(markersGroup.getBounds().pad(0.2), { maxZoom: 10 });
+        }
+      }
+      updateZoomDisplay();
+    }
+    document.getElementById('map-trip-filter').addEventListener('change', applyMapTripFilter);
+
+    function populateMapTripFilter() {
+      const sel = document.getElementById('map-trip-filter');
+      sel.innerHTML = '<option value="all">Tutti</option>';
+      mapTripLayers.slice().sort((a, b) => a.label.localeCompare(b.label, 'it')).forEach(t => {
+        const opt = document.createElement('option'); opt.value = t.key; opt.textContent = t.label; sel.appendChild(opt);
+      });
+      sel.value = 'all'; sel.disabled = false;
+    }
+
     async function initAndRenderMap() {
       if (!map) { 
         map = L.map('map-container').setView([41.9028, 12.5040], 5); 
@@ -688,6 +721,9 @@
       }
       updateZoomDisplay();
       if (markersGroup) markersGroup.clearLayers(); else markersGroup = L.featureGroup().addTo(map);
+      mapTripLayers = [];
+      const tripFilterSel = document.getElementById('map-trip-filter');
+      tripFilterSel.innerHTML = '<option value="all">Tutti</option>'; tripFilterSel.value = 'all'; tripFilterSel.disabled = true;
       try {
         const { data: settingsData } = await supabaseClient.from('camper_settings').select('user_id, nome_utente, colore_utente');
         const usersMap = {}; const userColorMap = {};
@@ -713,6 +749,7 @@
         const newCacheRows = [];
 
         for (const trip of trips) {
+          const tripLayers = [];
           const ownerName = usersMap[trip.user_id] || trip.autore_email || "Utente Anonimo";
           const ownerColor = userColorMap[trip.user_id] || '#dc2626';
           const luoghi = trip.luoghi || []; const latLngsForTrip = [];
@@ -762,10 +799,11 @@
                 fullOverlay.addEventListener('click', (e) => { if (e.target === fullOverlay) fullOverlay.remove(); });
                 document.body.appendChild(fullOverlay);
               });
-              markersGroup.addLayer(marker);
+              tripLayers.push(marker); markersGroup.addLayer(marker);
             }
           }
-          if (latLngsForTrip.length > 1) markersGroup.addLayer(L.polyline(latLngsForTrip, { color: '#dc2626', weight: 3, opacity: 0.8, dashArray: '5, 5' }));
+          if (latLngsForTrip.length > 1) { const line = L.polyline(latLngsForTrip, { color: '#dc2626', weight: 3, opacity: 0.8, dashArray: '5, 5' }); tripLayers.push(line); markersGroup.addLayer(line); }
+          if (tripLayers.length > 0) mapTripLayers.push({ key: String(trip.id ?? ('idx' + mapTripLayers.length)), label: `${trip.destinazione || 'Viaggio senza nome'} (${ownerName})`, layers: tripLayers });
         }
         // Salva nella cache condivisa le coordinate appena geocodificate: la prossima apertura della mappa,
         // da qualunque utente, non richiamerà più Nominatim per queste query
@@ -775,6 +813,7 @@
         }
 				
 		
+        populateMapTripFilter();
         if (markersGroup.getLayers().length > 0) { 
           map.fitBounds(markersGroup.getBounds().pad(0.2)); 
           if (map.getZoom() > 5) map.setZoom(5);
