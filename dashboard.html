@@ -333,6 +333,7 @@
     let currentCalendarDate = new Date();
     let map = null;
     let markersGroup = null;
+    let mapTripsPool = []; // tutti i viaggi caricati dalla mappa (per aggregare i viaggi omonimi nel tooltip)
     let mapTripLayers = []; // [{ key, label, layers[] }] per il filtro viaggi della mappa
 
     function handleUrlParams() {
@@ -406,32 +407,106 @@
 
     function renderStars(rating) { return '⭐'.repeat(parseInt(rating) || 0); }
 
-    function getTripTooltipHTML(tripItem) {
-      const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
+    // Unisce i luoghi con lo stesso nome (es. luoghi clonati su più giorni) in un solo elemento: [{ count, giorni, l }]
+    function raggruppaLuoghiPerNome(luoghi) {
+      const gruppi = new Map(); const giorniGruppi = new Map(); let senzaNome = 0; const gpl = giorniPerLuogo(luoghi);
+      (luoghi || []).forEach((lu, idx) => {
+        const nome = (lu.nome_luogo || '').trim().toLowerCase();
+        const key = nome ? nome : '__senza_nome_' + (senzaNome++);
+        if (!gruppi.has(key)) gruppi.set(key, []);
+        gruppi.get(key).push(lu);
+        giorniGruppi.set(key, (giorniGruppi.get(key) || []).concat(gpl[idx]));
+      });
+      const uniq = (arr) => [...new Set(arr.map(v => (v || '').toString().trim()).filter(Boolean))];
+      return [...gruppi.entries()].map(([gKey, items]) => {
+        const avg = (field) => { const v = items.map(i => parseInt(i[field])).filter(n => !isNaN(n)); return v.length ? Math.round(v.reduce((x, y) => x + y, 0) / v.length) : items[0][field]; };
+        return {
+          count: items.length,
+          giorni: [...new Set(giorniGruppi.get(gKey))].sort((a, b) => a - b),
+          l: Object.assign({}, items[0], {
+            tipologia: uniq(items.map(i => i.tipologia)).join(' / ') || items[0].tipologia,
+            nome_campeggio: uniq(items.map(i => i.nome_campeggio)).join(', '),
+            note_luogo: uniq(items.map(i => i.note_luogo)).join(' | '),
+            rating_luogo: avg('rating_luogo'),
+            rating_campeggio: avg('rating_campeggio'),
+            costi_extra: items.reduce((acc, i) => acc.concat(i.costi_extra || []), [])
+          })
+        };
+      });
+    }
+
+    // Unisce più viaggi con lo stesso Nome Viaggio in un unico elemento con totali sommati
+    function unisciViaggi(gruppo) {
+      const uniqStr = (arr) => [...new Set(arr.map(v => (v || '').toString().trim()).filter(Boolean))];
+      const note = uniqStr(gruppo.map(v => v.note_viaggio || v.note)).join(' | ');
+      return Object.assign({}, gruppo[0], {
+        data_partenza: gruppo.map(v => v.data_partenza).filter(Boolean).sort()[0],
+        data_arrivo: gruppo.map(v => v.data_arrivo).filter(Boolean).sort().slice(-1)[0],
+        _nottiTot: gruppo.reduce((sum, v) => sum + calculateNights(v.data_partenza, v.data_arrivo), 0),
+        chilometri: Math.round(gruppo.reduce((sum, v) => sum + (Number(v.chilometri) || 0), 0) * 10) / 10,
+        costo_pedaggi: gruppo.reduce((sum, v) => sum + (Number(v.costo_pedaggi) || 0), 0),
+        luoghi: gruppo.reduce((acc, v) => acc.concat(v.luoghi || []), []),
+        rifornimenti: gruppo.reduce((acc, v) => acc.concat(v.rifornimenti || []), []),
+        note: note, note_viaggio: note,
+        foto_copertina: (gruppo.find(v => v.foto_copertina) || {}).foto_copertina || null
+      });
+    }
+
+    // Come nell'Elenco Viaggi: i viaggi con lo stesso nome (e stesso autore) vengono mostrati come un unico viaggio aggregato
+    function aggregaViaggio(tripItem, tuttiIViaggi) {
+      const chiave = v => (v.destinazione || '').trim().toLowerCase();
+      if (!chiave(tripItem)) return tripItem;
+      const gruppo = (tuttiIViaggi || []).filter(v => v.user_id === tripItem.user_id && chiave(v) === chiave(tripItem));
+      return gruppo.length > 1 ? unisciViaggi(gruppo) : tripItem;
+    }
+
+    // Tooltip unico del viaggio (stesso layout dell'Elenco Viaggi di index.html), usato da Calendario e Mappa.
+    // opts.isOwner = false -> nasconde date, chilometri e costi (viaggio di un altro utente)
+    // opts.showAuthor = true -> mostra "Caricato da" / "Creato il" (usato dalla mappa)
+    function getTripTooltipHTML(tripItem, opts) {
+      const { isOwner = true, ownerName = '', showAuthor = false } = opts || {};
+      const notti = tripItem._nottiTot !== undefined ? tripItem._nottiTot : calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
       const camping = getCampingTotalFromTrip(tripItem);
       const pedaggi = Number(tripItem.costo_pedaggi || 0);
       const carburante = (tripItem.rifornimenti || []).reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0);
-      let extraLuoghi = 0; (tripItem.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0); });
+      let extraLuoghi = 0;
+      (tripItem.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0); });
       const totale = camping + pedaggi + carburante + extraLuoghi;
-	  const ratingsText = (tripItem.luoghi || []).length > 0 ? tripItem.luoghi.map(l => { const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : ''; return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`; }).join('<br>') : `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
+      const gruppiLuoghi = raggruppaLuoghiPerNome(tripItem.luoghi); const luoghiDisp = gruppiLuoghi.map(x => x.l);
+
+      const ratingsText = luoghiDisp.length > 0
+        ? luoghiDisp.map(l => {
+            const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : '';
+            return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`;
+          }).join('<br>')
+        : `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
+
       const imageHtml = tripItem.foto_copertina ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` : '';
-      return `
-        <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
-          ${imageHtml}
-          <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
-          <p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>
-		  <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
-		  <p>---------------------------------------------------------------------------</p>
-          ${(tripItem.luoghi || []).length > 0 ? `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>` : ''}
-          <p font-size: 12px;>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
-		  <p font-size: 12px;>📝 <strong>Note Luoghi:</strong><BR> - ${tripItem.luoghi.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p> 
-		  <p>---------------------------------------------------------------------------</p>
-		  <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
+      const autoreHtml = showAuthor
+        ? `<p style="color: #38bdf8; font-size: 12px;">👤 <strong>Caricato da:</strong> ${escapeHtml(ownerName || tripItem.autore_email || 'Utente Anonimo')}</p><p style="color: #38bdf8; font-size: 12px;">⏳ <strong>Creato il:</strong> ${escapeHtml(tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '')}</p>`
+        : '';
+      const dateHtml = isOwner ? `<p>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>` : '';
+      const luoghiHtml = luoghiDisp.length > 0 ? `<p>📌 <strong>Luoghi:</strong><BR> - ${gruppiLuoghi.map(x => (isOwner ? dateLuogoHTML(tripItem, x.giorni) : '') + escapeHtml(x.l.nome_luogo)).join('<BR>- ')}</p>` : '';
+      const costiHtml = isOwner ? `
+          <p>---------------------------------------------------------------------------</p>
+          <p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p>
           <p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p>
           <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${pedaggiTipiHTML(tripItem)}</p>
           <p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p>
-          <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>
+          <p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE: € ${totale.toFixed(2)}</strong></p>` : '';
+
+      return `
+        <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
+          ${imageHtml}
+          <h4>📍 ${escapeHtml(tripItem.destinazione)}</h4>
+          ${autoreHtml}
+          ${dateHtml}
+          <p>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>
+          <p>---------------------------------------------------------------------------</p>
+          ${luoghiHtml}
+          <p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p>
+          <p>📝 <strong>Note Luoghi:</strong><BR> - ${luoghiDisp.map(l => escapeHtml(l.note_luogo)).join('<BR>- ')}</p>${costiHtml}
         </div>
       `;
     }
@@ -538,34 +613,17 @@
       return `<span style="color: #94a3b8;">${txt}</span> `;
     }
 
+    // Tooltip della bandierina in mappa: stesso layout del tooltip viaggio; i viaggi di altri utenti non mostrano date e costi
     function getMapTooltipHTML(tripItem, user, ownerName) {
-		  const isOwner = (user && tripItem.user_id === user.id);
-		  const notti = calculateNights(tripItem.data_partenza, tripItem.data_arrivo);
-		  const camping = getCampingTotalFromTrip(tripItem);
-		  const pedaggi = Number(tripItem.costo_pedaggi || 0);
-		  const carburante = (tripItem.rifornimenti || []).length > 0 ? tripItem.rifornimenti.reduce((s, r) => s + Number(r.costo_sostenuto || 0), 0) : Number(tripItem.costo_carburante || 0);
-		  let extraLuoghi = 0; (tripItem.luoghi || []).forEach(l => { (l.costi_extra || []).forEach(c => extraLuoghi += parseFloat(c.valore) || 0); });
-		  const totale = camping + pedaggi + carburante + extraLuoghi;
-		  const ratingsText = (tripItem.luoghi || []).length > 0 ? tripItem.luoghi.map(l => { const campeggioNome = l.nome_campeggio ? ` (${escapeHtml(l.nome_campeggio)})` : ''; return `<span><strong>📍 ${escapeHtml(l.nome_luogo || 'Tappa')}:</strong> ${renderStars(l.rating_luogo || 3)} <BR>🏕️ ${campeggioNome} ${renderStars(l.rating_campeggio || 3)}</span>`; }).join('<br>') : `Rating ${renderStars(tripItem.rating_luogo || 3)} | 🏕️ ${renderStars(tripItem.rating_campeggio || 3)}`;
-		  const imageHtml = tripItem.foto_copertina ? `<img src="${tripItem.foto_copertina}" style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:8px;">` : '';
-		  const utenteAutore = ownerName || tripItem.autore_email || "Utente Anonimo";
-		  const TimeCreazione = tripItem.creato_il ? tripItem.creato_il.slice(0, 10) : '';
-		  let html = `<div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">${imageHtml}<h4>📍 ${escapeHtml(tripItem.destinazione)}</h4><p style="color: #38bdf8; font-size: 12px;">👤 <strong>Caricato da:</strong> ${escapeHtml(utenteAutore)}</p><p style="color: #38bdf8; font-size: 12px;">⏳ <strong>Creato il:</strong> ${escapeHtml(TimeCreazione)}</p>`;
-		  if (isOwner) html += `<p font-size: 12px;>📅 <strong>Date:</strong> ${formatDate(tripItem.data_partenza)} - ${formatDate(tripItem.data_arrivo)} <strong>(${notti} notti)</strong></p>`;
-		  if (tripItem.note_viaggio || tripItem.note) html += `<p font-size: 12px;>📝 <strong>Note Viaggio:</strong> ${escapeHtml(tripItem.note_viaggio || tripItem.note)}</p>`;
-		  html += `<p>---------------------------------------------------------------------------<br></p>`;
-		  if ((tripItem.luoghi || []).length > 0) { const gpl = giorniPerLuogo(tripItem.luoghi); html += `<p font-size: 12px;>📌 <strong>Luoghi:</strong><BR>- ${tripItem.luoghi.map((l, i) => (isOwner ? dateLuogoHTML(tripItem, gpl[i]) : '') + escapeHtml(l.nome_luogo)).join('<BR>- ')}</p>`; }
-		  if ((tripItem.luoghi || []).length > 0) { const noteLuoghi = tripItem.luoghi.filter(l => l.note_luogo && l.note_luogo.trim() !== '').map(l => `<span>- ${escapeHtml(l.nome_luogo || 'Luogo')}:</span> ${escapeHtml(l.note_luogo)}`); if (noteLuoghi.length > 0) html += `<p font-size: 12px;>📝 <strong>Note Luoghi:</strong><br><span>${noteLuoghi.join('<br>')}</span></p>`; }
-		  html += `<p>⭐ <strong>Valutazioni:</strong><br>${ratingsText}</p><p>---------------------------------------------------------------------------<br></p>`;
-		  if (isOwner) html += `<p>🛣️ <strong>Chilometri:</strong> ${tripItem.chilometri} km</p><p>🏕️ <strong>Camping Totale:</strong> € ${camping.toFixed(2)}</p><p>💰 <strong>Costi Extra:</strong> € ${extraLuoghi.toFixed(2)}</p><p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${pedaggiTipiHTML(tripItem)}</p><p>⛽ <strong>Carburante:</strong> € ${carburante.toFixed(2)}</p><p style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;"><strong>TOTALE SPESO: € ${totale.toFixed(2)}</strong></p>`;
-		  html += `</div>`; return html;
+      const isOwner = !!(user && tripItem.user_id === user.id);
+      return getTripTooltipHTML(aggregaViaggio(tripItem, mapTripsPool), { isOwner, ownerName, showAuthor: true });
     }
 
     function showTripTooltip(tripItem, parentElement, event) {
       if (event) event.stopPropagation();
       document.querySelectorAll('.map-full-overlay').forEach(el => el.remove());
       const fullOverlay = document.createElement('div'); fullOverlay.className = 'map-full-overlay';
-      fullOverlay.innerHTML = `<div class="map-full-overlay-content"><button class="map-full-overlay-close" title="Chiudi">&times;</button>${getTripTooltipHTML(tripItem)}</div>`;
+      fullOverlay.innerHTML = `<div class="map-full-overlay-content"><button class="map-full-overlay-close" title="Chiudi">&times;</button>${getTripTooltipHTML(aggregaViaggio(tripItem, viaggiList), { isOwner: true })}</div>`;
       fullOverlay.querySelector('.map-full-overlay-close').addEventListener('click', () => fullOverlay.remove());
       fullOverlay.addEventListener('click', (e) => { if (e.target === fullOverlay) fullOverlay.remove(); });
       document.body.appendChild(fullOverlay);
@@ -731,8 +789,9 @@
           if (s.user_id && s.nome_utente) usersMap[s.user_id] = s.nome_utente;
           if (s.user_id && s.colore_utente) userColorMap[s.user_id] = s.colore_utente;
         });
-        const { data: trips } = await supabaseClient.from('viaggi').select('*');
+        const { data: trips } = await supabaseClient.from('viaggi').select('*, rifornimenti(*)').order('data_partenza', { ascending: false });
         if (!trips || trips.length === 0) return;
+        mapTripsPool = trips;
 
         // Raccoglie tutte le query di geocoding necessarie (deduplicate) su tutti i viaggi
         const allQueries = new Set();
