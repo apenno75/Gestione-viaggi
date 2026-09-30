@@ -720,10 +720,11 @@
                   latLng = [parseFloat(results[0].lat), parseFloat(results[0].lon)];
                   cacheMap[query] = latLng; newCacheRows.push({ query, lat: latLng[0], lon: latLng[1] });
                 }
-              } catch (geoErr) { console.error("Errore geocodifica:", geoErr); }
+              } catch (geoErr) { console.error(`Errore geocodifica di "${query}":`, geoErr); }
               // Rispetta il limite di 1 richiesta/secondo imposto da Nominatim (solo per le query non ancora in cache)
               await new Promise(r => setTimeout(r, 1100));
             }
+            if (!latLng || !isFinite(latLng[0]) || !isFinite(latLng[1])) { console.warn(`Mappa: luogo "${query}" (viaggio "${trip.destinazione}", giorno ${g.primoGiorno}) non geocodificato, bandierina non disegnata.`); continue; }
             if (latLng) {
               latLngsForTrip.push(latLng);
               const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: ${ownerColor}; color: ${flagTextColor}; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: ${flagFontPx}px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${flagLabel}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
