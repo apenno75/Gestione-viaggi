@@ -520,9 +520,16 @@
     }
 
     // Tipi di pedaggio usati nei giorni del viaggio (senza duplicati)
+    // Pedaggi di un giorno: lista di { importo, tipo }. Compatibile con i vecchi dati (un solo pedaggio + tipo_pedaggio)
+    function getTollsGiorno(v) {
+      if (!v) return [];
+      if (Array.isArray(v.pedaggi_lista)) return v.pedaggi_lista.map(t => ({ importo: parseFloat(t.importo) || 0, tipo: t.tipo || '' })).filter(t => t.importo > 0);
+      const p = parseFloat(v.pedaggi) || 0;
+      return p > 0 ? [{ importo: p, tipo: v.tipo_pedaggio || '' }] : [];
+    }
     function getTipiPedaggioViaggio(tripItem) {
       const tipi = [];
-      (tripItem.luoghi || []).forEach(l => { if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; if ((parseFloat(v.pedaggi) || 0) > 0 && v.tipo_pedaggio && !tipi.includes(v.tipo_pedaggio)) tipi.push(v.tipo_pedaggio); }); });
+      (tripItem.luoghi || []).forEach(l => { if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { getTollsGiorno(l.dati_giorni[k]).forEach(t => { if (t.tipo && !tipi.includes(t.tipo)) tipi.push(t.tipo); }); }); });
       return tipi;
     }
     function pedaggiTipiHTML(tripItem) { const t = getTipiPedaggioViaggio(tripItem); return t.length ? ` (${t.map(escapeHtml).join(', ')})` : ''; }
@@ -543,12 +550,13 @@
     }
 
     function getDatiGiorno(tripItem, dayNum) {
-      let km = 0, pedaggi = 0, tipo = '';
+      let km = 0, tolls = [];
       (tripItem.luoghi || []).forEach(l => {
-        if (l.dati_giorni && l.dati_giorni[dayNum]) { km = parseFloat(l.dati_giorni[dayNum].km) || 0; pedaggi = parseFloat(l.dati_giorni[dayNum].pedaggi) || 0; tipo = l.dati_giorni[dayNum].tipo_pedaggio || ''; }
-        else if (parseInt(l.giorno) === dayNum && (l.km_giorno || l.pedaggi_giorno)) { km += parseFloat(l.km_giorno) || 0; pedaggi += parseFloat(l.pedaggi_giorno) || 0; }
+        if (l.dati_giorni && l.dati_giorni[dayNum]) { km = parseFloat(l.dati_giorni[dayNum].km) || 0; tolls = getTollsGiorno(l.dati_giorni[dayNum]); }
+        else if (parseInt(l.giorno) === dayNum && (l.km_giorno || l.pedaggi_giorno)) { km += parseFloat(l.km_giorno) || 0; const p = parseFloat(l.pedaggi_giorno) || 0; if (p > 0) tolls.push({ importo: p, tipo: '' }); }
       });
-      return { km, pedaggi, tipo };
+      const pedaggi = tolls.reduce((t, x) => t + x.importo, 0);
+      return { km, pedaggi, tipo: (tolls[0] && tolls[0].tipo) || '', tolls };
     }
 
     function getDayTooltipHTML(tripItem, dateStr) {
@@ -556,7 +564,7 @@
       const dayNum = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y0, m0 - 1, d0)) / 86400000) + 1;
       const totGiorni = calculateNights(tripItem.data_partenza, tripItem.data_arrivo) + 1;
       const luoghi = getLuoghiDelGiorno(tripItem, dayNum);
-      const { km, pedaggi, tipo } = getDatiGiorno(tripItem, dayNum);
+      const { km, pedaggi, tolls } = getDatiGiorno(tripItem, dayNum);
       const camping = luoghi.reduce((t, l) => t + (parseFloat(l.costo_giornaliero) || 0) * (parseInt(l.notti) || 0), 0);
       const extraList = []; luoghi.forEach(l => (l.costi_extra || []).forEach(c => extraList.push({ valore: parseFloat(c.valore) || 0, categoria: c.categoria || '', nome: c.nome || '', luogo: c.luogo || l.nome_luogo || '', note: c.note || '' })));
       const extraTot = extraList.reduce((t, c) => t + c.valore, 0);
@@ -565,6 +573,7 @@
       const totale = camping + pedaggi + extraTot + carburante;
       const luoghiHtml = luoghi.length > 0 ? luoghi.map(l => `<p>📌 <strong>${escapeHtml(l.nome_luogo || 'Tappa')}</strong> ${renderStars(l.rating_luogo || 3)}${l.nome_campeggio ? `<br>🏕️ ${escapeHtml(l.nome_campeggio)} ${renderStars(l.rating_campeggio || 3)}` : ''}${l.note_luogo ? `<br>📝 ${escapeHtml(l.note_luogo)}` : ''}</p>`).join('') : `<p style="color:#94a3b8;">Nessun luogo inserito per questo giorno.</p>`;
       const extraHtml = extraList.length > 0 ? `<div style="margin:2px 0 4px 12px;">${extraList.map(c => `<p>• € ${c.valore.toFixed(2)} — ${escapeHtml([c.categoria, c.nome].filter(Boolean).join(' · ') || 'Extra')}${c.luogo ? ` (${escapeHtml(c.luogo)})` : ''}${c.note ? `<br><span style="color:#94a3b8;">${escapeHtml(c.note)}</span>` : ''}</p>`).join('')}</div>` : '';
+      const tollsHtml = tolls.length > 0 ? `<div style="margin:2px 0 4px 12px;">${tolls.map(t => `<p>• € ${t.importo.toFixed(2)}${t.tipo ? ` — ${escapeHtml(t.tipo)}` : ''}</p>`).join('')}</div>` : '';
       const fuelHtml = rifList.length > 0 ? `<div style="margin:2px 0 4px 12px;">${rifList.map(r => `<p>• ${(parseFloat(r.litri) || 0).toFixed(2)} L — € ${(Number(r.costo_sostenuto) || 0).toFixed(2)}</p>`).join('')}</div>` : '';
       return `
         <div class="calendar-tooltip" style="box-shadow: none; padding: 4px;">
@@ -574,7 +583,7 @@
           ${luoghiHtml}
           <p>---------------------------------------------------------------------------</p>
           <p>🛣️ <strong>Chilometri:</strong> ${km} km</p>
-          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}${tipo && pedaggi > 0 ? ` (${escapeHtml(tipo)})` : ''}</p>
+          <p>💶 <strong>Pedaggi:</strong> € ${pedaggi.toFixed(2)}</p>${tollsHtml}
           <p>🏕️ <strong>Camping:</strong> € ${camping.toFixed(2)}</p>
           <p>💰 <strong>Costi Extra:</strong> € ${extraTot.toFixed(2)}</p>${extraHtml}
           <p>⛽ <strong>Rifornimenti:</strong> € ${carburante.toFixed(2)}</p>${fuelHtml || (rifList.length === 0 ? '<p style="margin-left:12px; color:#94a3b8;">Nessun rifornimento in questo giorno.</p>' : '')}
@@ -698,8 +707,7 @@
       const totGiorni = calculateNights(tripItem.data_partenza, tripItem.data_arrivo) + 1;
       const tolls = [];
       for (let dayNum = 1; dayNum <= totGiorni; dayNum++) {
-        const { pedaggi, tipo } = getDatiGiorno(tripItem, dayNum);
-        if (pedaggi > 0) tolls.push({ data: getDateOfTripDay(tripItem, dayNum), valore: pedaggi, tipo: tipo || '-' });
+        getDatiGiorno(tripItem, dayNum).tolls.forEach(t => tolls.push({ data: getDateOfTripDay(tripItem, dayNum), valore: t.importo, tipo: t.tipo || '-' }));
       }
       if (tolls.length === 0) tollDetailTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Nessun pedaggio inserito.</td></tr>`;
       else tolls.forEach(t => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${t.data ? formatDate(t.data) : '-'}</td><td><strong>€ ${t.valore.toFixed(2)}</strong></td><td>${escapeHtml(t.tipo)}</td>`; tollDetailTableBody.appendChild(tr); });

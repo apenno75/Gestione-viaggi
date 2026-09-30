@@ -895,16 +895,21 @@
     luoghiListContainer.addEventListener('click', (e) => {
       const addL = e.target.closest('.add-luogo-day-btn');
       if (addL) { addLuogoToDay(parseInt(addL.dataset.day)); return; }
+      const addT = e.target.closest('.add-toll-day-btn');
+      if (addT) { addTollToDay(parseInt(addT.dataset.day)); return; }
+      const remT = e.target.closest('.remove-toll-btn');
+      if (remT) { removeTollFromDay(parseInt(remT.dataset.day), parseInt(remT.dataset.idx)); return; }
       const addR = e.target.closest('.add-refuel-day-btn');
       if (addR) { addRefuelToDay(parseInt(addR.dataset.day)); }
     });
 
     luoghiListContainer.addEventListener('input', (e) => {
-      if (e.target.classList.contains('day-pedaggi-input')) {
-        const tipoSel = luoghiListContainer.querySelector(`.day-pedaggi-tipo[data-day="${e.target.dataset.day}"]`);
+      if (e.target.classList.contains('day-toll-importo')) {
+        const tipoSel = e.target.closest('.day-toll-row').querySelector('.day-toll-tipo');
         if (tipoSel) tipoSel.style.display = (parseFloat(e.target.value) || 0) > 0 ? '' : 'none';
+        updateTotaliDaGiorni(); return;
       }
-      if (e.target.classList.contains('day-km-input') || e.target.classList.contains('day-pedaggi-input')) { updateTotaliDaGiorni(); return; }
+      if (e.target.classList.contains('day-km-input')) { updateTotaliDaGiorni(); return; }
       if (!e.target.classList.contains('day-rif-costo')) return;
       const costo = parseFloat(e.target.value) || 0;
       const litri = camperSettings.costoCarburante > 0 ? (costo / camperSettings.costoCarburante) : 0;
@@ -984,26 +989,72 @@
     function tipoPedaggioOptionsHTML(sel, allowBlank) {
       return (allowBlank ? `<option value="" ${!sel ? 'selected' : ''}>—</option>` : '') + TIPI_PEDAGGIO.map(t => `<option value="${t}" ${sel === t ? 'selected' : ''}>${t}</option>`).join('');
     }
+    // Pedaggi di un giorno: lista di { importo, tipo }. Compatibile con i vecchi dati (un solo pedaggio + tipo_pedaggio)
+    function getTollsGiorno(v) {
+      if (!v) return [];
+      if (Array.isArray(v.pedaggi_lista)) return v.pedaggi_lista.map(t => ({ importo: parseFloat(t.importo) || 0, tipo: t.tipo || '' })).filter(t => t.importo > 0);
+      const p = parseFloat(v.pedaggi) || 0;
+      return p > 0 ? [{ importo: p, tipo: v.tipo_pedaggio || '' }] : [];
+    }
+    function sommaPedaggi(tolls) {
+      return Math.round((tolls || []).reduce((t, x) => t + Math.max(parseFloat(x.importo) || 0, 0), 0) * 100) / 100;
+    }
     // Tipi di pedaggio usati nei giorni del viaggio (senza duplicati)
     function getTipiPedaggioViaggio(tripItem) {
       const tipi = [];
-      (tripItem.luoghi || []).forEach(l => { if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; if ((parseFloat(v.pedaggi) || 0) > 0 && v.tipo_pedaggio && !tipi.includes(v.tipo_pedaggio)) tipi.push(v.tipo_pedaggio); }); });
+      (tripItem.luoghi || []).forEach(l => { if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { getTollsGiorno(l.dati_giorni[k]).forEach(t => { if (t.tipo && !tipi.includes(t.tipo)) tipi.push(t.tipo); }); }); });
       return tipi;
     }
     function pedaggiTipiHTML(tripItem) { const t = getTipiPedaggioViaggio(tripItem); return t.length ? ` (${t.map(escapeHtml).join(', ')})` : ''; }
+
+    function tollsFromLegacy(g) {
+      const p = parseFloat(g && g.pedaggi) || 0;
+      return p > 0 ? [{ importo: p, tipo: (g && g.tipo_pedaggio) || '' }] : [];
+    }
+
+    // Disegna l'elenco dei pedaggi di un singolo giorno (sempre almeno una riga)
+    function renderTollsDay(d) {
+      const cont = luoghiListContainer.querySelector(`.day-tolls-list[data-day="${d}"]`); if (!cont) return;
+      const g = tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
+      if (!Array.isArray(g.tolls)) g.tolls = tollsFromLegacy(g);
+      if (g.tolls.length === 0) g.tolls.push({ importo: '', tipo: 'Autostrada' });
+      cont.innerHTML = g.tolls.map((t, i) => {
+        const has = (parseFloat(t.importo) || 0) > 0;
+        const val = (t.importo === '' || t.importo == null) ? '' : t.importo;
+        return `<div class="day-toll-row" style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;"><input type="number" min="0" step="0.01" class="day-toll-importo" value="${val}" placeholder="0.00" style="flex: 1; min-width: 0;"><select class="day-toll-tipo" style="flex: 1; min-width: 0;${has ? '' : ' display: none;'}">${tipoPedaggioOptionsHTML(t.tipo, has && !t.tipo)}</select><button type="button" class="btn-danger btn-sm remove-toll-btn" data-day="${d}" data-idx="${i}" title="Rimuovi pedaggio" style="flex: 0 0 auto;">✕</button></div>`;
+      }).join('');
+    }
+    function addTollToDay(d) {
+      syncGiorniFromDOM();
+      const g = tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0, tolls: [] };
+      g.tolls = g.tolls || [];
+      g.tolls.push({ importo: '', tipo: 'Autostrada' });
+      renderTollsDay(d);
+      const rows = luoghiListContainer.querySelectorAll(`.day-tolls-list[data-day="${d}"] .day-toll-importo`);
+      if (rows.length) rows[rows.length - 1].focus();
+    }
+    function removeTollFromDay(d, idx) {
+      syncGiorniFromDOM();
+      const g = tempGiorni[d]; if (!g || !g.tolls) return;
+      g.tolls.splice(idx, 1);
+      renderTollsDay(d);
+      updateTotaliDaGiorni();
+    }
 
     function syncGiorniFromDOM() {
       luoghiListContainer.querySelectorAll('.day-km-input').forEach(inp => {
         const d = inp.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
         tempGiorni[d].km = parseFloat(inp.value) || 0;
       });
-      luoghiListContainer.querySelectorAll('.day-pedaggi-input').forEach(inp => {
-        const d = inp.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
-        tempGiorni[d].pedaggi = parseFloat(inp.value) || 0;
-      });
-      luoghiListContainer.querySelectorAll('.day-pedaggi-tipo').forEach(sel => {
-        const d = sel.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
-        tempGiorni[d].tipo_pedaggio = sel.value;
+      luoghiListContainer.querySelectorAll('.day-tolls-list').forEach(cont => {
+        const d = cont.dataset.day; tempGiorni[d] = tempGiorni[d] || { km: 0, pedaggi: 0 };
+        const tolls = [];
+        cont.querySelectorAll('.day-toll-row').forEach(row => {
+          const imp = parseFloat(row.querySelector('.day-toll-importo').value);
+          tolls.push({ importo: isNaN(imp) ? '' : imp, tipo: row.querySelector('.day-toll-tipo').value });
+        });
+        tempGiorni[d].tolls = tolls;
+        tempGiorni[d].pedaggi = sommaPedaggi(tolls);
       });
     }
 
@@ -1024,9 +1075,11 @@
       tempLuoghi.forEach(l => { delete l.km_giorno; delete l.pedaggi_giorno; delete l.dati_giorni; });
       const mappa = {};
       for (let d = 1; d <= getNumeroGiorni(); d++) {
-        const g = tempGiorni[d]; if (!g || (!g.km && !g.pedaggi)) continue;
-        mappa[d] = { km: g.km || 0, pedaggi: g.pedaggi || 0 };
-        if (g.pedaggi && g.tipo_pedaggio) mappa[d].tipo_pedaggio = g.tipo_pedaggio;
+        const g = tempGiorni[d]; if (!g) continue;
+        const tolls = (Array.isArray(g.tolls) ? g.tolls : tollsFromLegacy(g)).map(t => ({ importo: parseFloat(t.importo) || 0, tipo: t.tipo || '' })).filter(t => t.importo > 0);
+        if (!g.km && tolls.length === 0) continue;
+        mappa[d] = { km: g.km || 0, pedaggi: sommaPedaggi(tolls) };
+        if (tolls.length) { mappa[d].pedaggi_lista = tolls; if (tolls[0].tipo) mappa[d].tipo_pedaggio = tolls[0].tipo; }
       }
       if (Object.keys(mappa).length > 0 && tempLuoghi.length > 0) tempLuoghi[0].dati_giorni = mappa;
       applyNottiToLuoghi();
@@ -1064,7 +1117,7 @@
           <div class="day-body">
           <div class="flex flex-mobile-col" style="gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             <div style="flex: 1 1 150px;"><label>🛣️ Km percorsi nel giorno</label><input type="number" min="0" step="0.1" class="day-km-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].km) || ''}" placeholder="0"></div>
-            <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div style="display: flex; gap: 6px;"><input type="number" min="0" step="0.01" class="day-pedaggi-input" data-day="${d}" value="${(tempGiorni[d] && tempGiorni[d].pedaggi) || ''}" placeholder="0.00" style="flex: 1; min-width: 0;"><select class="day-pedaggi-tipo" data-day="${d}" style="flex: 1; min-width: 0;${(tempGiorni[d] && tempGiorni[d].pedaggi > 0) ? '' : ' display: none;'}">${tipoPedaggioOptionsHTML(tempGiorni[d] ? tempGiorni[d].tipo_pedaggio : 'Autostrada', !!(tempGiorni[d] && tempGiorni[d].pedaggi && !tempGiorni[d].tipo_pedaggio))}</select></div></div>
+            <div style="flex: 2 1 280px;"><label>💶 Pedaggi pagati nel giorno (€)</label><div class="day-tolls-list" data-day="${d}"></div><button type="button" class="btn-info btn-sm add-toll-day-btn" data-day="${d}">+ Aggiungi Pedaggio</button></div>
           </div>
           <div class="flex-center" style="margin-bottom: 10px;">
             <label style="color: #0f172a; font-size: 14px; margin: 0; font-weight: 700;">📍 Luoghi del Giorno (Collegati)<br><small style="font-weight: 400; color: #64748b;">${d < nDays ? "🌙 Il pernottamento è assegnato al luogo con costo €/notte maggiore di 0" : "🏁 Giorno di ritorno: nessun pernottamento"}</small></label>
@@ -1107,6 +1160,7 @@
         applyDayState();
         luoghiListContainer.appendChild(block);
         dayLuoghiContainers[d] = block.querySelector('.day-luoghi');
+        renderTollsDay(d);
       }
 
       const dayCount = {};
@@ -1357,7 +1411,7 @@
       const item = viaggiList.find(v => v.id === id); if (!item) return;
       viaggioIdInput.value = item.id; destinazioneInput.value = item.destinazione || ''; dataPartenzaInput.value = item.data_partenza || ''; dataArrivoInput.value = item.data_arrivo || ''; chilometriInput.value = item.chilometri || 0; costoPedaggiInput.value = item.costo_pedaggi || 0; noteViaggioInput.value = item.note || item.note_viaggio || '';
       if (item.foto_copertina) { fotoCopertinaBase64.value = item.foto_copertina; fotoPreview.src = item.foto_copertina; previewContainer.classList.remove('hidden'); } else { fotoCopertinaBase64.value = ''; fotoPreview.src = ''; previewContainer.classList.add('hidden'); }
-      expandedDays.clear(); luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: parseFloat(v.pedaggi) || 0, tipo_pedaggio: v.tipo_pedaggio || '' }; }); });
+      expandedDays.clear(); luoghiListContainer.innerHTML = ''; tempLuoghi = item.luoghi ? JSON.parse(JSON.stringify(item.luoghi)) : []; tempRefuelings = item.rifornimenti ? JSON.parse(JSON.stringify(item.rifornimenti)) : []; tempGiorni = {}; tempLuoghi.forEach(l => { const g = parseInt(l.giorno); if (g >= 1 && (l.km_giorno || l.pedaggi_giorno)) tempGiorni[g] = { km: parseFloat(l.km_giorno) || 0, pedaggi: parseFloat(l.pedaggi_giorno) || 0 }; if (l.dati_giorni) Object.keys(l.dati_giorni).forEach(k => { const v = l.dati_giorni[k] || {}; const tl = getTollsGiorno(v); tempGiorni[k] = { km: parseFloat(v.km) || 0, pedaggi: sommaPedaggi(tl), tolls: tl }; }); });
       renderLuoghi(); renderRefuelTable(); updateFormCalculations();
       formTitle.textContent = 'Modifica Viaggio'; showWizardStep(1); viaggioFormContainer.classList.remove('hidden'); viaggiModal.classList.add('hidden'); cancelEditBtn.classList.remove('hidden'); window.scrollTo(0, 0);
     };
