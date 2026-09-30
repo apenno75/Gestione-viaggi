@@ -708,6 +708,7 @@
             const multiGiorno = g.giorni.size > 1;
             const flagLabel = multiGiorno ? g.notti : g.primoGiorno;
             const flagFontPx = multiGiorno ? 9 : 11;
+            const flagTextColor = multiGiorno ? '#374151' : 'white'; // notti: grigio; giorno: bianco
             const flagTitle = multiGiorno ? `${g.notti} ${g.notti === 1 ? 'notte' : 'notti'}` : `Giorno ${g.primoGiorno}`;
             if (!query) continue;
             let latLng = cacheMap[query] || null;
@@ -725,7 +726,7 @@
             }
             if (latLng) {
               latLngsForTrip.push(latLng);
-              const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: ${ownerColor}; color: white; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: ${flagFontPx}px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${flagLabel}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
+              const customIcon = L.divIcon({ className: 'custom-flag-marker', html: `<div style="position: relative; width: 30px; height: 36px; display: flex; align-items: flex-start; justify-content: flex-start;"><div style="width: 3px; height: 36px; background-color: #333; position: absolute; left: 4px; top: 0; border-radius: 1px;"></div><div style="position: absolute; left: 7px; top: 2px; background-color: ${ownerColor}; color: ${flagTextColor}; width: 22px; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: ${flagFontPx}px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${flagLabel}</div></div>`, iconSize: [30, 36], iconAnchor: [4, 36] });
               const marker = L.marker(latLng, { icon: customIcon, title: flagTitle });
               marker.on('click', () => {
                 const fullOverlay = document.createElement('div'); fullOverlay.className = 'map-full-overlay';
